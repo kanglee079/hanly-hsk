@@ -1,0 +1,72 @@
+---
+description: HanLy iOS Frontend Rules — GetX, Clean UI, No Scope Creep
+globs: ["app/**", "lib/**", "ios/**", "pubspec.yaml"]
+alwaysApply: true
+---
+
+# Absolute constraints
+- FRONTEND ONLY. Do NOT edit /backend.
+- iOS-first. Avoid Android-only features/flows. (Android folder may exist but no Android-specific instructions.)
+- State management: GetX only. Local storage: GetStorage only.
+- Networking: Dio only, with interceptors for auth and refresh.
+- UI must be premium, clean, calm. Consistent spacing, typography, colors, shadows. Reusable components. No clutter.
+- Do not add any features beyond the defined screens and flows.
+- Must follow the implementation order provided in the prompt (no skipping ahead).
+- Keep code modular, editable, scalable. No business logic in Widgets; Controllers orchestrate; Services do IO.
+- Do not hardcode API baseUrl; read from --dart-define=API_BASE_URL with fallback in AppConfig.
+
+# App identity (must set)
+- App name: "Học Tiếng Trung HSK – HanLy"
+- Bundle ID: com.hanly.hoctiengtrunghsk
+- iOS only.
+
+# Backend integration (must match existing BE)
+- Use existing endpoints:
+  /health
+  /auth/request-link (POST)
+  /auth/verify-link (GET?token=)
+  /auth/refresh (POST)
+  /auth/logout (POST)
+  /me (GET), /me/profile (PUT), /me (DELETE)
+  /vocabs, /vocabs/search, /vocabs/:id, /vocabs/meta/topics, /vocabs/meta/types
+  /today, /review/answer, /session/finish
+  /favorites (GET), /favorites/:vocabId (POST/DELETE)
+  /decks (CRUD), /decks/:id/add/:vocabId, /decks/:id/remove/:vocabId
+
+# Core IA: EXACT 4 tabs
+1) Today
+2) Learn
+3) Explore
+4) Me
+
+# Core learning session: one unified flow (5 steps)
+1) Guess (image/meaning)
+2) Audio (normal/slow)
+3) Hanzi DNA (radical/components/strokes + mnemonic)
+4) Context (collocations + examples)
+5) Quick Quiz (MCQ)
+Modes are presets only (do not create multiple complex separate flows).
+
+# Required screens
+- Splash (like image)
+- Auth: Email magic link flow (Send link -> Check email screen -> Enter token manually -> Verify)
+  - UI may show Apple/Google buttons as disabled placeholders with "Coming soon" (NO implementation yet).
+- Onboarding (goal, current level, daily minutes, focus skills)
+- Shell with bottom nav (4 tabs)
+- Today home (progress ring, streak card, actions: Learn New, Review, 30s Game, Due Today list)
+- Explore (search + chips + filter sheet + list item cards + quick actions)
+- Word Detail (sections, accordions)
+- Session flow (unified 5 steps) + rating again/hard/good/easy on review
+- Favorites list
+- Decks list + deck detail
+- Me/Account (profile, logout, delete account)
+- Settings (stubs: privacy/terms placeholders only)
+- Premium screen (UI only; must not lock features; only describes benefits)
+
+# Design system requirements
+- Central design tokens: colors, typography, radius, spacing, shadow, animation durations.
+- All text styles must come from a single TextTheme file.
+- All colors from a single AppColors file.
+- Use reusable components: AppScaffold, HMAppBar, HMButton, HMCard, HMChip, HMTextField,
+  HMSegmentedChips, HMProgressRing, HMAudioMiniPlayer, HMStepIndicator, HMSkeleton, HMEmptyState,
+  HMToast (Get.snackbar wrapper).

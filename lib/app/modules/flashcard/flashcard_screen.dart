@@ -1,0 +1,873 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_typography.dart';
+import '../../core/widgets/widgets.dart';
+import '../../data/models/vocab_model.dart';
+import 'flashcard_controller.dart';
+
+/// Flashcard Screen with beautiful 3D flip animation
+class FlashcardScreen extends GetView<FlashcardController> {
+  const FlashcardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AppScaffold(
+      appBar: HMAppBar(
+        showBackButton: true,
+        onBackPressed: controller.goBack,
+        titleWidget: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'ÔN TẬP NHANH',
+              style: AppTypography.labelSmall.copyWith(
+                color: (isDark ? Colors.white : AppColors.textTertiary)
+                    .withValues(alpha: 0.7),
+                letterSpacing: 1.2,
+                fontSize: 10,
+              ),
+            ),
+            Text(
+              'Flashcards',
+              style: AppTypography.titleMedium.copyWith(
+                color: isDark ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Obx(() {
+            if (controller.vocabs.isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${controller.currentIndex.value + 1}/${controller.vocabs.length}',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    const Color(0xFF1A1A2E),
+                    const Color(0xFF16213E),
+                    const Color(0xFF0F3460),
+                  ]
+                : [
+                    const Color(0xFFF8FAFC),
+                    const Color(0xFFE0F2FE),
+                    const Color(0xFFBAE6FD),
+                  ],
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return _buildLoadingState(isDark);
+            }
+
+            if (controller.vocabs.isEmpty) {
+              return _buildEmptyState(isDark);
+            }
+
+            if (controller.hasFinished.value) {
+              return _buildFinishedState(isDark);
+            }
+
+            return _buildFlashcardContent(context, isDark);
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDark ? Colors.white : AppColors.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Đang tải thẻ từ...',
+            style: AppTypography.bodyMedium.copyWith(
+              color: isDark ? Colors.white70 : AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.style_outlined,
+                size: 48,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Chưa có từ nào',
+              style: AppTypography.titleMedium.copyWith(
+                color: isDark ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Hãy học thêm từ mới để sử dụng tính năng thẻ từ nhé!',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: isDark ? Colors.white70 : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 48),
+              child: HMButton(
+                text: 'Quay lại',
+                onPressed: controller.goBack,
+                variant: HMButtonVariant.outline,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFinishedState(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Celebration animation
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                          blurRadius: 24,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Hoàn thành! 🎉',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isDark ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Bạn đã xem hết ${controller.vocabs.length} thẻ từ',
+              style: AppTypography.bodyMedium.copyWith(
+                color: isDark ? Colors.white70 : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 48),
+            // Action buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildFinishButton(
+                      icon: Icons.refresh_rounded,
+                      label: 'Xem lại',
+                      onTap: controller.restart,
+                      isDark: isDark,
+                      isPrimary: false,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildFinishButton(
+                      icon: Icons.check_circle_outline_rounded,
+                      label: 'Hoàn tất',
+                      onTap: controller.goBack,
+                      isDark: isDark,
+                      isPrimary: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlashcardContent(BuildContext context, bool isDark) {
+    return Column(
+      children: [
+        // Progress bar
+        Obx(() => _buildProgressBar(isDark)),
+
+        const SizedBox(height: 24),
+
+        // Flashcard
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Obx(() => _buildFlashcard(context, isDark)),
+          ),
+        ),
+
+        const SizedBox(height: 32),
+
+        // Navigation controls (only prev/next)
+        _buildControls(context, isDark),
+
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  Widget _buildProgressBar(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          // Progress dots
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(controller.vocabs.length, (index) {
+              final isActive = index == controller.currentIndex.value;
+              final isPast = index < controller.currentIndex.value;
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: isActive ? 24 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? AppColors.primary
+                      : isPast
+                          ? AppColors.primary.withValues(alpha: 0.5)
+                          : (isDark ? Colors.white24 : Colors.black12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlashcard(BuildContext context, bool isDark) {
+    final vocab = controller.currentVocab;
+    if (vocab == null) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        controller.flipCard();
+      },
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity != null) {
+          if (details.primaryVelocity! < -300) {
+            // Swipe left -> next
+            HapticFeedback.lightImpact();
+            controller.nextCard();
+          } else if (details.primaryVelocity! > 300) {
+            // Swipe right -> previous
+            HapticFeedback.lightImpact();
+            controller.previousCard();
+          }
+        }
+      },
+      child: Obx(() {
+        final isFlipped = controller.isFlipped.value;
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: isFlipped ? 1 : 0),
+          duration: const Duration(milliseconds: 750),
+          curve: Curves.easeInOutCubic,
+          builder: (context, value, child) {
+            // Determine which side to show based on flip progress
+            final showBack = value >= 0.5;
+            final angle = value * math.pi;
+            
+            return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateY(angle),
+              child: showBack
+                  ? Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()..rotateY(math.pi),
+                      child: _buildCardBack(vocab, isDark),
+                    )
+                  : _buildCardFront(vocab, isDark),
+            );
+          },
+        );
+      }),
+    );
+  }
+
+  Widget _buildCardFront(VocabModel vocab, bool isDark) {
+    return Container(
+      key: const ValueKey('front'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark 
+              ? Colors.white.withValues(alpha: 0.1) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Level badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              vocab.level,
+              style: AppTypography.labelSmall.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Hanzi - Main character
+          Text(
+            vocab.hanzi,
+            style: TextStyle(
+              fontFamily: 'NotoSansSC',
+              fontSize: 80,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+              height: 1.1,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Pinyin
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              vocab.pinyin,
+              style: AppTypography.titleMedium.copyWith(
+                color: AppColors.secondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          // Tap hint with flip icon
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.flip_rounded,
+                  size: 18,
+                  color: isDark ? Colors.white38 : AppColors.textTertiary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Chạm để lật thẻ',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: isDark ? Colors.white38 : AppColors.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardBack(VocabModel vocab, bool isDark) {
+    return Container(
+      key: const ValueKey('back'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1E40AF), const Color(0xFF3730A3)]
+              : [const Color(0xFF3B82F6), const Color(0xFF6366F1)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 32,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with Hanzi and audio
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        vocab.hanzi,
+                        style: const TextStyle(
+                          fontFamily: 'NotoSansSC',
+                          fontSize: 36,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        vocab.pinyin,
+                        style: AppTypography.titleSmall.copyWith(
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Audio buttons
+                Column(
+                  children: [
+                    _buildAudioButton(
+                      icon: Icons.volume_up_rounded,
+                      label: 'Nghe',
+                      onTap: () => controller.playAudio(),
+                    ),
+                    const SizedBox(height: 8),
+                    // _buildAudioButton(
+                    //   icon: Icons.slow_motion_video_rounded,
+                    //   label: 'Chậm',
+                    //   onTap: () => controller.playAudio(slow: true),
+                    // ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Meaning section
+            _buildDetailSection(
+              icon: Icons.translate_rounded,
+              title: 'Nghĩa',
+              content: vocab.meaningVi,
+            ),
+
+            // Word type
+            if (vocab.wordType != null && vocab.wordType!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildDetailSection(
+                icon: Icons.category_outlined,
+                title: 'Loại từ',
+                content: vocab.wordType!,
+              ),
+            ],
+
+            // Mnemonic
+            if (vocab.mnemonic != null && vocab.mnemonic!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildDetailSection(
+                icon: Icons.lightbulb_outline_rounded,
+                title: 'Mẹo nhớ',
+                content: vocab.mnemonic!,
+              ),
+            ],
+
+            // Examples
+            if (vocab.examples.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildDetailSection(
+                icon: Icons.format_quote_rounded,
+                title: 'Ví dụ',
+                content: vocab.examples.first.hanzi,
+                subContent: vocab.examples.first.meaningVi,
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            // Tap hint
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.touch_app_outlined,
+                    size: 20,
+                    color: Colors.white38,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Chạm để lật lại',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Colors.white38,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAudioButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppTypography.labelSmall.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailSection({
+    required IconData icon,
+    required String title,
+    required String content,
+    String? subContent,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: Colors.white70),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: AppTypography.labelSmall.copyWith(
+                  color: Colors.white70,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            content,
+            style: AppTypography.bodyLarge.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          if (subContent != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subContent,
+              style: AppTypography.bodySmall.copyWith(
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControls(BuildContext context, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 48),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Previous button
+          Obx(() => _buildControlButton(
+                icon: Icons.arrow_back_rounded,
+                label: 'Trước',
+                onTap: controller.currentIndex.value > 0
+                    ? controller.previousCard
+                    : null,
+                isDark: isDark,
+              )),
+
+          // Next button
+          Obx(() => _buildControlButton(
+                icon: Icons.arrow_forward_rounded,
+                label: controller.currentIndex.value < controller.vocabs.length - 1
+                    ? 'Tiếp'
+                    : 'Xong',
+                onTap: controller.nextCard,
+                isDark: isDark,
+                isPrimary: true,
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    VoidCallback? onTap,
+    required bool isDark,
+    bool isPrimary = false,
+  }) {
+    final isDisabled = onTap == null;
+
+    return GestureDetector(
+      onTap: isDisabled
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              onTap();
+            },
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: isDisabled ? 0.4 : 1.0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: isPrimary ? 64 : 52,
+              height: isPrimary ? 64 : 52,
+              decoration: BoxDecoration(
+                color: isPrimary
+                    ? AppColors.primary
+                    : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08)),
+                borderRadius: BorderRadius.circular(isPrimary ? 20 : 16),
+                boxShadow: isPrimary
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Icon(
+                icon,
+                color: isPrimary
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : AppColors.textSecondary),
+                size: isPrimary ? 28 : 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: AppTypography.labelSmall.copyWith(
+                color: isDark ? Colors.white70 : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFinishButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required bool isDark,
+    bool isPrimary = false,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isPrimary
+              ? AppColors.primary
+              : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(16),
+          border: isPrimary
+              ? null
+              : Border.all(
+                  color: isDark
+                      ? Colors.white24
+                      : Colors.black.withValues(alpha: 0.1),
+                ),
+          boxShadow: isPrimary
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isPrimary
+                  ? Colors.white
+                  : (isDark ? Colors.white70 : AppColors.textSecondary),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(
+                color: isPrimary
+                    ? Colors.white
+                    : (isDark ? Colors.white : AppColors.textPrimary),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

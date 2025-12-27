@@ -1,0 +1,157 @@
+{
+  "projectName": "Học Tiếng Trung HSK – HanLy",
+  "projectDescription": "Premium iOS Chinese learning app with HSK vocabulary, SRS review system, and gamified learning experiences",
+  "type": "frontend",
+  "platform": "mobile",
+  "framework": "Flutter",
+  "language": "Dart",
+  "techStack": {
+    "stateManagement": "GetX",
+    "localStorage": "GetStorage",
+    "networking": "Dio",
+    "audioPlayback": "just_audio",
+    "textToSpeech": "flutter_tts",
+    "speechRecognition": "speech_to_text",
+    "deepLinking": "app_links",
+    "imageCache": "cached_network_image",
+    "routing": "GetX Routes"
+  },
+  "architecture": {
+    "pattern": "MVC with GetX",
+    "structure": {
+      "modules": "Feature-based modules with binding, controller, and screen",
+      "core": "Shared theme, widgets, utils, constants",
+      "data": "Models, repositories, providers",
+      "services": "Audio, storage, exercise generator, realtime sync"
+    }
+  },
+  "features": [
+    {
+      "name": "Authentication",
+      "description": "Magic link email authentication with token verification",
+      "modules": ["auth"],
+      "screens": ["auth_email_screen", "auth_check_email_screen", "auth_enter_token_screen"]
+    },
+    {
+      "name": "Onboarding",
+      "description": "User goal, level, daily minutes, and focus skills selection",
+      "modules": ["onboarding"],
+      "screens": ["onboarding_screen"]
+    },
+    {
+      "name": "Today/Home",
+      "description": "Daily learning dashboard with progress ring, streak, and quick actions",
+      "modules": ["today"],
+      "screens": ["today_screen", "today_details_sheet"]
+    },
+    {
+      "name": "Learn",
+      "description": "Multiple learning modes including flashcards, listening, pronunciation, matching",
+      "modules": ["learn", "flashcard", "listening", "pronunciation", "practice"],
+      "screens": ["learn_screen", "flashcard_screen", "listening_screen", "pronunciation_screen", "practice_screen"]
+    },
+    {
+      "name": "Explore",
+      "description": "Vocabulary search with filters by HSK level, topic, word type",
+      "modules": ["explore"],
+      "screens": ["explore_screen", "explore_filter_sheet"]
+    },
+    {
+      "name": "Word Detail",
+      "description": "Detailed vocabulary view with audio, examples, radicals, collocations",
+      "modules": ["word_detail"],
+      "screens": ["word_detail_screen"]
+    },
+    {
+      "name": "Practice/Session",
+      "description": "Learning sessions with MCQ, audio, matching, and SRS rating exercises",
+      "modules": ["practice", "session"],
+      "screens": ["practice_screen", "session_screen"],
+      "widgets": ["exercise_mcq_widget", "exercise_audio_widget", "exercise_matching_widget", "srs_rating_widget"]
+    },
+    {
+      "name": "SRS Review",
+      "description": "Spaced repetition system for vocabulary review scheduling",
+      "modules": ["srs_review"],
+      "screens": ["srs_review_list_screen"]
+    },
+    {
+      "name": "Game 30s",
+      "description": "Time-pressured vocabulary game with leaderboard",
+      "modules": ["game30", "leaderboard"],
+      "screens": ["game30_home_screen", "game30_screen", "leaderboard_screen"]
+    },
+    {
+      "name": "Favorites",
+      "description": "Save and manage favorite vocabulary words",
+      "modules": ["favorites"],
+      "screens": ["favorites_screen"]
+    },
+    {
+      "name": "Decks",
+      "description": "Custom vocabulary decks management",
+      "modules": ["decks", "collection_detail"],
+      "screens": ["decks_screen", "deck_detail_screen", "collection_detail_screen"]
+    },
+    {
+      "name": "Profile",
+      "description": "User profile, settings, logout, and account deletion",
+      "modules": ["me", "settings", "delete_account"],
+      "screens": ["me_screen", "settings_screen", "delete_account_screen"]
+    },
+    {
+      "name": "Stats/Progress",
+      "description": "Learning statistics and progress tracking",
+      "modules": ["stats", "progress"],
+      "screens": ["stats_screen", "progress_screen"]
+    },
+    {
+      "name": "Premium",
+      "description": "Premium features showcase (UI only)",
+      "modules": ["premium"],
+      "screens": ["premium_screen"]
+    }
+  ],
+  "apiEndpoints": {
+    "baseUrl": "Configurable via --dart-define=API_BASE_URL",
+    "endpoints": [
+      "GET /health",
+      "POST /auth/request-link",
+      "GET /auth/verify-link",
+      "POST /auth/refresh",
+      "POST /auth/logout",
+      "GET /me",
+      "PUT /me/profile",
+      "DELETE /me",
+      "GET /vocabs",
+      "GET /vocabs/search",
+      "GET /vocabs/:id",
+      "GET /vocabs/meta/topics",
+      "GET /vocabs/meta/types",
+      "GET /today",
+      "POST /review/answer",
+      "POST /session/finish",
+      "GET /favorites",
+      "POST /favorites/:vocabId",
+      "DELETE /favorites/:vocabId",
+      "GET /decks",
+      "POST /decks",
+      "PUT /decks/:id",
+      "DELETE /decks/:id",
+      "POST /decks/:id/add/:vocabId",
+      "DELETE /decks/:id/remove/:vocabId",
+      "POST /game/submit",
+      "GET /game/leaderboard"
+    ]
+  },
+  "navigation": {
+    "type": "Bottom Navigation with 4 tabs",
+    "tabs": ["Today", "Learn", "Explore", "Me"]
+  },
+  "testingConsiderations": {
+    "note": "This is a Flutter mobile app - testing should focus on widget testing and integration testing",
+    "unitTests": ["practice_audio_test.dart", "realtime_resource_test.dart"],
+    "uiComponents": ["HMAppBar", "HMButton", "HMCard", "HMChip", "HMTextField", "HMProgressRing", "HMToast"]
+  }
+}
+
