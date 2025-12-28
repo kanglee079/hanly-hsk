@@ -8,6 +8,7 @@ import '../../core/widgets/widgets.dart';
 import '../../routes/app_routes.dart';
 import '../../services/cache_service.dart';
 import '../../services/audio_service.dart';
+import '../../services/tutorial_service.dart';
 
 /// Settings screen
 class SettingsScreen extends StatelessWidget {
@@ -26,6 +27,12 @@ class SettingsScreen extends StatelessWidget {
           _SectionHeader(title: 'Bộ nhớ đệm', isDark: isDark),
           const SizedBox(height: 8),
           _CacheInfoTile(isDark: isDark),
+          const SizedBox(height: 24),
+
+          // Tutorial section
+          _SectionHeader(title: 'Hướng dẫn', isDark: isDark),
+          const SizedBox(height: 8),
+          _TutorialResetTile(isDark: isDark),
           const SizedBox(height: 24),
 
           // Legal section
@@ -246,6 +253,72 @@ class _SettingsItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TutorialResetTile extends StatelessWidget {
+  final bool isDark;
+
+  const _TutorialResetTile({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return HMCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withAlpha(25),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.help_outline_rounded,
+              size: 24,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Xem lại hướng dẫn',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Hiển thị lại các hướng dẫn tân thủ',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          HMButton(
+            text: 'Đặt lại',
+            variant: HMButtonVariant.outline,
+            size: HMButtonSize.small,
+            onPressed: () {
+              if (Get.isRegistered<TutorialService>()) {
+                Get.find<TutorialService>().resetAllTutorials();
+                HMToast.success('Đã đặt lại hướng dẫn');
+              }
+            },
+          ),
+        ],
       ),
     );
   }

@@ -8,15 +8,43 @@ import '../../core/widgets/widgets.dart';
 import '../../core/utils/date_format.dart';
 import '../../routes/app_routes.dart';
 import '../../data/models/vocab_model.dart';
+import '../../services/tutorial_service.dart';
 import 'today_controller.dart';
 
 /// Today tab screen - matches the provided design exactly
 class TodayScreen extends GetView<TodayController> {
   const TodayScreen({super.key});
 
+  // Tutorial keys
+  static final GlobalKey headerKey = GlobalKey();
+  static final GlobalKey nextActionKey = GlobalKey();
+  static final GlobalKey progressRingKey = GlobalKey();
+  static final GlobalKey quickActionsKey = GlobalKey();
+  static final GlobalKey dueTodayKey = GlobalKey();
+  static final GlobalKey weeklyChartKey = GlobalKey();
+  
+  // Flag to prevent multiple registrations
+  static bool _keysRegistered = false;
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Register tutorial keys (only once)
+    if (!_keysRegistered) {
+      _keysRegistered = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.isRegistered<TutorialService>()) {
+          final tutorialService = Get.find<TutorialService>();
+          tutorialService.registerKey('today_header', headerKey);
+          tutorialService.registerKey('next_action_card', nextActionKey);
+          tutorialService.registerKey('progress_ring', progressRingKey);
+          tutorialService.registerKey('quick_actions', quickActionsKey);
+          tutorialService.registerKey('due_today_section', dueTodayKey);
+          tutorialService.registerKey('weekly_chart', weeklyChartKey);
+        }
+      });
+    }
 
     return AppScaffold(
       body: SafeArea(
@@ -32,17 +60,26 @@ class TodayScreen extends GetView<TodayController> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ===== HEADER COMPACT =====
-                  _buildCompactHeader(isDark),
+                  KeyedSubtree(
+                    key: headerKey,
+                    child: _buildCompactHeader(isDark),
+                  ),
 
                   const SizedBox(height: 12),
 
                   // ===== NÚT HỌC CHÍNH (CTA) =====
-                  Obx(() => _buildNextActionCard()),
+                  Obx(() => KeyedSubtree(
+                    key: nextActionKey,
+                    child: _buildNextActionCard(),
+                  )),
 
                   const SizedBox(height: 12),
 
                   // ===== THỐNG KÊ COMPACT =====
-                  Obx(() => _buildCompactStatsRow(isDark)),
+                  Obx(() => KeyedSubtree(
+                    key: progressRingKey,
+                    child: _buildCompactStatsRow(isDark),
+                  )),
 
                   const SizedBox(height: 12),
 
@@ -52,7 +89,10 @@ class TodayScreen extends GetView<TodayController> {
                   const SizedBox(height: 16),
 
                   // ===== HÀNH ĐỘNG NHANH =====
-                  Obx(() => _buildQuickActionsRow(isDark)),
+                  Obx(() => KeyedSubtree(
+                    key: quickActionsKey,
+                    child: _buildQuickActionsRow(isDark),
+                  )),
 
                   const SizedBox(height: 16),
 
@@ -62,7 +102,10 @@ class TodayScreen extends GetView<TodayController> {
                   const SizedBox(height: 12),
 
                   // ===== CẦN ÔN HÔM NAY =====
-                  Obx(() => _buildDueTodaySection(isDark)),
+                  Obx(() => KeyedSubtree(
+                    key: dueTodayKey,
+                    child: _buildDueTodaySection(isDark),
+                  )),
 
                   const SizedBox(height: 12),
 
@@ -72,7 +115,10 @@ class TodayScreen extends GetView<TodayController> {
                   const SizedBox(height: 16),
 
                   // ===== BIỂU ĐỒ TUẦN =====
-                  Obx(() => _buildWeeklyProgressChart(isDark)),
+                  Obx(() => KeyedSubtree(
+                    key: weeklyChartKey,
+                    child: _buildWeeklyProgressChart(isDark),
+                  )),
 
                   // Bottom padding for glass nav bar
                   const SizedBox(height: 100),
@@ -586,8 +632,14 @@ class TodayScreen extends GetView<TodayController> {
     final weeklyNewCount = weeklyProgress.fold(0, (sum, day) => sum + day.newCount);
     final weeklyReviewCount = weeklyProgress.fold(0, (sum, day) => sum + day.reviewCount);
     final weeklyMinutes = weeklyProgress.fold(0, (sum, day) => sum + day.minutes);
-    final avgAccuracy = weeklyProgress.isNotEmpty 
-        ? weeklyProgress.fold(0, (sum, day) => sum + day.accuracy) ~/ weeklyProgress.length
+    
+    // Calculate average accuracy ONLY from days with activity
+    // (days without activity shouldn't drag down the average)
+    final daysWithActivity = weeklyProgress.where((day) => 
+        day.newCount > 0 || day.reviewCount > 0 || day.minutes > 0
+    ).toList();
+    final avgAccuracy = daysWithActivity.isNotEmpty 
+        ? daysWithActivity.fold(0, (sum, day) => sum + day.accuracy) ~/ daysWithActivity.length
         : 0;
 
     // Calculate max minutes for scaling

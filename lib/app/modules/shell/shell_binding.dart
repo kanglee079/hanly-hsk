@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'shell_controller.dart';
 import '../today/today_controller.dart';
 import '../learn/learn_controller.dart';
+import '../hsk_exam/hsk_exam_controller.dart';
 import '../explore/explore_controller.dart';
 import '../me/me_controller.dart';
 
@@ -17,6 +18,7 @@ class ShellBinding extends Bindings {
     // This ensures all data is loaded in parallel when entering the app
     Get.put<TodayController>(TodayController());
     Get.put<LearnController>(LearnController());
+    Get.put<HskExamController>(HskExamController());
     Get.put<ExploreController>(ExploreController());
     Get.put<MeController>(MeController());
   }

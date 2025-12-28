@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/user_model.dart';
+import '../../data/repositories/me_repo.dart';
 import '../../services/auth_session_service.dart';
+import '../../services/realtime/today_store.dart';
 import '../../core/widgets/hm_toast.dart';
 import '../../routes/app_routes.dart';
 
@@ -16,13 +18,13 @@ class OnboardingController extends GetxController {
   final RxString displayName = ''.obs;
   final Rx<GoalType?> goalType = Rx<GoalType?>(GoalType.hskExam);
   final RxInt currentLevel = 1.obs;
-  final RxInt dailyMinutes = 15.obs;
+  final RxInt dailyWords = 10.obs; // Primary: number of words per day
   final RxBool listeningEnabled = false.obs;
   final RxBool hanziEnabled = true.obs;
   final RxBool notificationsEnabled = false.obs;
   final RxBool isLoading = false.obs;
 
-  final List<int> dailyMinutesOptions = [5, 15, 30, 45];
+  final List<int> dailyWordsOptions = [5, 10, 20, 30];
   final List<int> levelOptions = [1, 2, 3, 4, 5, 6];
 
   @override
@@ -50,8 +52,8 @@ class OnboardingController extends GetxController {
     currentLevel.value = level;
   }
 
-  void setDailyMinutes(int minutes) {
-    dailyMinutes.value = minutes;
+  void setDailyWords(int words) {
+    dailyWords.value = words;
   }
 
   void toggleListening() {
@@ -66,33 +68,36 @@ class OnboardingController extends GetxController {
     notificationsEnabled.value = !notificationsEnabled.value;
   }
 
-  /// Get daily new word limit based on minutes
-  int get dailyNewLimit {
-    switch (dailyMinutes.value) {
+  /// Get daily new word limit (direct from selection)
+  int get dailyNewLimit => dailyWords.value;
+
+  /// Get daily minutes based on word count
+  int get dailyMinutes {
+    switch (dailyWords.value) {
       case 5:
         return 5;
-      case 15:
-        return 10;
-      case 30:
-        return 20;
-      case 45:
+      case 10:
+        return 15;
+      case 20:
         return 30;
+      case 30:
+        return 45;
       default:
-        return 10;
+        return 15;
     }
   }
 
-  /// Get description for daily minutes
-  String get dailyMinutesDescription {
-    switch (dailyMinutes.value) {
+  /// Get description for daily word goal
+  String get dailyWordsDescription {
+    switch (dailyWords.value) {
       case 5:
-        return 'Nhẹ nhàng • Khoảng 5 từ mới mỗi ngày';
-      case 15:
-        return 'Vừa sức • Khoảng 10 từ mới mỗi ngày';
+        return 'Nhẹ nhàng • Khoảng 5 phút mỗi ngày';
+      case 10:
+        return 'Vừa sức • Khoảng 15 phút mỗi ngày';
+      case 20:
+        return 'Tích cực • Khoảng 30 phút mỗi ngày';
       case 30:
-        return 'Tích cực • Khoảng 20 từ mới mỗi ngày';
-      case 45:
-        return 'Chuyên sâu • Khoảng 30 từ mới mỗi ngày';
+        return 'Chuyên sâu • Khoảng 45 phút mỗi ngày';
       default:
         return '';
     }
@@ -135,17 +140,38 @@ class OnboardingController extends GetxController {
       displayName: name,
       goalType: goalType.value?.apiValue ?? 'both',
       currentLevel: 'HSK${currentLevel.value}',
-      dailyMinutesTarget: dailyMinutes.value,
+      dailyMinutesTarget: dailyMinutes,
+      dailyNewLimit: dailyNewLimit,
       focusWeights: focusWeights,
       notificationsEnabled: notificationsEnabled.value,
     );
 
-    isLoading.value = false;
-
     if (success) {
+      // WORKAROUND: BE ignores dailyNewLimit in /me/onboarding
+      // So we call /me/profile to explicitly set the correct value
+      try {
+        final meRepo = Get.find<MeRepo>();
+        await meRepo.updateProfile({
+          'dailyNewLimit': dailyNewLimit,
+          'dailyMinutesTarget': dailyMinutes,
+        });
+        
+        // Refresh user data to get updated profile
+        await _authService.fetchCurrentUser();
+        
+        // Force sync TodayStore to get updated data from BE
+        final todayStore = Get.find<TodayStore>();
+        await todayStore.syncNow(force: true);
+      } catch (e) {
+        // Continue even if workaround fails - user can adjust later
+        debugPrint('Onboarding workaround failed: $e');
+      }
+      
+      isLoading.value = false;
       HMToast.success('Đã tạo hồ sơ thành công!');
       Get.offAllNamed(Routes.shell);
     } else {
+      isLoading.value = false;
       HMToast.error('Không thể tạo hồ sơ. Vui lòng thử lại.');
     }
   }

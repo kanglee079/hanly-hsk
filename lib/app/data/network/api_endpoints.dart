@@ -101,4 +101,22 @@ class ApiEndpoints {
   static String offlineBundle(String level) => '/offline/bundle/$level';
   static const String offlineTopics = '/offline/topics';
   static const String offlineDownloads = '/offline/downloads';
+
+  // Premium & Subscription
+  static const String subscription = '/me/subscription';
+  static const String premiumPlans = '/premium/plans';
+  static const String premiumSubscribe = '/premium/subscribe';
+
+  // Level Progress
+  static const String levelProgress = '/me/level-progress';
+  static const String advanceLevel = '/me/advance-level';
+
+  // HSK Exam
+  static const String hskExamOverview = '/hsk-exam/overview';
+  static const String hskExamTests = '/hsk-exam/tests';
+  static const String hskExamHistory = '/hsk-exam/history';
+  static String hskExamTestById(String testId) => '/hsk-exam/tests/$testId';
+  static String hskExamSubmit(String testId) => '/hsk-exam/tests/$testId/submit';
+  static String hskExamReview(String testId, String attemptId) => 
+      '/hsk-exam/tests/$testId/review/$attemptId';
 }

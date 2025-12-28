@@ -1,0 +1,120 @@
+import 'package:get/get.dart';
+import '../../data/models/hsk_exam_model.dart';
+import '../../data/repositories/hsk_exam_repo.dart';
+import '../../services/auth_session_service.dart';
+import '../../core/widgets/hm_toast.dart';
+import '../../routes/app_routes.dart';
+
+/// HSK Exam tab controller
+class HskExamController extends GetxController {
+  final AuthSessionService _authService = Get.find<AuthSessionService>();
+  late final HskExamRepo _examRepo;
+
+  // User premium status
+  bool get isPremium => _authService.currentUser.value?.isPremium ?? false;
+  
+  // Selected HSK level filter
+  final RxString selectedLevel = 'all'.obs;
+  
+  // Loading states
+  final RxBool isLoading = false.obs;
+  final RxBool isLoadingTests = false.obs;
+  
+  // Data
+  final Rxn<HskExamOverview> overview = Rxn<HskExamOverview>();
+  final RxList<MockTestModel> tests = <MockTestModel>[].obs;
+  
+  // Stats (from overview)
+  int get totalAttempts => overview.value?.stats.totalAttempts ?? 0;
+  int get averageScore => overview.value?.stats.averageScore ?? 0;
+  int get bestScore => overview.value?.stats.bestScore ?? 0;
+  int get passRate => overview.value?.stats.passRate ?? 0;
+  
+  // Available levels
+  List<String> get availableLevels => overview.value?.availableLevels ?? 
+      ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'];
+  
+  // User's current level
+  String get userLevel => _authService.currentUser.value?.profile?.currentLevel ?? 'HSK1';
+
+  @override
+  void onInit() {
+    super.onInit();
+    _initRepo();
+    loadOverview();
+    loadTests();
+    
+    // Reload tests when level changes
+    ever(selectedLevel, (_) => loadTests());
+  }
+
+  void _initRepo() {
+    try {
+      _examRepo = Get.find<HskExamRepo>();
+    } catch (_) {
+      // Repo not registered yet, create one
+      final apiClient = Get.find();
+      _examRepo = HskExamRepo(apiClient);
+      Get.put(_examRepo);
+    }
+  }
+
+  Future<void> loadOverview() async {
+    isLoading.value = true;
+    try {
+      overview.value = await _examRepo.getOverview();
+    } catch (e) {
+      // Failed to load overview - use defaults
+      overview.value = HskExamOverview();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> loadTests() async {
+    isLoadingTests.value = true;
+    try {
+      tests.value = await _examRepo.getTests(
+        level: selectedLevel.value == 'all' ? null : selectedLevel.value,
+      );
+    } catch (e) {
+      // Failed to load tests
+      HMToast.error('Không thể tải danh sách đề thi');
+    } finally {
+      isLoadingTests.value = false;
+    }
+  }
+
+  void selectLevel(String level) {
+    selectedLevel.value = level;
+  }
+
+  void startMockTest(String testId) {
+    // Find the test to check if it's premium
+    final test = tests.firstWhereOrNull((t) => t.id == testId);
+    if (test != null && test.isPremium && !isPremium) {
+      showPremiumUpgrade();
+      return;
+    }
+    
+    // Navigate to test taking screen
+    Get.toNamed(Routes.hskExamTest, arguments: {'testId': testId});
+  }
+
+  void viewHistory() {
+    Get.toNamed(Routes.hskExamHistory);
+  }
+
+  void showPremiumUpgrade() {
+    HMToast.info('Đề thi này cần Premium để làm');
+    Get.toNamed(Routes.premium);
+  }
+
+  /// Refresh all data
+  Future<void> refresh() async {
+    await Future.wait([
+      loadOverview(),
+      loadTests(),
+    ]);
+  }
+}

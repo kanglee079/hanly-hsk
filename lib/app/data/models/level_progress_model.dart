@@ -1,167 +1,173 @@
-/// Level Progress Model - from GET /me/progress/level API
+/// HSK Level Progress model
 class LevelProgressModel {
   final String currentLevel;
-  final String currentBatch;
-  final int batchNumber;
-  final int totalBatchesInLevel;
-  final BatchProgress progress;
-  final NextUnlock nextUnlock;
-  final OverallProgress overallProgress;
+  final String targetLevel;
+  final Map<String, HskLevelInfo> levels;
+  final LevelAdvancement? advancement;
+  final LevelStats stats;
 
   LevelProgressModel({
     required this.currentLevel,
-    required this.currentBatch,
-    required this.batchNumber,
-    required this.totalBatchesInLevel,
-    required this.progress,
-    required this.nextUnlock,
-    required this.overallProgress,
-  });
+    required this.targetLevel,
+    this.levels = const {},
+    this.advancement,
+    LevelStats? stats,
+  }) : stats = stats ?? LevelStats();
 
   factory LevelProgressModel.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] ?? json;
+    final levelsJson = json['levels'] as Map<String, dynamic>? ?? {};
+    final levels = <String, HskLevelInfo>{};
+    levelsJson.forEach((key, value) {
+      levels[key] = HskLevelInfo.fromJson(value as Map<String, dynamic>);
+    });
+
     return LevelProgressModel(
-      currentLevel: data['currentLevel'] as String? ?? 'HSK1',
-      currentBatch: data['currentBatch'] as String? ?? 'HSK1.1',
-      batchNumber: data['batchNumber'] as int? ?? 1,
-      totalBatchesInLevel: data['totalBatchesInLevel'] as int? ?? 8,
-      progress: BatchProgress.fromJson(data['progress'] ?? {}),
-      nextUnlock: NextUnlock.fromJson(data['nextUnlock'] ?? {}),
-      overallProgress: OverallProgress.fromJson(data['overallProgress'] ?? {}),
+      currentLevel: json['currentLevel'] as String? ?? 'HSK1',
+      targetLevel: json['targetLevel'] as String? ?? 'HSK3',
+      levels: levels,
+      advancement: json['advancement'] != null
+          ? LevelAdvancement.fromJson(json['advancement'] as Map<String, dynamic>)
+          : null,
+      stats: json['stats'] != null
+          ? LevelStats.fromJson(json['stats'] as Map<String, dynamic>)
+          : LevelStats(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'currentLevel': currentLevel,
-    'currentBatch': currentBatch,
-    'batchNumber': batchNumber,
-    'totalBatchesInLevel': totalBatchesInLevel,
-    'progress': progress.toJson(),
-    'nextUnlock': nextUnlock.toJson(),
-    'overallProgress': overallProgress.toJson(),
-  };
+        'currentLevel': currentLevel,
+        'targetLevel': targetLevel,
+        'levels': levels.map((key, value) => MapEntry(key, value.toJson())),
+        'advancement': advancement?.toJson(),
+        'stats': stats.toJson(),
+      };
 
-  /// Get mastery percentage (0-100)
-  int get masteryPercent => (progress.masteryRate * 100).round();
+  /// Get info for a specific level
+  HskLevelInfo? getLevelInfo(String level) => levels[level];
 
-  /// Check if can unlock next batch
-  bool get canUnlockNext => nextUnlock.canUnlock;
-
-  /// Words needed to master before unlocking
-  int get wordsToMaster => nextUnlock.wordsToMaster;
+  /// Get current level number (1-6)
+  int get currentLevelInt => int.tryParse(currentLevel.replaceAll('HSK', '')) ?? 1;
 }
 
-/// Progress within current batch
-class BatchProgress {
-  final int total;
+/// Info for a specific HSK level
+class HskLevelInfo {
+  final int totalWords;
   final int learned;
   final int mastered;
-  final double masteryRate;
+  final int inProgress;
+  final double percentage;
+  final double masteryPercentage;
+  final bool isCompleted;
+  final bool canAdvance;
+  final bool isLocked;
+  final int requiredMasteryPercent;
 
-  BatchProgress({
-    required this.total,
-    required this.learned,
-    required this.mastered,
-    required this.masteryRate,
+  HskLevelInfo({
+    this.totalWords = 0,
+    this.learned = 0,
+    this.mastered = 0,
+    this.inProgress = 0,
+    this.percentage = 0,
+    this.masteryPercentage = 0,
+    this.isCompleted = false,
+    this.canAdvance = false,
+    this.isLocked = false,
+    this.requiredMasteryPercent = 80,
   });
 
-  factory BatchProgress.fromJson(Map<String, dynamic> json) {
-    return BatchProgress(
-      total: json['total'] as int? ?? 0,
+  factory HskLevelInfo.fromJson(Map<String, dynamic> json) {
+    return HskLevelInfo(
+      totalWords: json['totalWords'] as int? ?? 0,
       learned: json['learned'] as int? ?? 0,
       mastered: json['mastered'] as int? ?? 0,
-      masteryRate: (json['masteryRate'] as num?)?.toDouble() ?? 0.0,
+      inProgress: json['inProgress'] as int? ?? 0,
+      percentage: (json['percentage'] as num?)?.toDouble() ?? 0,
+      masteryPercentage: (json['masteryPercentage'] as num?)?.toDouble() ?? 0,
+      isCompleted: json['isCompleted'] as bool? ?? false,
+      canAdvance: json['canAdvance'] as bool? ?? false,
+      isLocked: json['isLocked'] as bool? ?? false,
+      requiredMasteryPercent: json['requiredMasteryPercent'] as int? ?? 80,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'total': total,
-    'learned': learned,
-    'mastered': mastered,
-    'masteryRate': masteryRate,
-  };
+        'totalWords': totalWords,
+        'learned': learned,
+        'mastered': mastered,
+        'inProgress': inProgress,
+        'percentage': percentage,
+        'masteryPercentage': masteryPercentage,
+        'isCompleted': isCompleted,
+        'canAdvance': canAdvance,
+        'isLocked': isLocked,
+        'requiredMasteryPercent': requiredMasteryPercent,
+      };
 
-  /// Remaining words to learn in batch
-  int get remaining => total - learned;
+  /// Words remaining to complete this level
+  int get remainingWords => totalWords - learned;
 
-  /// Mastery percentage (0-100)
-  int get masteryPercent => (masteryRate * 100).round();
+  /// Words needed to master for advancement
+  int get wordsToMaster => ((totalWords * requiredMasteryPercent / 100) - mastered).ceil().clamp(0, totalWords);
 }
 
-/// Info about unlocking next batch
-class NextUnlock {
-  final String batch;
-  final double requiredMasteryRate;
-  final int requiredCount;
-  final int currentMastered;
-  final bool canUnlock;
-  final int wordsToMaster;
+/// Level advancement info
+class LevelAdvancement {
+  final bool canAdvanceNow;
+  final String? nextLevel;
+  final double currentMastery;
+  final int requiredMastery;
+  final String message;
 
-  NextUnlock({
-    required this.batch,
-    required this.requiredMasteryRate,
-    required this.requiredCount,
-    required this.currentMastered,
-    required this.canUnlock,
-    required this.wordsToMaster,
+  LevelAdvancement({
+    this.canAdvanceNow = false,
+    this.nextLevel,
+    this.currentMastery = 0,
+    this.requiredMastery = 80,
+    this.message = '',
   });
 
-  factory NextUnlock.fromJson(Map<String, dynamic> json) {
-    return NextUnlock(
-      batch: json['batch'] as String? ?? '',
-      requiredMasteryRate: (json['requiredMasteryRate'] as num?)?.toDouble() ?? 0.8,
-      requiredCount: json['requiredCount'] as int? ?? 0,
-      currentMastered: json['currentMastered'] as int? ?? 0,
-      canUnlock: json['canUnlock'] as bool? ?? false,
-      wordsToMaster: json['wordsToMaster'] as int? ?? 0,
+  factory LevelAdvancement.fromJson(Map<String, dynamic> json) {
+    return LevelAdvancement(
+      canAdvanceNow: json['canAdvanceNow'] as bool? ?? json['canAdvance'] as bool? ?? false,
+      nextLevel: json['nextLevel'] as String?,
+      currentMastery: (json['currentMastery'] as num?)?.toDouble() ?? 0,
+      requiredMastery: json['requiredMastery'] as int? ?? 80,
+      message: json['message'] as String? ?? '',
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'batch': batch,
-    'requiredMasteryRate': requiredMasteryRate,
-    'requiredCount': requiredCount,
-    'currentMastered': currentMastered,
-    'canUnlock': canUnlock,
-    'wordsToMaster': wordsToMaster,
-  };
-
-  /// Required mastery percentage (0-100)
-  int get requiredPercent => (requiredMasteryRate * 100).round();
+        'canAdvanceNow': canAdvanceNow,
+        'nextLevel': nextLevel,
+        'currentMastery': currentMastery,
+        'requiredMastery': requiredMastery,
+        'message': message,
+      };
 }
 
-/// Overall progress in current level
-class OverallProgress {
-  final String level;
-  final int totalWords;
-  final int learnedWords;
-  final int masteredWords;
-  final int percentComplete;
+/// Overall level stats
+class LevelStats {
+  final int totalWordsLearned;
+  final int totalWordsMastered;
+  final double overallProgress;
 
-  OverallProgress({
-    required this.level,
-    required this.totalWords,
-    required this.learnedWords,
-    required this.masteredWords,
-    required this.percentComplete,
+  LevelStats({
+    this.totalWordsLearned = 0,
+    this.totalWordsMastered = 0,
+    this.overallProgress = 0,
   });
 
-  factory OverallProgress.fromJson(Map<String, dynamic> json) {
-    return OverallProgress(
-      level: json['level'] as String? ?? 'HSK1',
-      totalWords: json['totalWords'] as int? ?? 0,
-      learnedWords: json['learnedWords'] as int? ?? 0,
-      masteredWords: json['masteredWords'] as int? ?? 0,
-      percentComplete: json['percentComplete'] as int? ?? 0,
+  factory LevelStats.fromJson(Map<String, dynamic> json) {
+    return LevelStats(
+      totalWordsLearned: json['totalWordsLearned'] as int? ?? 0,
+      totalWordsMastered: json['totalWordsMastered'] as int? ?? 0,
+      overallProgress: (json['overallProgress'] as num?)?.toDouble() ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'level': level,
-    'totalWords': totalWords,
-    'learnedWords': learnedWords,
-    'masteredWords': masteredWords,
-    'percentComplete': percentComplete,
-  };
+        'totalWordsLearned': totalWordsLearned,
+        'totalWordsMastered': totalWordsMastered,
+        'overallProgress': overallProgress,
+      };
 }
-

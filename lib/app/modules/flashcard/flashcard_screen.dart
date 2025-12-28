@@ -238,7 +238,35 @@ class FlashcardScreen extends GetView<FlashcardController> {
                 color: isDark ? Colors.white70 : AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 16),
+            // Stats breakdown
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: (isDark ? Colors.white : Colors.black).withAlpha(13),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (controller.newWordsCount.value > 0) ...[
+                    _buildStatChip(
+                      '${controller.newWordsCount.value} mới',
+                      const Color(0xFF3B82F6),
+                      isDark,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  if (controller.reviewWordsCount.value > 0)
+                    _buildStatChip(
+                      '${controller.reviewWordsCount.value} ôn tập',
+                      const Color(0xFF10B981),
+                      isDark,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
             // Action buttons
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -867,6 +895,30 @@ class FlashcardScreen extends GetView<FlashcardController> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatChip(String text, Color color, bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: AppTypography.labelSmall.copyWith(
+            color: isDark ? Colors.white70 : AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

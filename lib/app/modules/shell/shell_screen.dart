@@ -5,43 +5,214 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/strings_vi.dart';
+import '../../core/widgets/hm_tutorial_overlay.dart';
+import '../../services/tutorial_service.dart';
+import '../../services/tutorial_flows.dart';
 import '../today/today_screen.dart';
 import '../learn/learn_screen.dart';
+import '../hsk_exam/hsk_exam_screen.dart';
 import '../explore/explore_screen.dart';
 import '../me/me_screen.dart';
 import 'shell_controller.dart';
 
 /// Main shell screen with bottom navigation
+/// Uses IndexedStack + Crossfade for smooth, instant tab switching
 class ShellScreen extends GetView<ShellController> {
   const ShellScreen({super.key});
+
+  // Pre-built screens (kept in memory for instant switching)
+  // Wrapped in RepaintBoundary for optimal performance
+  // Order: Today, Learn, Exam, Explore, Me
+  static const _screens = [
+    RepaintBoundary(child: TodayScreen()),
+    RepaintBoundary(child: LearnScreen()),
+    RepaintBoundary(child: HskExamScreen()),
+    RepaintBoundary(child: ExploreScreen()),
+    RepaintBoundary(child: MeScreen()),
+  ];
+
+  // Global key for bottom nav (used in tutorial)
+  static final GlobalKey bottomNavKey = GlobalKey();
+  
+  // Flag to prevent multiple tutorial starts
+  static bool _tutorialInitialized = false;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Register bottom nav key for tutorial (only once)
+    if (!_tutorialInitialized) {
+      _tutorialInitialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.isRegistered<TutorialService>()) {
+          final tutorialService = Get.find<TutorialService>();
+          tutorialService.registerKey('bottom_nav', bottomNavKey);
+          
+          // Start tutorial for new users (only on Today tab)
+          if (tutorialService.shouldShowTutorial('today_screen_v1') && 
+              controller.currentIndex.value == 0) {
+            Future.delayed(const Duration(milliseconds: 1000), () {
+              if (tutorialService.shouldShowTutorial('today_screen_v1')) {
+                tutorialService.startTutorial(TutorialFlows.todayScreenTutorial);
+              }
+            });
+          }
+        }
+      });
+    }
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark
           ? SystemUiOverlayStyle.light
           : SystemUiOverlayStyle.dark,
-      child: Scaffold(
-        extendBody: true,
-        body: PageView(
-          controller: controller.pageController,
-          onPageChanged: controller.onPageChanged,
-          physics: const NeverScrollableScrollPhysics(),
-          children: const [
-            TodayScreen(),
-            LearnScreen(),
-            ExploreScreen(),
-            MeScreen(),
-          ],
+      child: HMTutorialOverlay(
+        child: Scaffold(
+          extendBody: true,
+          body: Obx(() => _SmoothTabSwitcher(
+            currentIndex: controller.currentIndex.value,
+            children: _screens,
+          )),
+          bottomNavigationBar: Obx(() => _PillBottomNav(
+            key: bottomNavKey,
+            currentIndex: controller.currentIndex.value,
+            onTap: controller.changePage,
+            isDark: isDark,
+          )),
         ),
-        bottomNavigationBar: Obx(() => _PillBottomNav(
-              currentIndex: controller.currentIndex.value,
-              onTap: controller.changePage,
-              isDark: isDark,
-            )),
       ),
+    );
+  }
+}
+
+/// Smooth tab switcher with crossfade animation
+/// - Keeps all children in memory (IndexedStack behavior)
+/// - Crossfade between tabs for smooth visual transition
+/// - No janky animation through intermediate pages
+class _SmoothTabSwitcher extends StatefulWidget {
+  final int currentIndex;
+  final List<Widget> children;
+
+  const _SmoothTabSwitcher({
+    required this.currentIndex,
+    required this.children,
+  });
+
+  @override
+  State<_SmoothTabSwitcher> createState() => _SmoothTabSwitcherState();
+}
+
+class _SmoothTabSwitcherState extends State<_SmoothTabSwitcher> 
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeIn;
+  late Animation<double> _fadeOut;
+  
+  int _previousIndex = 0;
+  int _currentIndex = 0;
+  bool _isAnimating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.currentIndex;
+    _previousIndex = widget.currentIndex;
+    
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    
+    _fadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+    
+    _fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
+      ),
+    );
+    
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _isAnimating = false;
+          _previousIndex = _currentIndex;
+        });
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(_SmoothTabSwitcher oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentIndex != _currentIndex) {
+      _previousIndex = _currentIndex;
+      _currentIndex = widget.currentIndex;
+      _isAnimating = true;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // Keep all screens in memory with IndexedStack-like behavior
+        // but only show current and previous during animation
+        for (int i = 0; i < widget.children.length; i++)
+          _buildTabContent(i),
+      ],
+    );
+  }
+
+  Widget _buildTabContent(int index) {
+    // Determine visibility
+    final bool isCurrentTab = index == _currentIndex;
+    final bool isPreviousTab = index == _previousIndex && _isAnimating;
+    final bool isVisible = isCurrentTab || isPreviousTab;
+
+    if (!isVisible) {
+      // Keep in tree but offstage to preserve state
+      return Offstage(
+        offstage: true,
+        child: widget.children[index],
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        double opacity;
+        if (_isAnimating) {
+          if (isCurrentTab) {
+            opacity = _fadeIn.value;
+          } else {
+            opacity = _fadeOut.value;
+          }
+        } else {
+          opacity = isCurrentTab ? 1.0 : 0.0;
+        }
+
+        return Opacity(
+          opacity: opacity,
+          child: IgnorePointer(
+            ignoring: !isCurrentTab || _isAnimating,
+            child: child,
+          ),
+        );
+      },
+      child: widget.children[index],
     );
   }
 }
@@ -53,6 +224,7 @@ class _PillBottomNav extends StatelessWidget {
   final bool isDark;
 
   const _PillBottomNav({
+    super.key,
     required this.currentIndex,
     required this.onTap,
     required this.isDark,
@@ -68,6 +240,11 @@ class _PillBottomNav extends StatelessWidget {
       icon: CupertinoIcons.book,
       activeIcon: CupertinoIcons.book_fill,
       label: S.tabLearn,
+    ),
+    _NavItemData(
+      icon: CupertinoIcons.pencil_outline,
+      activeIcon: CupertinoIcons.pencil,
+      label: S.tabExam,
     ),
     _NavItemData(
       icon: CupertinoIcons.compass,
@@ -176,10 +353,10 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 14 : 12,
+          horizontal: isSelected ? 12 : 10,
           vertical: 8,
         ),
         decoration: BoxDecoration(
@@ -194,20 +371,25 @@ class _NavItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Icon
-            AnimatedScale(
-              scale: isSelected ? 1.0 : 0.92,
+            // Icon with scale animation
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.92, end: isSelected ? 1.0 : 0.92),
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOutCubic,
-              child: Icon(
-                isSelected ? data.activeIcon : data.icon,
-                size: 26,
-                color: isSelected ? activeColor : inactiveColor,
-              ),
+              builder: (context, scale, child) {
+                return Transform.scale(
+                  scale: scale,
+                  child: Icon(
+                    isSelected ? data.activeIcon : data.icon,
+                    size: 26,
+                    color: isSelected ? activeColor : inactiveColor,
+                  ),
+                );
+              },
             ),
             // Animated label - only shows when selected
             AnimatedSize(
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
               child: SizedBox(
                 width: isSelected ? null : 0,

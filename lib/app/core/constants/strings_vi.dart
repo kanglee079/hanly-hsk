@@ -73,8 +73,26 @@ class S {
   // Navigation tabs
   static const String tabToday = 'Hôm nay';
   static const String tabLearn = 'Học';
+  static const String tabExam = 'Ôn thi';
   static const String tabExplore = 'Khám phá';
   static const String tabMe = 'Tôi';
+
+  // HSK Exam
+  static const String hskExam = 'Ôn thi HSK';
+  static const String hskExamSubtitle = 'Luyện đề thi thử';
+  static const String mockTest = 'Đề thi thử';
+  static const String practiceTest = 'Luyện tập';
+  static const String examHistory = 'Lịch sử thi';
+  static const String startExam = 'Bắt đầu thi';
+  static const String submitExam = 'Nộp bài';
+  static const String timeRemaining = 'Thời gian còn lại';
+  static const String examResult = 'Kết quả';
+  static const String passed = 'Đạt';
+  static const String failed = 'Chưa đạt';
+  static const String viewAnswers = 'Xem đáp án';
+  static const String tryAgain = 'Làm lại';
+  static const String listening = 'Nghe hiểu';
+  static const String reading = 'Đọc hiểu';
 
   // Today
   static const String today = 'Hôm nay';
@@ -231,14 +249,28 @@ class S {
 
   // Premium
   static const String premiumTitle = 'HanLy Premium';
-  static const String premiumSubtitle = 'Nâng cao trải nghiệm học tập';
-  static const String premiumBenefit1 = 'Học không giới hạn từ vựng mỗi ngày';
-  static const String premiumBenefit2 = 'Truy cập tất cả HSK 1-6';
-  static const String premiumBenefit3 = 'Tải về học offline';
+  static const String premiumSubtitle = 'Học không giới hạn';
+  static const String premiumBenefit1 = 'Flashcards không giới hạn mỗi ngày';
+  static const String premiumBenefit2 = 'Ôn tập tổng hợp';
+  static const String premiumBenefit3 = 'Ôn thi HSK đầy đủ';
   static const String premiumBenefit4 = 'Không quảng cáo';
-  static const String premiumBenefit5 = 'Thống kê chi tiết';
+  static const String premiumBenefit5 = 'Bảo vệ streak';
+  static const String premiumBenefit6 = 'Hỗ trợ ưu tiên';
   static const String premiumCta = 'Đăng ký Premium';
   static const String restorePurchase = 'Khôi phục giao dịch';
+  
+  // Premium plans
+  static const String planMonthly = 'Hàng tháng';
+  static const String planYearly = 'Hàng năm';
+  static const String planLifetime = 'Trọn đời';
+  static const String mostPopular = 'Phổ biến nhất';
+  static const String savingPercent = 'Tiết kiệm';
+  
+  // HSK Level
+  static const String levelAdvanceTitle = 'Chúc mừng!';
+  static const String levelAdvanceMessage = 'Bạn đã hoàn thành';
+  static const String advanceToNextLevel = 'Lên level tiếp';
+  static const String stayCurrentLevel = 'Ở lại level này';
 
   // Errors
   static const String errorNetwork = 'Lỗi kết nối mạng';

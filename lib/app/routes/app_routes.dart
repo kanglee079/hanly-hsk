@@ -39,4 +39,10 @@ abstract class Routes {
   
   // Listening Practice
   static const String listening = '/listening';
+  
+  // HSK Exam
+  static const String hskExam = '/hsk-exam';
+  static const String hskExamTest = '/hsk-exam/test';
+  static const String hskExamHistory = '/hsk-exam/history';
+  static const String hskExamReview = '/hsk-exam/review';
 }

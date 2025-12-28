@@ -40,6 +40,12 @@ class StudyModeModel {
   final bool isPremium;
   final bool isAvailable;
   final String? unavailableReason;
+  
+  // Premium/Free limits (new fields from BE)
+  final int? freeLimit;       // Giới hạn free user mỗi ngày (null = unlimited)
+  final int usedToday;        // Đã dùng hôm nay
+  final int? remainingToday;  // Còn lại hôm nay (null = unlimited)
+  final bool premiumUnlimited; // Premium có unlimited không
 
   StudyModeModel({
     required this.id,
@@ -52,6 +58,10 @@ class StudyModeModel {
     this.isPremium = false,
     this.isAvailable = true,
     this.unavailableReason,
+    this.freeLimit,
+    this.usedToday = 0,
+    this.remainingToday,
+    this.premiumUnlimited = false,
   });
 
   factory StudyModeModel.fromJson(Map<String, dynamic> json) {
@@ -66,6 +76,10 @@ class StudyModeModel {
       isPremium: json['isPremium'] as bool? ?? false,
       isAvailable: json['isAvailable'] as bool? ?? true,
       unavailableReason: json['unavailableReason'] as String?,
+      freeLimit: json['freeLimit'] as int?,
+      usedToday: _safeInt(json['usedToday']),
+      remainingToday: json['remainingToday'] as int?,
+      premiumUnlimited: json['premiumUnlimited'] as bool? ?? false,
     );
   }
 
@@ -80,7 +94,23 @@ class StudyModeModel {
         'isPremium': isPremium,
         'isAvailable': isAvailable,
         'unavailableReason': unavailableReason,
+        'freeLimit': freeLimit,
+        'usedToday': usedToday,
+        'remainingToday': remainingToday,
+        'premiumUnlimited': premiumUnlimited,
       };
+
+  /// Check if user has reached free limit
+  bool get hasReachedFreeLimit {
+    if (freeLimit == null) return false;
+    return usedToday >= freeLimit!;
+  }
+
+  /// Get remaining uses for free users
+  int get freeRemainingCount {
+    if (freeLimit == null) return 999; // Unlimited
+    return (freeLimit! - usedToday).clamp(0, freeLimit!);
+  }
 }
 
 /// Today progress summary

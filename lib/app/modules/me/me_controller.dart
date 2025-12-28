@@ -33,9 +33,19 @@ class MeController extends GetxController {
   // Stats data
   late final Rxn<TodayModel> todayData = _todayStore.today.data;
   final RxBool isUpdatingGoal = false.obs;
+  
+  // Optimistic local override for daily goal (used immediately after update)
+  final RxnInt _localDailyGoalOverride = RxnInt(null);
 
-  // Daily goal data - use TodayStore as single source of truth
-  int get dailyGoalTarget => todayData.value?.dailyNewLimit ?? user?.profile?.dailyNewLimit ?? 20;
+  // Daily goal data - use local override if set, otherwise TodayStore/user profile
+  int get dailyGoalTarget {
+    // Use local override if set (optimistic update)
+    if (_localDailyGoalOverride.value != null) {
+      return _localDailyGoalOverride.value!;
+    }
+    // Use user profile as primary source (updated immediately after API call)
+    return user?.profile?.dailyNewLimit ?? todayData.value?.dailyNewLimit ?? 20;
+  }
   int get dailyGoalCurrent => todayData.value?.newLearnedToday ?? 0;
   double get dailyGoalProgress {
     if (dailyGoalTarget == 0) return 0;
@@ -106,7 +116,13 @@ class MeController extends GetxController {
   void onInit() {
     super.onInit();
     // Ensure data is fresh when screen opens
-    _todayStore.syncNow();
+    _todayStore.syncNow(force: true);
+    
+    // Watch for user profile changes and sync today data
+    ever(_authService.currentUser, (_) {
+      // Re-sync today data when user profile changes
+      _todayStore.syncNow(force: true);
+    });
   }
 
   Future<void> loadStats() async {
@@ -178,7 +194,9 @@ class MeController extends GetxController {
     final profile = user?.profile;
     final RxString selectedLevel = RxString(profile?.currentLevel ?? 'HSK1');
     final RxString selectedGoalType = RxString(profile?.goalType?.apiValue ?? 'both');
-    final RxInt selectedMinutes = RxInt(profile?.dailyMinutesTarget ?? 15);
+    // Use dailyNewLimit (words) as primary, with fallback to derive from minutes
+    final currentWords = profile?.dailyNewLimit ?? _minutesToWords(profile?.dailyMinutesTarget ?? 15);
+    final RxInt selectedWords = RxInt(currentWords);
     final RxBool listeningEnabled = RxBool((profile?.focusWeights?.listening ?? 0) > 0);
     final RxBool hanziEnabled = RxBool((profile?.focusWeights?.hanzi ?? 0) > 0);
 
@@ -335,13 +353,13 @@ class MeController extends GetxController {
                       ),
                       const SizedBox(height: 8),
                       _buildGoalTypeOption(
-                        'communication',
+                        'conversation',
                         'Giao tiếp',
                         'Học hội thoại, nghe nói thực tế',
                         Icons.chat_bubble_outline,
-                        selectedGoalType.value == 'communication',
+                        selectedGoalType.value == 'conversation',
                         isDark,
-                        () => selectedGoalType.value = 'communication',
+                        () => selectedGoalType.value = 'conversation',
                       ),
                       const SizedBox(height: 8),
                       _buildGoalTypeOption(
@@ -356,9 +374,9 @@ class MeController extends GetxController {
 
                       const SizedBox(height: 24),
 
-                      // Daily Minutes Section
+                      // Daily Words Section (primary)
                       Text(
-                        'Thời gian học mỗi ngày',
+                        'Số từ mới mỗi ngày',
                         style: AppTypography.titleSmall.copyWith(
                           color: isDark
                               ? AppColors.textPrimaryDark
@@ -368,16 +386,16 @@ class MeController extends GetxController {
                       ),
                       const SizedBox(height: 12),
                       Row(
-                        children: [5, 15, 30, 45].map((minutes) {
-                          final isSelected = selectedMinutes.value == minutes;
+                        children: [5, 10, 20, 30].map((words) {
+                          final isSelected = selectedWords.value == words;
                           return Expanded(
                             child: GestureDetector(
-                              onTap: () => selectedMinutes.value = minutes,
+                              onTap: () => selectedWords.value = words,
                               child: Container(
                                 margin: EdgeInsets.only(
-                                  right: minutes != 45 ? 8 : 0,
+                                  right: words != 30 ? 8 : 0,
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                height: 56,
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppColors.primary
@@ -394,24 +412,50 @@ class MeController extends GetxController {
                                         ),
                                 ),
                                 alignment: Alignment.center,
-                                child: Text(
-                                  '${minutes}p',
-                                  style: AppTypography.labelMedium.copyWith(
-                                    color: isSelected
-                                        ? AppColors.white
-                                        : (isDark
-                                            ? AppColors.textPrimaryDark
-                                            : AppColors.textPrimary),
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
-                                  ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '$words',
+                                      style: AppTypography.titleMedium.copyWith(
+                                        color: isSelected
+                                            ? AppColors.white
+                                            : (isDark
+                                                ? AppColors.textPrimaryDark
+                                                : AppColors.textPrimary),
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      'từ',
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: isSelected
+                                            ? AppColors.white.withAlpha(200)
+                                            : (isDark
+                                                ? AppColors.textTertiaryDark
+                                                : AppColors.textTertiary),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           );
                         }).toList(),
                       ),
+                      const SizedBox(height: 8),
+                      // Show estimated time
+                      Obx(() => Text(
+                        _getWordsDescription(selectedWords.value),
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                        ),
+                      )),
 
                       const SizedBox(height: 24),
 
@@ -490,7 +534,7 @@ class MeController extends GetxController {
       await _updateLearningSettings(
         level: selectedLevel.value,
         goalType: selectedGoalType.value,
-        dailyMinutes: selectedMinutes.value,
+        dailyWords: selectedWords.value,
         listeningEnabled: listeningEnabled.value,
         hanziEnabled: hanziEnabled.value,
       );
@@ -639,30 +683,15 @@ class MeController extends GetxController {
   Future<void> _updateLearningSettings({
     required String level,
     required String goalType,
-    required int dailyMinutes,
+    required int dailyWords,
     required bool listeningEnabled,
     required bool hanziEnabled,
   }) async {
     isUpdatingGoal.value = true;
     try {
-      // Calculate dailyNewLimit based on minutes
-      int dailyNewLimit;
-      switch (dailyMinutes) {
-        case 5:
-          dailyNewLimit = 5;
-          break;
-        case 15:
-          dailyNewLimit = 10;
-          break;
-        case 30:
-          dailyNewLimit = 20;
-          break;
-        case 45:
-          dailyNewLimit = 30;
-          break;
-        default:
-          dailyNewLimit = 10;
-      }
+      // Calculate dailyMinutes based on words (words is primary)
+      final dailyMinutes = _wordsToMinutes(dailyWords);
+      final dailyNewLimit = dailyWords;
 
       // Calculate focus weights
       final listening = listeningEnabled ? 1.0 : 0.0;
@@ -682,7 +711,11 @@ class MeController extends GetxController {
         'focusWeights': focusWeights,
       });
 
-      await _authService.fetchCurrentUser();
+      // Sync both user profile AND today data to update UI immediately
+      await Future.wait([
+        _authService.fetchCurrentUser(),
+        _todayStore.syncNow(force: true),
+      ]);
       HMToast.success('Đã cập nhật cài đặt học tập');
     } catch (e) {
       HMToast.error(S.errorUnknown);
@@ -976,14 +1009,25 @@ class MeController extends GetxController {
 
     if (result != null && result != currentGoal) {
       isUpdatingGoal.value = true;
+      // Optimistically update local override for immediate UI feedback
+      _localDailyGoalOverride.value = result;
+      
       try {
         await _meRepo.updateProfile({'dailyNewLimit': result});
-        await _authService.fetchCurrentUser();
+        // Sync both user profile AND today data to update UI
+        await Future.wait([
+          _authService.fetchCurrentUser(),
+          _todayStore.syncNow(force: true),
+        ]);
         HMToast.success('Đã cập nhật mục tiêu từ');
       } catch (e) {
+        // Revert optimistic update on error
+        _localDailyGoalOverride.value = null;
         HMToast.error(S.errorUnknown);
       } finally {
         isUpdatingGoal.value = false;
+        // Clear override after sync completes - profile should be updated now
+        _localDailyGoalOverride.value = null;
       }
     }
   }
@@ -1004,5 +1048,55 @@ class MeController extends GetxController {
   Future<void> deleteAccount() async {
     // Navigate to delete account confirmation screen
     Get.toNamed(Routes.deleteAccount);
+  }
+
+  // ===== HELPER METHODS =====
+  
+  /// Convert words to minutes (words is primary)
+  int _wordsToMinutes(int words) {
+    switch (words) {
+      case 5:
+        return 5;
+      case 10:
+        return 15;
+      case 20:
+        return 30;
+      case 30:
+        return 45;
+      default:
+        return 15;
+    }
+  }
+  
+  /// Convert minutes to words (for backward compatibility)
+  int _minutesToWords(int minutes) {
+    switch (minutes) {
+      case 5:
+        return 5;
+      case 15:
+        return 10;
+      case 30:
+        return 20;
+      case 45:
+        return 30;
+      default:
+        return 10;
+    }
+  }
+  
+  /// Get description for word count
+  String _getWordsDescription(int words) {
+    switch (words) {
+      case 5:
+        return 'Nhẹ nhàng • Khoảng 5 phút mỗi ngày';
+      case 10:
+        return 'Vừa sức • Khoảng 15 phút mỗi ngày';
+      case 20:
+        return 'Tích cực • Khoảng 30 phút mỗi ngày';
+      case 30:
+        return 'Chuyên sâu • Khoảng 45 phút mỗi ngày';
+      default:
+        return '';
+    }
   }
 }

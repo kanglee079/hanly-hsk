@@ -359,15 +359,15 @@ class MeScreen extends GetView<MeController> {
               child: _buildStreakCard(isDark),
             ),
             const SizedBox(width: 12),
-            // Mastered card - tappable to show stats
+            // Total learned card - tappable to show stats
             Expanded(
               child: GestureDetector(
                 onTap: controller.goToStats,
                 child: _buildStatCard(
                   icon: Icons.check_circle_outline,
                   iconColor: AppColors.success,
-                  value: '${controller.masteredCount}',
-                  label: S.mastered,
+                  value: '${controller.totalLearned}',
+                  label: 'Đã học',
                   isDark: isDark,
                   showChevron: true,
                 ),

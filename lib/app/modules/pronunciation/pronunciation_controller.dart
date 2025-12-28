@@ -45,7 +45,7 @@ class PronunciationController extends GetxController {
   final RxInt totalAttempts = 0.obs;
   final RxInt passedCount = 0.obs;
   final RxDouble averageScore = 0.0.obs;
-  final RxList<_AttemptRecord> attempts = <_AttemptRecord>[].obs;
+  final RxList<AttemptRecord> attempts = <AttemptRecord>[].obs;
 
   // Timer for practice
   final RxInt practiceSeconds = 0.obs;
@@ -218,8 +218,10 @@ class PronunciationController extends GetxController {
         localeId: 'zh_CN', // Mandarin Chinese
         listenFor: Duration(seconds: maxRecordingSeconds),
         pauseFor: const Duration(seconds: 2),
-        partialResults: true,
-        cancelOnError: true,
+        listenOptions: stt.SpeechListenOptions(
+          partialResults: true,
+          cancelOnError: true,
+        ),
       );
       
       // Start countdown timer
@@ -312,7 +314,7 @@ class PronunciationController extends GetxController {
     hasResult.value = true;
     
     // Record attempt
-    attempts.add(_AttemptRecord(
+    attempts.add(AttemptRecord(
       vocabId: word.id,
       hanzi: word.hanzi,
       spoken: spoken,
@@ -467,14 +469,14 @@ class PronunciationController extends GetxController {
 }
 
 /// Internal record of pronunciation attempt
-class _AttemptRecord {
+class AttemptRecord {
   final String vocabId;
   final String hanzi;
   final String spoken;
   final int score;
   final bool passed;
 
-  _AttemptRecord({
+  AttemptRecord({
     required this.vocabId,
     required this.hanzi,
     required this.spoken,

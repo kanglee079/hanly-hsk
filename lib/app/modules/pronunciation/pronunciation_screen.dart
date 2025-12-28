@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
@@ -825,7 +824,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
                     ),
                     _buildStatItem(
                       icon: Icons.speed_rounded,
-                      value: '${controller.averageScore.value.toStringAsFixed(0)}',
+                      value: controller.averageScore.value.toStringAsFixed(0),
                       label: 'Điểm TB',
                       color: AppColors.primary,
                       isDark: isDark,

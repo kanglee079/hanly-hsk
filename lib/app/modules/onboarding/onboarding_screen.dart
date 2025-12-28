@@ -178,26 +178,26 @@ class OnboardingScreen extends GetView<OnboardingController> {
 
                     const SizedBox(height: 24),
 
-                    // Daily minutes
+                    // Daily words
                     _buildSection(
-                      title: 'Mục tiêu mỗi ngày',
+                      title: 'Số từ mới mỗi ngày',
                       isDark: isDark,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Obx(() => Row(
                                 children:
-                                    controller.dailyMinutesOptions.map((minutes) {
+                                    controller.dailyWordsOptions.map((words) {
                                   final isSelected =
-                                      controller.dailyMinutes.value == minutes;
+                                      controller.dailyWords.value == words;
                                   return Expanded(
                                     child: GestureDetector(
                                       onTap: () =>
-                                          controller.setDailyMinutes(minutes),
+                                          controller.setDailyWords(words),
                                       child: Container(
                                         margin: EdgeInsets.only(
-                                            right: minutes < 45 ? 8 : 0),
-                                        height: 48,
+                                            right: words < 30 ? 8 : 0),
+                                        height: 56,
                                         decoration: BoxDecoration(
                                           color: isSelected
                                               ? (isDark
@@ -215,19 +215,36 @@ class OnboardingScreen extends GetView<OnboardingController> {
                                           ),
                                         ),
                                         child: Center(
-                                          child: Text(
-                                            '${minutes}p',
-                                            style:
-                                                AppTypography.titleMedium.copyWith(
-                                              color: isSelected
-                                                  ? AppColors.primary
-                                                  : (isDark
-                                                      ? AppColors.textPrimaryDark
-                                                      : AppColors.textPrimary),
-                                              fontWeight: isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
-                                            ),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                '$words',
+                                                style:
+                                                    AppTypography.titleMedium.copyWith(
+                                                  color: isSelected
+                                                      ? AppColors.primary
+                                                      : (isDark
+                                                          ? AppColors.textPrimaryDark
+                                                          : AppColors.textPrimary),
+                                                  fontWeight: isSelected
+                                                      ? FontWeight.w600
+                                                      : FontWeight.normal,
+                                                ),
+                                              ),
+                                              Text(
+                                                'từ',
+                                                style:
+                                                    AppTypography.labelSmall.copyWith(
+                                                  color: isSelected
+                                                      ? AppColors.primary.withAlpha(180)
+                                                      : (isDark
+                                                          ? AppColors.textTertiaryDark
+                                                          : AppColors.textTertiary),
+                                                  fontSize: 10,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
@@ -237,7 +254,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
                               )),
                           const SizedBox(height: 8),
                           Obx(() => Text(
-                                controller.dailyMinutesDescription,
+                                controller.dailyWordsDescription,
                                 style: AppTypography.bodySmall.copyWith(
                                   color: isDark
                                       ? AppColors.textSecondaryDark
@@ -290,9 +307,14 @@ class OnboardingScreen extends GetView<OnboardingController> {
               ),
             ),
 
-            // Submit button
+            // Submit button - fixed at bottom with safe area
             Padding(
-              padding: AppSpacing.screenPadding.copyWith(top: 8, bottom: 24),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                MediaQuery.of(context).padding.bottom + 16,
+              ),
               child: Obx(() => HMButton(
                     text: 'Tạo hồ sơ →',
                     onPressed:
@@ -312,41 +334,24 @@ class OnboardingScreen extends GetView<OnboardingController> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          // Back button
-          GestureDetector(
-            onTap: () => Get.back(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceVariantDark : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.arrow_back,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-              ),
-            ),
-          ),
+          // Spacer to balance the Skip button on the right
+          const SizedBox(width: 60),
 
           const Spacer(),
 
-          // Progress dots
-          Row(
-            children: List.generate(3, (index) {
-              final isActive = index == 0;
-              return Container(
-                width: isActive ? 24 : 8,
-                height: 8,
-                margin: EdgeInsets.only(right: index < 2 ? 6 : 0),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColors.primary
-                      : (isDark ? AppColors.borderDark : AppColors.border),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              );
-            }),
+          // App logo/icon in center
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.auto_stories,
+              color: AppColors.primary,
+              size: 24,
+            ),
           ),
 
           const Spacer(),

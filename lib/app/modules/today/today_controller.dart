@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/today_model.dart';
@@ -5,10 +6,14 @@ import '../../data/models/dashboard_model.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/next_action_engine.dart';
 import '../../services/storage_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_typography.dart';
 import '../../core/widgets/hm_streak_bottom_sheet.dart';
+import '../../core/widgets/hm_button.dart';
 import '../../routes/app_routes.dart';
 import '../../services/realtime/today_store.dart';
 import '../practice/practice_controller.dart';
+import '../shell/shell_controller.dart';
 
 /// Session mode preset (legacy - for backwards compatibility)
 enum SessionMode { 
@@ -52,6 +57,8 @@ class TodayController extends GetxController {
     super.onInit();
     _updateDisplayName();
     _refreshLocalCacheCount();
+    // Force sync fresh data on first load (especially important after onboarding)
+    _todayStore.syncNow(force: true);
     // Listen to user changes - reset local cache when user changes
     ever(_authService.currentUser, (_) {
       _updateDisplayName();
@@ -119,6 +126,20 @@ class TodayController extends GetxController {
   void executeNextAction() {
     final action = nextAction.value;
     if (action == null) return;
+    
+    // Skip if no route (e.g., "Nghỉ ngơi" action)
+    if (action.route.isEmpty) return;
+    
+    // Handle shell navigation with tab switching
+    if (action.route == Routes.shell && action.payload != null) {
+      final tabIndex = action.payload!['tab'] as int?;
+      if (tabIndex != null) {
+        // Switch tab in shell
+        final shellController = Get.find<ShellController>();
+        shellController.changePage(tabIndex);
+        return;
+      }
+    }
     
     Get.toNamed(action.route, arguments: action.payload);
   }
@@ -273,5 +294,122 @@ class TodayController extends GetxController {
     if (hour < 12) return 'Chào buổi sáng';
     if (hour < 18) return 'Chào buổi chiều';
     return 'Chào buổi tối';
+  }
+
+  // ===== HSK LEVEL ADVANCEMENT =====
+  
+  /// Level advancement info from API (via TodayModel)
+  LevelAdvancementInfo? get levelAdvancement => todayData.value?.levelAdvancement;
+  
+  /// Check if user can advance to next HSK level
+  bool get canAdvanceLevel => levelAdvancement?.canAdvance ?? false;
+  
+  /// Get current HSK level from profile
+  int get currentHskLevel {
+    final levelStr = _authService.currentUser.value?.profile?.currentLevel;
+    if (levelStr == null) return 1;
+    return int.tryParse(levelStr.replaceAll('HSK', '')) ?? 1;
+  }
+  
+  /// Get next HSK level
+  int get nextHskLevel => levelAdvancement?.nextLevelInt ?? (currentHskLevel + 1).clamp(1, 6);
+  
+  /// Show HSK level advancement dialog
+  void showLevelAdvancementDialog() {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Celebration icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFFD700).withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              Text(
+                'Xuất sắc! 🎉',
+                style: AppTypography.headlineSmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              Text(
+                'Bạn đã hoàn thành HSK$currentHskLevel!',
+                style: AppTypography.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              
+              Text(
+                'Bạn có muốn chuyển sang học HSK$nextHskLevel?',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: HMButton(
+                      text: 'Để sau',
+                      variant: HMButtonVariant.outline,
+                      onPressed: () => Get.back(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: HMButton(
+                      text: 'Lên HSK$nextHskLevel',
+                      onPressed: () {
+                        Get.back();
+                        advanceToNextLevel();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  /// Advance to next HSK level
+  Future<void> advanceToNextLevel() async {
+    // TODO: Call API POST /me/advance-level when BE is ready
+    // For now, just show toast
+    Get.snackbar(
+      'Đang phát triển',
+      'Tính năng chuyển level sẽ có sớm!',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 }

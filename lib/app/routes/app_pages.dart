@@ -24,6 +24,7 @@ import '../modules/decks/decks_binding.dart';
 import '../modules/decks/decks_screen.dart';
 import '../modules/decks/deck_detail_screen.dart';
 import '../modules/settings/settings_screen.dart';
+import '../modules/premium/premium_binding.dart';
 import '../modules/premium/premium_screen.dart';
 import '../modules/game30/game30_binding.dart';
 import '../modules/game30/game30_screen.dart';
@@ -49,6 +50,9 @@ import '../modules/flashcard/flashcard_binding.dart';
 import '../modules/flashcard/flashcard_screen.dart';
 import '../modules/listening/listening_binding.dart';
 import '../modules/listening/listening_screen.dart';
+import '../modules/hsk_exam/hsk_exam_test_screen.dart';
+import '../modules/hsk_exam/hsk_exam_history_screen.dart';
+import '../modules/hsk_exam/hsk_exam_review_screen.dart';
 
 /// App pages configuration
 class AppPages {
@@ -135,6 +139,7 @@ class AppPages {
     GetPage(
       name: Routes.premium,
       page: () => const PremiumScreen(),
+      binding: PremiumBinding(),
     ),
 
     // 30s Game - Home with leaderboard
@@ -218,6 +223,24 @@ class AppPages {
       name: Routes.listening,
       page: () => const ListeningScreen(),
       binding: ListeningBinding(),
+    ),
+
+    // HSK Exam - Test Taking
+    GetPage(
+      name: Routes.hskExamTest,
+      page: () => const HskExamTestScreen(),
+    ),
+
+    // HSK Exam - History
+    GetPage(
+      name: Routes.hskExamHistory,
+      page: () => const HskExamHistoryScreen(),
+    ),
+
+    // HSK Exam - Review
+    GetPage(
+      name: Routes.hskExamReview,
+      page: () => const HskExamReviewScreen(),
     ),
 
     // Stubs

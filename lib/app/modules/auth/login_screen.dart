@@ -6,88 +6,112 @@ import '../../core/widgets/hm_button.dart';
 import '../../core/widgets/hm_text_field.dart';
 import 'auth_controller.dart';
 
-/// Login screen with email + password
+/// Login screen with email + password - Clean & Compact design
 class LoginScreen extends GetView<AuthController> {
   const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
-              
-              // Logo and title
-              _buildHeader(isDark),
-              
-              const SizedBox(height: 48),
-              
-              // Email field
-              Obx(() => HMTextField(
-                controller: controller.emailController,
-                labelText: 'Email',
-                hintText: 'your@email.com',
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                errorText: controller.emailError.value.isEmpty 
-                    ? null 
-                    : controller.emailError.value,
-                prefixIcon: const Icon(Icons.email_outlined, size: 20),
-              )),
-              
-              const SizedBox(height: 16),
-              
-              // Password field
-              Obx(() => HMTextField(
-                controller: controller.passwordController,
-                labelText: 'Mật khẩu',
-                hintText: '••••••••',
-                obscureText: controller.obscurePassword.value,
-                textInputAction: TextInputAction.done,
-                errorText: controller.passwordError.value.isEmpty 
-                    ? null 
-                    : controller.passwordError.value,
-                prefixIcon: const Icon(Icons.lock_outline, size: 20),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    controller.obscurePassword.value 
-                        ? Icons.visibility_outlined 
-                        : Icons.visibility_off_outlined,
-                    color: AppColors.textTertiary,
-                    size: 20,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
                   ),
-                  onPressed: controller.togglePasswordVisibility,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(24, 0, 24, bottomPadding + 16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Top section - Logo & Header
+                        Column(
+                          children: [
+                            SizedBox(height: constraints.maxHeight * 0.06),
+                            _buildLogo(),
+                            const SizedBox(height: 20),
+                            _buildHeader(isDark),
+                          ],
+                        ),
+                        
+                        // Middle section - Form
+                        Column(
+                          children: [
+                            const SizedBox(height: 32),
+                            _buildForm(isDark),
+                            const SizedBox(height: 24),
+                            
+                            // Login button
+                            Obx(() => HMButton(
+                              text: 'Đăng nhập',
+                              onPressed: controller.login,
+                              isLoading: controller.isLoading.value,
+                              size: HMButtonSize.large,
+                            )),
+                            
+                            const SizedBox(height: 20),
+                            _buildRegisterLink(isDark),
+                          ],
+                        ),
+                        
+                        // Bottom section - Social login
+                        Column(
+                          children: [
+                            const SizedBox(height: 24),
+                            _buildSocialLogin(isDark),
+                            const SizedBox(height: 8),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                onSubmitted: (_) => controller.login(),
-              )),
-              
-              const SizedBox(height: 32),
-              
-              // Login button
-              Obx(() => HMButton(
-                text: 'Đăng nhập',
-                onPressed: controller.login,
-                isLoading: controller.isLoading.value,
-                size: HMButtonSize.large,
-              )),
-              
-              const SizedBox(height: 24),
-              
-              // Register link
-              _buildRegisterLink(isDark),
-              
-              const SizedBox(height: 48),
-              
-              // Social login placeholder
-              _buildSocialLoginPlaceholder(isDark),
-            ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Container(
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary,
+            AppColors.primaryDark,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: const Center(
+        child: Text(
+          '漢',
+          style: TextStyle(
+            fontSize: 38,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
       ),
@@ -97,42 +121,6 @@ class LoginScreen extends GetView<AuthController> {
   Widget _buildHeader(bool isDark) {
     return Column(
       children: [
-        // App logo
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary,
-                AppColors.primary.withValues(alpha: 0.8),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Text(
-              '漢',
-              style: TextStyle(
-                fontSize: 42,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        
-        const SizedBox(height: 24),
-        
         Text(
           'Chào mừng trở lại!',
           style: AppTypography.headlineSmall.copyWith(
@@ -140,16 +128,58 @@ class LoginScreen extends GetView<AuthController> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        
-        const SizedBox(height: 8),
-        
+        const SizedBox(height: 6),
         Text(
           'Đăng nhập để tiếp tục học tiếng Trung',
           style: AppTypography.bodyMedium.copyWith(
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
           ),
-          textAlign: TextAlign.center,
         ),
+      ],
+    );
+  }
+
+  Widget _buildForm(bool isDark) {
+    return Column(
+      children: [
+        // Email field
+        Obx(() => HMTextField(
+          controller: controller.emailController,
+          labelText: 'Email',
+          hintText: 'your@email.com',
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+          errorText: controller.emailError.value.isEmpty 
+              ? null 
+              : controller.emailError.value,
+          prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
+        )),
+        
+        const SizedBox(height: 14),
+        
+        // Password field
+        Obx(() => HMTextField(
+          controller: controller.passwordController,
+          labelText: 'Mật khẩu',
+          hintText: '••••••••',
+          obscureText: controller.obscurePassword.value,
+          textInputAction: TextInputAction.done,
+          errorText: controller.passwordError.value.isEmpty 
+              ? null 
+              : controller.passwordError.value,
+          prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+          suffixIcon: IconButton(
+            icon: Icon(
+              controller.obscurePassword.value 
+                  ? Icons.visibility_outlined 
+                  : Icons.visibility_off_outlined,
+              color: AppColors.textTertiary,
+              size: 20,
+            ),
+            onPressed: controller.togglePasswordVisibility,
+          ),
+          onSubmitted: (_) => controller.login(),
+        )),
       ],
     );
   }
@@ -178,18 +208,15 @@ class LoginScreen extends GetView<AuthController> {
     );
   }
 
-  Widget _buildSocialLoginPlaceholder(bool isDark) {
+  Widget _buildSocialLogin(bool isDark) {
     return Column(
       children: [
+        // Divider with "hoặc"
         Row(
           children: [
-            Expanded(
-              child: Divider(
-                color: isDark ? Colors.white24 : Colors.black12,
-              ),
-            ),
+            Expanded(child: Divider(color: isDark ? Colors.white12 : AppColors.border)),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Text(
                 'hoặc',
                 style: AppTypography.bodySmall.copyWith(
@@ -197,32 +224,31 @@ class LoginScreen extends GetView<AuthController> {
                 ),
               ),
             ),
-            Expanded(
-              child: Divider(
-                color: isDark ? Colors.white24 : Colors.black12,
-              ),
-            ),
+            Expanded(child: Divider(color: isDark ? Colors.white12 : AppColors.border)),
           ],
         ),
         
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         
-        // Apple button (placeholder)
-        _buildSocialButton(
-          icon: Icons.apple,
-          label: 'Tiếp tục với Apple',
-          isDark: isDark,
-          comingSoon: true,
-        ),
-        
-        const SizedBox(height: 12),
-        
-        // Google button (placeholder)
-        _buildSocialButton(
-          icon: Icons.g_mobiledata,
-          label: 'Tiếp tục với Google',
-          isDark: isDark,
-          comingSoon: true,
+        // Social buttons row
+        Row(
+          children: [
+            Expanded(
+              child: _buildSocialButton(
+                icon: Icons.apple,
+                label: 'Apple',
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildSocialButton(
+                icon: Icons.g_mobiledata_rounded,
+                label: 'Google',
+                isDark: isDark,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -232,18 +258,16 @@ class LoginScreen extends GetView<AuthController> {
     required IconData icon,
     required String label,
     required bool isDark,
-    bool comingSoon = false,
   }) {
     return Opacity(
-      opacity: comingSoon ? 0.5 : 1,
+      opacity: 0.5,
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDark ? Colors.white12 : Colors.black12,
+            color: isDark ? Colors.white12 : AppColors.border,
           ),
         ),
         child: Row(
@@ -251,33 +275,16 @@ class LoginScreen extends GetView<AuthController> {
           children: [
             Icon(
               icon,
-              size: 24,
+              size: 22,
               color: isDark ? Colors.white70 : AppColors.textPrimary,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Text(
               label,
-              style: AppTypography.labelLarge.copyWith(
+              style: AppTypography.labelMedium.copyWith(
                 color: isDark ? Colors.white70 : AppColors.textPrimary,
               ),
             ),
-            if (comingSoon) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'Sắp ra mắt',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),

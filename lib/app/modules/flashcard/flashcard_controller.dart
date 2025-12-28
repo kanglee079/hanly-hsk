@@ -6,11 +6,19 @@ import '../../data/repositories/learning_repo.dart';
 import '../../services/audio_service.dart';
 import '../../services/realtime/today_store.dart';
 
-/// Flashcard Controller - manages SRS vocabulary flashcard session
-/// Uses Option 1: SRS Priority Algorithm
-/// - Priority 1: Words due for review today (reviewQueue) → 4-5 words
-/// - Priority 2: Recently learned words (state=learning) → 3-4 words  
-/// - Priority 3: Words with low interval (struggling) → 1-2 words
+/// Flashcard Controller - Smart Adaptive Mix Algorithm
+/// 
+/// Tự động điều chỉnh tỷ lệ từ mới/ôn tập dựa trên tiến độ người dùng:
+/// 
+/// | Giai đoạn       | Từ đã học | Từ mới | Ôn tập | Mục đích              |
+/// |-----------------|-----------|--------|--------|----------------------|
+/// | Người mới       | < 10      | 60%    | 40%    | Xây dựng vốn từ nhanh |
+/// | Đang phát triển | 10-50     | 40%    | 60%    | Cân bằng học + củng cố|
+/// | Đã ổn định      | > 50      | 25%    | 75%    | Ghi nhớ lâu dài       |
+/// 
+/// Priority trong mỗi loại:
+/// - Ôn tập: reviewQueue (due today) > learning state > review pool
+/// - Từ mới: newQueue (today's targets)
 class FlashcardController extends GetxController {
   final LearningRepo _learningRepo = Get.find<LearningRepo>();
   final AudioService _audioService = Get.find<AudioService>();
@@ -26,9 +34,12 @@ class FlashcardController extends GetxController {
   final hasFinished = false.obs;
   
   // Stats for display
-  final dueCount = 0.obs;      // Số từ đến hạn ôn
-  final learningCount = 0.obs; // Số từ đang học
-  final reviewCount = 0.obs;   // Số từ cần củng cố
+  final newWordsCount = 0.obs;    // Số từ mới trong deck
+  final reviewWordsCount = 0.obs; // Số từ ôn tập trong deck
+  final totalLearnedCount = 0.obs; // Tổng số từ đã học của user
+  
+  // User stage (for UI display)
+  final userStage = 'new'.obs; // 'new' | 'growing' | 'established'
 
   @override
   void onInit() {
@@ -36,102 +47,173 @@ class FlashcardController extends GetxController {
     _loadVocabs();
   }
 
-  /// Load vocabs using SRS Priority Algorithm (Option 1)
-  /// 1. Due for review (reviewQueue) → 4-5 từ
-  /// 2. Recently learning → 3-4 từ
-  /// 3. Low interval/struggling → 1-2 từ
+  /// Determine user's learning stage and optimal mix ratio
+  _MixRatio _calculateMixRatio(int totalLearned) {
+    if (totalLearned < 10) {
+      // Stage 1: Người mới - ưu tiên học từ mới
+      userStage.value = 'new';
+      return _MixRatio(
+        newRatio: 0.6,    // 60% từ mới (6 cards)
+        reviewRatio: 0.4, // 40% ôn tập (4 cards)
+      );
+    } else if (totalLearned < 50) {
+      // Stage 2: Đang phát triển - cân bằng
+      userStage.value = 'growing';
+      return _MixRatio(
+        newRatio: 0.4,    // 40% từ mới (4 cards)
+        reviewRatio: 0.6, // 60% ôn tập (6 cards)
+      );
+    } else {
+      // Stage 3: Đã ổn định - tập trung ôn tập
+      userStage.value = 'established';
+      return _MixRatio(
+        newRatio: 0.25,   // 25% từ mới (2-3 cards)
+        reviewRatio: 0.75, // 75% ôn tập (7-8 cards)
+      );
+    }
+  }
+
+  /// Load vocabs using Smart Adaptive Mix Algorithm
   Future<void> _loadVocabs() async {
     try {
       isLoading.value = true;
       
+      final todayData = _todayStore.today.data.value;
+      final totalLearned = todayData?.totalLearned ?? 0;
+      totalLearnedCount.value = totalLearned;
+      
+      // Calculate optimal mix based on user's stage
+      final mixRatio = _calculateMixRatio(totalLearned);
+      final targetNew = (totalCards * mixRatio.newRatio).round();
+      final targetReview = totalCards - targetNew;
+      
+      Logger.d('FlashcardController', 
+        'User stage: ${userStage.value}, totalLearned: $totalLearned, '
+        'target: $targetNew new + $targetReview review');
+
       final List<VocabModel> finalList = [];
       final Set<String> addedIds = {}; // Avoid duplicates
+      int newAdded = 0;
+      int reviewAdded = 0;
 
-      // === PRIORITY 1: Words due for review today ===
-      final todayData = _todayStore.today.data.value;
+      // === STEP 1: Add REVIEW words first (priority: due today) ===
       if (todayData != null && todayData.reviewQueue.isNotEmpty) {
-        final dueWords = todayData.reviewQueue.take(5).toList();
-        for (final word in dueWords) {
-          if (!addedIds.contains(word.id)) {
-            finalList.add(word);
-            addedIds.add(word.id);
-          }
-        }
-        dueCount.value = dueWords.length;
-        Logger.d('FlashcardController', 'Added ${dueWords.length} due words from reviewQueue');
-      }
-
-      // === PRIORITY 2: Recently learning words ===
-      if (finalList.length < totalCards) {
-        final remaining = totalCards - finalList.length;
-        final learningResponse = await _learningRepo.getLearnedVocabs(
-          limit: remaining + 5, // Get extra to filter duplicates
-          state: 'learning',
-          shuffle: false, // Keep recent order
-        );
-        
-        int learningAdded = 0;
-        for (final word in learningResponse.vocabs) {
-          if (finalList.length >= totalCards) break;
-          if (!addedIds.contains(word.id)) {
-            finalList.add(word);
-            addedIds.add(word.id);
-            learningAdded++;
-          }
-        }
-        learningCount.value = learningAdded;
-        Logger.d('FlashcardController', 'Added $learningAdded learning words');
-      }
-
-      // === PRIORITY 3: Review/struggling words (low interval) ===
-      if (finalList.length < totalCards) {
-        final remaining = totalCards - finalList.length;
-        final reviewResponse = await _learningRepo.getLearnedVocabs(
-          limit: remaining + 5,
-          state: 'review',
-          shuffle: true, // Random from review pool
-        );
-        
-        int reviewAdded = 0;
-        for (final word in reviewResponse.vocabs) {
-          if (finalList.length >= totalCards) break;
+        for (final word in todayData.reviewQueue) {
+          if (reviewAdded >= targetReview) break;
           if (!addedIds.contains(word.id)) {
             finalList.add(word);
             addedIds.add(word.id);
             reviewAdded++;
           }
         }
-        reviewCount.value = reviewAdded;
-        Logger.d('FlashcardController', 'Added $reviewAdded review words');
+        Logger.d('FlashcardController', 'Added $reviewAdded due words from reviewQueue');
       }
 
-      // === FALLBACK: Get any learned vocabs if still not enough ===
-      if (finalList.length < totalCards) {
-        final remaining = totalCards - finalList.length;
-        final allResponse = await _learningRepo.getLearnedVocabs(
-          limit: remaining + 10,
-          state: 'all',
-          shuffle: true,
-        );
-        
-        for (final word in allResponse.vocabs) {
-          if (finalList.length >= totalCards) break;
+      // === STEP 2: Add more review words if needed (learning state) ===
+      if (reviewAdded < targetReview) {
+        final remaining = targetReview - reviewAdded;
+        try {
+          final learningResponse = await _learningRepo.getLearnedVocabs(
+            limit: remaining + 5,
+            state: 'learning',
+            shuffle: true,
+          );
+          
+          for (final word in learningResponse.vocabs) {
+            if (reviewAdded >= targetReview) break;
+            if (!addedIds.contains(word.id)) {
+              finalList.add(word);
+              addedIds.add(word.id);
+              reviewAdded++;
+            }
+          }
+          Logger.d('FlashcardController', 'Added $reviewAdded total review words (including learning)');
+        } catch (e) {
+          Logger.w('FlashcardController', 'Failed to get learning vocabs: $e');
+        }
+      }
+
+      // === STEP 3: Add more review words from review pool if still needed ===
+      if (reviewAdded < targetReview) {
+        final remaining = targetReview - reviewAdded;
+        try {
+          final reviewResponse = await _learningRepo.getLearnedVocabs(
+            limit: remaining + 5,
+            state: 'review',
+            shuffle: true,
+          );
+          
+          for (final word in reviewResponse.vocabs) {
+            if (reviewAdded >= targetReview) break;
+            if (!addedIds.contains(word.id)) {
+              finalList.add(word);
+              addedIds.add(word.id);
+              reviewAdded++;
+            }
+          }
+        } catch (e) {
+          Logger.w('FlashcardController', 'Failed to get review vocabs: $e');
+        }
+      }
+
+      // === STEP 4: Add NEW words from newQueue ===
+      if (todayData != null && todayData.newQueue.isNotEmpty) {
+        for (final word in todayData.newQueue) {
+          if (newAdded >= targetNew) break;
           if (!addedIds.contains(word.id)) {
             finalList.add(word);
             addedIds.add(word.id);
+            newAdded++;
           }
         }
-        Logger.d('FlashcardController', 'Filled with ${finalList.length} total words');
+        Logger.d('FlashcardController', 'Added $newAdded new words from newQueue');
       }
 
+      // === STEP 5: If still not enough, fill with whatever is available ===
+      if (finalList.length < totalCards) {
+        // Try to get more new words if newQueue was not enough
+        final remaining = totalCards - finalList.length;
+        
+        // First try: Get any mastered words for variety
+        try {
+          final allResponse = await _learningRepo.getLearnedVocabs(
+            limit: remaining + 10,
+            state: 'all',
+            shuffle: true,
+          );
+          
+          for (final word in allResponse.vocabs) {
+            if (finalList.length >= totalCards) break;
+            if (!addedIds.contains(word.id)) {
+              finalList.add(word);
+              addedIds.add(word.id);
+              reviewAdded++;
+            }
+          }
+        } catch (e) {
+          Logger.w('FlashcardController', 'Failed to get fallback vocabs: $e');
+        }
+      }
+
+      // === STEP 6: Shuffle to mix new and review words naturally ===
+      finalList.shuffle();
+
+      // Update stats
+      newWordsCount.value = newAdded;
+      reviewWordsCount.value = reviewAdded;
       vocabs.value = finalList;
 
       if (vocabs.isEmpty) {
-        HMToast.warning('Chưa có từ nào đã học. Hãy học thêm từ mới!');
+        // Provide helpful message based on situation
+        if (todayData?.newQueue.isEmpty == true && totalLearned == 0) {
+          HMToast.info('Hãy học từ mới trước để sử dụng Flashcard!');
+        } else {
+          HMToast.info('Không có từ nào khả dụng. Hãy học thêm từ mới!');
+        }
       }
 
       Logger.d('FlashcardController', 
-        'Loaded ${vocabs.length} vocabs: due=${dueCount.value}, learning=${learningCount.value}, review=${reviewCount.value}');
+        'Final deck: ${vocabs.length} cards (${newWordsCount.value} new + ${reviewWordsCount.value} review)');
     } catch (e) {
       Logger.e('FlashcardController', 'Failed to load vocabs', e);
       HMToast.error('Không thể tải từ vựng');
@@ -143,6 +225,17 @@ class FlashcardController extends GetxController {
   VocabModel? get currentVocab {
     if (vocabs.isEmpty || currentIndex.value >= vocabs.length) return null;
     return vocabs[currentIndex.value];
+  }
+
+  /// Check if current vocab is a new word (not yet learned)
+  bool get isCurrentWordNew {
+    final vocab = currentVocab;
+    if (vocab == null) return false;
+    
+    final todayData = _todayStore.today.data.value;
+    if (todayData == null) return false;
+    
+    return todayData.newQueue.any((w) => w.id == vocab.id);
   }
 
   void flipCard() {
@@ -183,11 +276,35 @@ class FlashcardController extends GetxController {
     currentIndex.value = 0;
     isFlipped.value = false;
     hasFinished.value = false;
-    _loadVocabs(); // Reload with new random words
+    _loadVocabs(); // Reload with new mix
   }
 
   void goBack() {
     Get.back();
   }
+  
+  /// Get display text for user stage
+  String get stageDisplayText {
+    switch (userStage.value) {
+      case 'new':
+        return 'Người mới • Ưu tiên học từ mới';
+      case 'growing':
+        return 'Đang phát triển • Cân bằng học & ôn';
+      case 'established':
+        return 'Vốn từ ổn định • Tập trung ôn tập';
+      default:
+        return '';
+    }
+  }
 }
 
+/// Mix ratio configuration
+class _MixRatio {
+  final double newRatio;
+  final double reviewRatio;
+  
+  const _MixRatio({
+    required this.newRatio,
+    required this.reviewRatio,
+  });
+}

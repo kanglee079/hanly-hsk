@@ -125,6 +125,52 @@ class ReviewOverloadInfo {
   int get excessCount => (currentReviewCount - maxAllowed).clamp(0, currentReviewCount);
 }
 
+/// Level advancement notification from BE
+/// Returned when user is ready to advance to next HSK level
+class LevelAdvancementInfo {
+  final bool canAdvance;
+  final String currentLevel;
+  final String nextLevel;
+  final double currentMastery;
+  final int requiredMastery;
+  final String message;
+
+  LevelAdvancementInfo({
+    this.canAdvance = false,
+    required this.currentLevel,
+    required this.nextLevel,
+    this.currentMastery = 0,
+    this.requiredMastery = 80,
+    this.message = '',
+  });
+
+  factory LevelAdvancementInfo.fromJson(Map<String, dynamic> json) {
+    return LevelAdvancementInfo(
+      canAdvance: json['canAdvance'] as bool? ?? false,
+      currentLevel: json['currentLevel'] as String? ?? 'HSK1',
+      nextLevel: json['nextLevel'] as String? ?? 'HSK2',
+      currentMastery: (json['currentMastery'] as num?)?.toDouble() ?? 0,
+      requiredMastery: json['requiredMastery'] as int? ?? 80,
+      message: json['message'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'canAdvance': canAdvance,
+    'currentLevel': currentLevel,
+    'nextLevel': nextLevel,
+    'currentMastery': currentMastery,
+    'requiredMastery': requiredMastery,
+    'message': message,
+  };
+
+  /// Get current level number (1-6)
+  int get currentLevelInt => int.tryParse(currentLevel.replaceAll('HSK', '')) ?? 1;
+  
+  /// Get next level number (1-6)
+  int get nextLevelInt => int.tryParse(nextLevel.replaceAll('HSK', '')) ?? 2;
+}
+
 /// Today's learning data - matches BE API response
 class TodayModel {
   final int streak;
@@ -158,6 +204,9 @@ class TodayModel {
   
   // 🆕 Game limit fields
   final GameLimitInfo? gameLimit;    // Game 30s daily limit info
+  
+  // 🆕 Level advancement notification
+  final LevelAdvancementInfo? levelAdvancement; // null if not ready to advance
 
   TodayModel({
     this.streak = 0,
@@ -185,6 +234,7 @@ class TodayModel {
     this.unlockRequirement,
     this.reviewOverloadInfo,
     this.gameLimit,
+    this.levelAdvancement,
   });
 
   factory TodayModel.fromJson(Map<String, dynamic> json) {
@@ -227,6 +277,13 @@ class TodayModel {
       gameLimit = GameLimitInfo.fromJson(data);
     }
 
+    // Parse level advancement info
+    LevelAdvancementInfo? levelAdvancement;
+    final levelAdvJson = data['levelAdvancement'] as Map<String, dynamic>?;
+    if (levelAdvJson != null) {
+      levelAdvancement = LevelAdvancementInfo.fromJson(levelAdvJson);
+    }
+
     return TodayModel(
       streak: safeInt(data['streak']),
       bestStreak: safeInt(data['bestStreak']),
@@ -264,6 +321,7 @@ class TodayModel {
       unlockRequirement: unlockRequirement,
       reviewOverloadInfo: reviewOverloadInfo,
       gameLimit: gameLimit,
+      levelAdvancement: levelAdvancement,
     );
   }
 
@@ -296,6 +354,7 @@ class TodayModel {
       if (gameLimit != null) 'gamePlaysToday': gameLimit!.gamePlaysToday,
       if (gameLimit != null) 'dailyGameLimit': gameLimit!.dailyGameLimit,
       if (gameLimit != null) 'canPlayGame': gameLimit!.canPlayGame,
+      if (levelAdvancement != null) 'levelAdvancement': levelAdvancement!.toJson(),
     };
   }
 
@@ -326,6 +385,7 @@ class TodayModel {
     UnlockRequirement? unlockRequirement,
     ReviewOverloadInfo? reviewOverloadInfo,
     GameLimitInfo? gameLimit,
+    LevelAdvancementInfo? levelAdvancement,
   }) {
     return TodayModel(
       streak: streak ?? this.streak,
@@ -353,6 +413,7 @@ class TodayModel {
       unlockRequirement: unlockRequirement ?? this.unlockRequirement,
       reviewOverloadInfo: reviewOverloadInfo ?? this.reviewOverloadInfo,
       gameLimit: gameLimit ?? this.gameLimit,
+      levelAdvancement: levelAdvancement ?? this.levelAdvancement,
     );
   }
 

@@ -7,15 +7,41 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/models/study_modes_model.dart';
+import '../../services/tutorial_service.dart';
 import 'learn_controller.dart';
 
 /// Learn tab screen - matches design with dynamic data from API
 class LearnScreen extends GetView<LearnController> {
   const LearnScreen({super.key});
 
+  // Tutorial keys
+  static final GlobalKey quickReviewKey = GlobalKey();
+  static final GlobalKey studyModesKey = GlobalKey();
+  static final GlobalKey comprehensiveKey = GlobalKey();
+  
+  // Flag to prevent multiple registrations
+  static bool _keysRegistered = false;
+
+  void _registerTutorialKeys() {
+    if (_keysRegistered) return;
+    _keysRegistered = true;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<TutorialService>()) {
+        final tutorialService = Get.find<TutorialService>();
+        tutorialService.registerKey('learn_quick_review', quickReviewKey);
+        tutorialService.registerKey('study_modes_grid', studyModesKey);
+        tutorialService.registerKey('learn_comprehensive', comprehensiveKey);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Register tutorial keys
+    _registerTutorialKeys();
 
     return AppScaffold(
       body: SafeArea(
@@ -50,17 +76,26 @@ class LearnScreen extends GetView<LearnController> {
                           const SizedBox(height: 8),
                           
                           // ===== ÔN TẬP NHANH =====
-                          _buildQuickReviewBanner(isDark),
+                          KeyedSubtree(
+                            key: quickReviewKey,
+                            child: _buildQuickReviewBanner(isDark),
+                          ),
 
                           const SizedBox(height: 12),
 
                           // ===== CHẾ ĐỘ HỌC - GRID 2x2 =====
-                          _buildModeGrid(isDark, constraints),
+                          KeyedSubtree(
+                            key: studyModesKey,
+                            child: _buildModeGrid(isDark, constraints),
+                          ),
 
                           const SizedBox(height: 12),
 
                           // ===== ÔN TẬP TỔNG HỢP =====
-                          _buildComprehensiveCard(isDark),
+                          KeyedSubtree(
+                            key: comprehensiveKey,
+                            child: _buildComprehensiveCard(isDark),
+                          ),
 
                           // Bottom padding for glass nav bar
                           const SizedBox(height: 100),

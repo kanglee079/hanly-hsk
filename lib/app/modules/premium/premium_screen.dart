@@ -4,230 +4,609 @@ import 'dart:math' as math;
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
+import '../../data/models/subscription_model.dart';
+import 'premium_controller.dart';
 
-/// Premium screen - UI only, no IAP
-class PremiumScreen extends StatefulWidget {
+/// Premium screen - API-integrated with new pricing plans
+class PremiumScreen extends GetView<PremiumController> {
   const PremiumScreen({super.key});
-
-  @override
-  State<PremiumScreen> createState() => _PremiumScreenState();
-}
-
-class _PremiumScreenState extends State<PremiumScreen> {
-  int _selectedPlan = 0; // 0 = yearly, 1 = monthly
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
-
-    final benefits = [
-      _Benefit(
-        icon: Icons.all_inclusive_rounded,
-        title: 'Ôn tập không giới hạn',
-        subtitle: 'Học từ mới mỗi ngày không giới hạn',
-      ),
-      _Benefit(
-        icon: Icons.auto_awesome_rounded,
-        title: 'Phân tích chữ Hán nâng cao',
-        subtitle: 'Phân tích nét viết & gốc chữ chi tiết',
-      ),
-      _Benefit(
-        icon: Icons.cloud_download_rounded,
-        title: 'Chế độ Offline',
-        subtitle: 'Tải audio & hình ảnh để học mọi lúc',
-      ),
-      _Benefit(
-        icon: Icons.insights_rounded,
-        title: 'Thống kê thông minh',
-        subtitle: 'Theo dõi tiến độ & heatmap chi tiết',
-      ),
-    ];
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return AppScaffold(
       body: Stack(
         children: [
-          // Background
+          // Background gradient
           Container(
-            color: isDark ? AppColors.backgroundDark : AppColors.white,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isDark
+                    ? [const Color(0xFF1A1A2E), const Color(0xFF0F0F1A)]
+                    : [const Color(0xFFF8FAFF), AppColors.white],
+              ),
+            ),
           ),
 
           // Content
           SafeArea(
+            bottom: false,
             child: Column(
               children: [
-                // Close button
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 8, right: 8),
-                    child: IconButton(
-                      onPressed: () => Get.back(),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: 28,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
+                // Header with close button
+                _buildHeader(isDark),
 
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        // Wave header
-                        _WaveHeader(width: size.width),
+                  child: Obx(() {
+                    // Show loading skeleton
+                    if (controller.isLoading.value) {
+                      return _buildLoadingState(isDark);
+                    }
 
-                        const SizedBox(height: 24),
+                    // Show content
+                    return SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          // Wave header
+                          _WaveHeader(width: size.width),
 
-                        // Title
-                        Text(
-                          'Mở Khóa Tiềm Năng',
-                          style: AppTypography.displayMedium.copyWith(
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                          const SizedBox(height: 24),
 
-                        const SizedBox(height: 8),
+                          // If user is already premium, show status
+                          if (controller.isPremium)
+                            _buildPremiumStatus(isDark),
 
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32),
-                          child: Text(
-                            'Nâng cao trải nghiệm học tiếng Trung với các tính năng Premium độc quyền.',
-                            textAlign: TextAlign.center,
-                            style: AppTypography.bodyMedium.copyWith(
+                          // Title
+                          Text(
+                            controller.isPremium
+                                ? 'Bạn đã là Premium!'
+                                : 'Học Không Giới Hạn',
+                            style: AppTypography.headlineMedium.copyWith(
                               color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondary,
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
 
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 8),
 
-                        // Benefits
-                        Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 24),
-                          child: Column(
-                            children: benefits
-                                .map((b) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 16),
-                                      child: _BenefitRow(
-                                          benefit: b, isDark: isDark),
-                                    ))
-                                .toList(),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Pricing plans
-                        Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            children: [
-                              // Yearly plan
-                              _PlanCard(
-                                isSelected: _selectedPlan == 0,
-                                isBestValue: true,
-                                title: 'Hàng năm',
-                                price: '1.299.000 ₫',
-                                subtitle: '7 ngày dùng thử miễn phí',
-                                perMonth: 'Chỉ 108.000 ₫ / tháng',
-                                isDark: isDark,
-                                onTap: () => setState(() => _selectedPlan = 0),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Text(
+                              controller.isPremium
+                                  ? 'Cảm ơn bạn đã ủng hộ HanLy!'
+                                  : 'Mở khóa tất cả tính năng để học tiếng Trung hiệu quả hơn',
+                              textAlign: TextAlign.center,
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondary,
                               ),
+                            ),
+                          ),
 
-                              const SizedBox(height: 12),
+                          const SizedBox(height: 32),
 
-                              // Monthly plan
-                              _PlanCard(
-                                isSelected: _selectedPlan == 1,
-                                isBestValue: false,
-                                title: 'Hàng tháng',
-                                price: '149.000 ₫',
-                                subtitle: 'Thanh toán hàng tháng',
-                                isDark: isDark,
-                                onTap: () => setState(() => _selectedPlan = 1),
+                          // Benefits grid
+                          _buildBenefitsGrid(isDark),
+
+                          const SizedBox(height: 32),
+
+                          // Comparison table
+                          _buildComparisonTable(isDark),
+
+                          // Only show pricing if not premium
+                          if (!controller.isPremium) ...[
+                            const SizedBox(height: 32),
+
+                            // Pricing plans
+                            _buildPricingPlans(isDark),
+
+                            const SizedBox(height: 16),
+
+                            // Cancel anytime note
+                            Text(
+                              'Hủy bất cứ lúc nào. Không tính phí ẩn.',
+                              textAlign: TextAlign.center,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: isDark
+                                    ? AppColors.textTertiaryDark
+                                    : AppColors.textTertiary,
                               ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Cancel anytime note
-                        Text(
-                          'Không tính phí cho đến khi hết thời gian dùng thử.\nHủy bất cứ lúc nào.',
-                          textAlign: TextAlign.center,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: isDark
-                                ? AppColors.textTertiaryDark
-                                : AppColors.textTertiary,
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // CTA Button
-                        Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 20),
-                          child: HMButton(
-                            text: 'Dùng thử 7 ngày miễn phí →',
-                            onPressed: () {
-                              HMToast.info('Tính năng đang phát triển');
-                            },
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Footer links
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _FooterLink(
-                              text: 'Khôi phục',
-                              onTap: () {
-                                HMToast.info('Tính năng đang phát triển');
-                              },
-                            ),
-                            _FooterDot(),
-                            _FooterLink(
-                              text: 'Điều khoản',
-                              onTap: () {
-                                HMToast.info('Tính năng đang phát triển');
-                              },
-                            ),
-                            _FooterDot(),
-                            _FooterLink(
-                              text: 'Bảo mật',
-                              onTap: () {
-                                HMToast.info('Tính năng đang phát triển');
-                              },
                             ),
                           ],
-                        ),
 
-                        const SizedBox(height: 24),
+                          SizedBox(height: 100 + bottomPadding),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+
+          // Fixed CTA button at bottom
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: bottomPadding + 20,
+            child: Obx(() => Column(
+                  children: [
+                    if (!controller.isPremium)
+                      HMButton(
+                        text: controller.ctaButtonText,
+                        onPressed: controller.purchase,
+                        isLoading: controller.isPurchasing.value,
+                        fullWidth: true,
+                      )
+                    else
+                      HMButton(
+                        text: 'Đã kích hoạt',
+                        onPressed: () => Get.back(),
+                        variant: HMButtonVariant.secondary,
+                        fullWidth: true,
+                      ),
+                    const SizedBox(height: 12),
+                    // Footer links
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _FooterLink(
+                          text: 'Khôi phục',
+                          isLoading: controller.isRestoring.value,
+                          onTap: controller.restorePurchases,
+                        ),
+                        const _FooterDot(),
+                        _FooterLink(
+                          text: 'Điều khoản',
+                          onTap: () {
+                            HMToast.info('Tính năng đang phát triển');
+                          },
+                        ),
+                        const _FooterDot(),
+                        _FooterLink(
+                          text: 'Bảo mật',
+                          onTap: () {
+                            HMToast.info('Tính năng đang phát triển');
+                          },
+                        ),
                       ],
                     ),
+                  ],
+                )),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const SizedBox(width: 40),
+          // Pro badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFFD700).withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.star_rounded, color: Colors.white, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  'PREMIUM',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
                   ),
                 ),
               ],
             ),
           ),
+          IconButton(
+            onPressed: () => Get.back(),
+            icon: Icon(
+              Icons.close_rounded,
+              size: 28,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(bool isDark) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 100),
+            HMSkeleton(width: double.infinity, height: 120, borderRadius: BorderRadius.circular(20)),
+            const SizedBox(height: 24),
+            const HMSkeleton(width: 200, height: 32),
+            const SizedBox(height: 16),
+            const HMSkeleton(width: 250, height: 20),
+            const SizedBox(height: 32),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              children: List.generate(
+                  6, (_) => HMSkeleton(width: 100, height: 100, borderRadius: BorderRadius.circular(16))),
+            ),
+            const SizedBox(height: 32),
+            HMSkeleton(width: double.infinity, height: 200, borderRadius: BorderRadius.circular(16)),
+            const SizedBox(height: 32),
+            ...List.generate(3, (_) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: HMSkeleton(width: double.infinity, height: 80, borderRadius: BorderRadius.circular(16)),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumStatus(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.workspace_premium_rounded,
+                color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _getPlanDisplayName(controller.subscription.value?.plan),
+                  style: AppTypography.titleMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (controller.expiryText.isNotEmpty)
+                  Text(
+                    controller.expiryText,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'Đang hoạt động',
+              style: AppTypography.labelSmall.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getPlanDisplayName(String? plan) {
+    switch (plan) {
+      case 'monthly':
+        return 'Premium Hàng tháng';
+      case 'yearly':
+        return 'Premium Hàng năm';
+      case 'lifetime':
+        return 'Premium Trọn đời';
+      default:
+        return 'Premium';
+    }
+  }
+
+  Widget _buildPricingPlans(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Obx(() => Column(
+            children: List.generate(controller.plans.length, (index) {
+              final plan = controller.plans[index];
+              return Padding(
+                padding:
+                    EdgeInsets.only(bottom: index < controller.plans.length - 1 ? 12 : 0),
+                child: _PlanCard(
+                  plan: plan,
+                  isSelected: controller.selectedPlanIndex.value == index,
+                  isDark: isDark,
+                  onTap: () => controller.selectPlan(index),
+                ),
+              );
+            }),
+          )),
+    );
+  }
+
+  Widget _buildBenefitsGrid(bool isDark) {
+    final benefits = [
+      _BenefitItem(
+        icon: Icons.style_rounded,
+        title: 'Flashcards\nkhông giới hạn',
+        color: const Color(0xFFFF9800),
+      ),
+      _BenefitItem(
+        icon: Icons.auto_awesome_rounded,
+        title: 'Ôn tập\ntổng hợp',
+        color: const Color(0xFF9C27B0),
+      ),
+      _BenefitItem(
+        icon: Icons.quiz_rounded,
+        title: 'Ôn thi HSK\nđầy đủ',
+        color: const Color(0xFF2196F3),
+      ),
+      _BenefitItem(
+        icon: Icons.shield_rounded,
+        title: 'Bảo vệ\nstreak',
+        color: const Color(0xFF4CAF50),
+      ),
+      _BenefitItem(
+        icon: Icons.block_rounded,
+        title: 'Không\nquảng cáo',
+        color: const Color(0xFFE91E63),
+      ),
+      _BenefitItem(
+        icon: Icons.support_agent_rounded,
+        title: 'Hỗ trợ\nưu tiên',
+        color: const Color(0xFF00BCD4),
+      ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1,
+        ),
+        itemCount: benefits.length,
+        itemBuilder: (context, index) {
+          final benefit = benefits[index];
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.surfaceVariantDark
+                  : benefit.color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color:
+                    isDark ? AppColors.borderDark : benefit.color.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  benefit.icon,
+                  color: benefit.color,
+                  size: 28,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  benefit.title,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.labelSmall.copyWith(
+                    color:
+                        isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildComparisonTable(bool isDark) {
+    final features = [
+      _FeatureRow('Flashcards mỗi ngày', '10', '∞'),
+      _FeatureRow('Ôn tập tổng hợp', '✗', '✓'),
+      _FeatureRow('Ôn thi HSK', '1 đề/level', 'Tất cả'),
+      _FeatureRow('Game 30s', '3 lượt/ngày', '10 lượt'),
+      _FeatureRow('Bảo vệ streak', '✗', '3 lần/tháng'),
+      _FeatureRow('Quảng cáo', '✓', '✗'),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.border,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color:
+                    isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Tính năng',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Free',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.labelMedium.copyWith(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'PRO',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.labelMedium.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Feature rows
+            ...features.asMap().entries.map((entry) {
+              final index = entry.key;
+              final feature = entry.value;
+              final isLast = index == features.length - 1;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  border: isLast
+                      ? null
+                      : Border(
+                          bottom: BorderSide(
+                            color: isDark ? AppColors.borderDark : AppColors.border,
+                          ),
+                        ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        feature.name,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        feature.freeValue,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: feature.freeValue == '✗'
+                              ? AppColors.error
+                              : (isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        feature.proValue,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: feature.proValue == '✓' || feature.proValue == '∞'
+                              ? AppColors.success
+                              : AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -242,15 +621,15 @@ class _WaveHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      height: 140,
+      height: 120,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
       ),
       margin: const EdgeInsets.symmetric(horizontal: 20),
       clipBehavior: Clip.antiAlias,
       child: CustomPaint(
         painter: _WavePainter(),
-        size: Size(width - 40, 140),
+        size: Size(width - 40, 120),
       ),
     );
   }
@@ -259,25 +638,37 @@ class _WaveHeader extends StatelessWidget {
 class _WavePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Background gradient
+    // Background gradient with gold accent
     final bgRect = Rect.fromLTWH(0, 0, size.width, size.height);
     final bgPaint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color(0xFF1E40AF), // Deep blue
-          Color(0xFF3B82F6), // Bright blue
+          Color(0xFF1E40AF),
+          Color(0xFF3B82F6),
+          Color(0xFF60A5FA),
         ],
       ).createShader(bgRect);
-    
-    final rrect = RRect.fromRectAndRadius(bgRect, const Radius.circular(16));
+
+    final rrect = RRect.fromRectAndRadius(bgRect, const Radius.circular(20));
     canvas.drawRRect(rrect, bgPaint);
 
     // Draw multiple wave layers
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 4; i++) {
       _drawWaveLayer(canvas, size, i);
     }
+
+    // Draw crown icon placeholder
+    final crownPaint = Paint()
+      ..color = const Color(0xFFFFD700).withOpacity(0.3)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      35,
+      crownPaint,
+    );
   }
 
   void _drawWaveLayer(Canvas canvas, Size size, int index) {
@@ -285,20 +676,18 @@ class _WavePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    // Different shades of blue/white for each layer
     final colors = [
-      const Color(0xFF60A5FA).withAlpha(60),
-      const Color(0xFF93C5FD).withAlpha(50),
+      const Color(0xFFFFD700).withAlpha(40),
+      const Color(0xFF60A5FA).withAlpha(50),
       const Color(0xFFBFDBFE).withAlpha(40),
-      const Color(0xFFDBEAFE).withAlpha(35),
       const Color(0xFFFFFFFF).withAlpha(30),
     ];
     paint.color = colors[index];
 
     final path = Path();
-    final yOffset = 30.0 + index * 20.0;
-    final amplitude = 15.0 + index * 5.0;
-    final frequency = 0.015 - index * 0.002;
+    final yOffset = 25.0 + index * 18.0;
+    final amplitude = 12.0 + index * 4.0;
+    final frequency = 0.012 - index * 0.002;
 
     path.moveTo(0, yOffset);
 
@@ -316,90 +705,15 @@ class _WavePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _Benefit {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  _Benefit({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-}
-
-class _BenefitRow extends StatelessWidget {
-  final _Benefit benefit;
-  final bool isDark;
-
-  const _BenefitRow({required this.benefit, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withAlpha(25),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            benefit.icon,
-            color: AppColors.primary,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                benefit.title,
-                style: AppTypography.titleMedium.copyWith(
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                benefit.subtitle,
-                style: AppTypography.bodySmall.copyWith(
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _PlanCard extends StatelessWidget {
+  final PremiumPlanModel plan;
   final bool isSelected;
-  final bool isBestValue;
-  final String title;
-  final String price;
-  final String subtitle;
-  final String? perMonth;
   final bool isDark;
   final VoidCallback onTap;
 
   const _PlanCard({
+    required this.plan,
     required this.isSelected,
-    required this.isBestValue,
-    required this.title,
-    required this.price,
-    required this.subtitle,
-    this.perMonth,
     required this.isDark,
     required this.onTap,
   });
@@ -433,24 +747,53 @@ class _PlanCard extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Best value badge
-            if (isBestValue)
+            // Popular badge
+            if (plan.popular)
               Positioned(
                 top: -28,
                 right: 12,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFD700).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'PHỔ BIẾN NHẤT',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+
+            // Discount badge
+            if (plan.discount != null)
+              Positioned(
+                top: -28,
+                left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'GIÁ TỐT NHẤT',
+                    '-${plan.discount}%',
                     style: AppTypography.labelSmall.copyWith(
-                      color: AppColors.white,
+                      color: Colors.white,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -467,9 +810,7 @@ class _PlanCard extends StatelessWidget {
                     border: Border.all(
                       color: isSelected
                           ? AppColors.primary
-                          : (isDark
-                              ? AppColors.borderLightDark
-                              : AppColors.border),
+                          : (isDark ? AppColors.borderLightDark : AppColors.border),
                       width: 2,
                     ),
                     color: isSelected ? AppColors.primary : Colors.transparent,
@@ -491,7 +832,7 @@ class _PlanCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        plan.name,
                         style: AppTypography.titleMedium.copyWith(
                           color: isDark
                               ? AppColors.textPrimaryDark
@@ -499,17 +840,18 @@ class _PlanCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (perMonth != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          perMonth!,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondary,
-                          ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _getSubtitle(),
+                        style: AppTypography.bodySmall.copyWith(
+                          color: plan.discount != null
+                              ? AppColors.success
+                              : (isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary),
+                          fontWeight: plan.discount != null ? FontWeight.w600 : null,
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
@@ -518,22 +860,38 @@ class _PlanCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      price,
-                      style: AppTypography.titleLarge.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
+                    if (plan.formattedOriginalPrice != null) ...[
+                      Text(
+                        plan.formattedOriginalPrice!,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiary,
+                          decoration: TextDecoration.lineThrough,
+                        ),
                       ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: AppTypography.labelSmall.copyWith(
-                        color: isBestValue
-                            ? AppColors.primary
-                            : (isDark
-                                ? AppColors.textTertiaryDark
-                                : AppColors.textTertiary),
-                      ),
+                    ],
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          plan.formattedPrice,
+                          style: AppTypography.titleLarge.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (plan.period != 'lifetime')
+                          Text(
+                            '/${plan.period == 'month' ? 'tháng' : 'năm'}',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: isDark
+                                  ? AppColors.textTertiaryDark
+                                  : AppColors.textTertiary,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -544,32 +902,75 @@ class _PlanCard extends StatelessWidget {
       ),
     );
   }
+
+  String _getSubtitle() {
+    if (plan.discount != null) {
+      return 'Tiết kiệm ${plan.discount}%';
+    }
+    if (plan.period == 'lifetime') {
+      return 'Thanh toán 1 lần duy nhất';
+    }
+    return 'Thanh toán ${plan.period == 'month' ? 'hàng tháng' : 'hàng năm'}';
+  }
+}
+
+class _BenefitItem {
+  final IconData icon;
+  final String title;
+  final Color color;
+
+  _BenefitItem({
+    required this.icon,
+    required this.title,
+    required this.color,
+  });
+}
+
+class _FeatureRow {
+  final String name;
+  final String freeValue;
+  final String proValue;
+
+  _FeatureRow(this.name, this.freeValue, this.proValue);
 }
 
 class _FooterLink extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
+  final bool isLoading;
 
-  const _FooterLink({required this.text, required this.onTap});
+  const _FooterLink({
+    required this.text,
+    required this.onTap,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Text(
-          text,
-          style: AppTypography.labelSmall.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                text,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
       ),
     );
   }
 }
 
 class _FooterDot extends StatelessWidget {
+  const _FooterDot();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -582,4 +983,3 @@ class _FooterDot extends StatelessWidget {
     );
   }
 }
-

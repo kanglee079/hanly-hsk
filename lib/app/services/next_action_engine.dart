@@ -39,6 +39,9 @@ enum ActionPriority {
 class NextActionEngine {
   NextActionEngine._();
 
+  // Minimum words required to play Game 30s (same as Game30HomeController)
+  static const int minWordsForGame = 50;
+
   /// Compute the best next action based on today's data
   /// 
   /// PRIORITY ORDER (quan trọng!):
@@ -47,13 +50,15 @@ class NextActionEngine {
   /// 2. Còn quota từ mới → "Học ngay" (MAIN ACTION)
   /// 3. Đã học đủ quota + có từ vừa học → "Củng cố từ vừa học"
   /// 4. Có review SRS → "Ôn tập SRS"
-  /// 5. Game 30s (fallback)
+  /// 5. Game 30s (nếu đủ 50 từ) hoặc nghỉ ngơi
   static RecommendedAction computeNextAction(TodayModel today) {
     final reviewCount = today.reviewQueue.length;
     final remainingNew = today.remainingNewLimit;
     final learnedToday = today.newLearnedToday;
     final dailyLimit = today.dailyNewLimit;
+    final totalLearned = today.totalLearned; // Tổng từ đã học từ trước đến nay
     final hasStudiedToday = today.streakStatus?.hasStudiedToday ?? false;
+    final canPlayGame = totalLearned >= minWordsForGame;
 
     // 🚨 Priority 0: API says new queue is LOCKED
     if (today.isNewQueueLocked) {
@@ -144,18 +149,36 @@ class NextActionEngine {
           icon: '🏆',
         );
       }
-      // Không có gì để làm → chơi game hoặc nghỉ ngơi
-      return RecommendedAction(
-        id: 'completed_done',
-        title: 'Hoàn thành $dailyLimit từ! 🎉',
-        subtitle: 'Tuyệt vời! Hãy nghỉ ngơi hoặc chơi game',
-        etaMinutes: 1,
-        primaryButtonText: 'Chơi game',
-        route: Routes.game30Home,
-        payload: null,
-        priority: ActionPriority.low,
-        icon: '🏆',
-      );
+      
+      // Không có từ cần ôn tập
+      if (canPlayGame) {
+        // Đủ 50 từ → có thể chơi game
+        return RecommendedAction(
+          id: 'completed_done',
+          title: 'Hoàn thành $dailyLimit từ! 🎉',
+          subtitle: 'Tuyệt vời! Hãy nghỉ ngơi hoặc chơi game',
+          etaMinutes: 1,
+          primaryButtonText: 'Chơi game',
+          route: Routes.game30Home,
+          payload: null,
+          priority: ActionPriority.low,
+          icon: '🏆',
+        );
+      } else {
+        // Chưa đủ 50 từ → khuyến khích tiếp tục học
+        final wordsNeeded = minWordsForGame - totalLearned;
+        return RecommendedAction(
+          id: 'completed_continue',
+          title: 'Hoàn thành $dailyLimit từ! 🎉',
+          subtitle: 'Tuyệt vời! Học thêm $wordsNeeded từ nữa để mở khoá Game',
+          etaMinutes: 0,
+          primaryButtonText: 'Nghỉ ngơi',
+          route: '', // No navigation - just dismiss
+          payload: null,
+          priority: ActionPriority.low,
+          icon: '🏆',
+        );
+      }
     }
 
     // Priority 4: Có review SRS
@@ -173,17 +196,33 @@ class NextActionEngine {
       );
     }
 
-    // Priority 5: Game 30s (fallback - không có gì để làm)
+    // Priority 5: Game 30s hoặc nghỉ ngơi (fallback - không có gì để làm)
+    if (canPlayGame) {
+      return RecommendedAction(
+        id: 'game_30s',
+        title: 'Chơi game 30 giây',
+        subtitle: 'Thử thách trí nhớ của bạn!',
+        etaMinutes: 1,
+        primaryButtonText: 'Chơi ngay',
+        route: Routes.game30Home,
+        payload: null,
+        priority: ActionPriority.low,
+        icon: '🎮',
+      );
+    }
+    
+    // Chưa đủ 50 từ để chơi game → thông báo đã hoàn thành
+    final wordsNeeded = minWordsForGame - totalLearned;
     return RecommendedAction(
-      id: 'game_30s',
-      title: 'Chơi game 30 giây',
-      subtitle: 'Thử thách trí nhớ của bạn!',
-      etaMinutes: 1,
-      primaryButtonText: 'Chơi ngay',
-      route: Routes.game30Home,
-      payload: null,
+      id: 'keep_learning',
+      title: 'Đã hoàn thành! ✨',
+      subtitle: 'Học thêm $wordsNeeded từ nữa để mở khoá Game 30s',
+      etaMinutes: 0,
+      primaryButtonText: 'Khám phá',
+      route: Routes.shell, // Go to shell, user can explore from there
+      payload: {'tab': 2}, // Explore tab
       priority: ActionPriority.low,
-      icon: '🎮',
+      icon: '✨',
     );
   }
 

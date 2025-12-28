@@ -23,10 +23,13 @@ import 'app/data/repositories/game_repo.dart';
 import 'app/data/repositories/pronunciation_repo.dart';
 import 'app/data/repositories/dashboard_repo.dart';
 import 'app/data/repositories/progress_repo.dart';
+import 'app/data/repositories/premium_repo.dart';
+import 'app/data/repositories/hsk_exam_repo.dart';
 import 'app/services/deep_link_service.dart';
 import 'app/services/realtime/realtime_sync_service.dart';
 import 'app/services/realtime/today_store.dart';
 import 'app/services/realtime/study_modes_store.dart';
+import 'app/services/tutorial_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,6 +81,8 @@ Future<void> _initDependencies() async {
   Get.put(PronunciationRepo(apiClient));
   Get.put(DashboardRepo(apiClient));
   Get.put(ProgressRepo(apiClient));
+  Get.put(PremiumRepo(apiClient));
+  Get.put(HskExamRepo(apiClient));
 
   // Services
   Get.put(AuthSessionService());
@@ -91,6 +96,9 @@ Future<void> _initDependencies() async {
   Get.put(RealtimeSyncService());
   Get.put(TodayStore());
   Get.put(StudyModesStore());
+  
+  // Tutorial service
+  Get.put(TutorialService());
   
   // Deep Link Service (must be after AuthSessionService)
   await Get.putAsync<DeepLinkService>(() => DeepLinkService().init());

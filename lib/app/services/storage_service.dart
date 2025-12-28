@@ -17,6 +17,7 @@ class StorageService {
   static const String _keyLearnNewVocabsByDate = 'learn_new_vocabs_by_date';
   static const String _keyGame30sHighScore = 'game30s_high_score';
   static const String _keyGame30sGamesPlayed = 'game30s_games_played';
+  static const String _keyCompletedTutorials = 'completed_tutorials';
 
   final GetStorage _box;
 
@@ -310,5 +311,33 @@ class StorageService {
   /// Set Game 30s total games played
   void setGame30sGamesPlayed(int count) {
     _box.write(_keyGame30sGamesPlayed, count);
+  }
+
+  // ===== Tutorial =====
+
+  /// Get completed tutorials
+  List<String> getCompletedTutorials() {
+    final data = _box.read<List<dynamic>>(_keyCompletedTutorials);
+    if (data == null) return [];
+    return data.cast<String>();
+  }
+
+  /// Set completed tutorials
+  void setCompletedTutorials(List<String> tutorialIds) {
+    _box.write(_keyCompletedTutorials, tutorialIds);
+  }
+
+  /// Check if a specific tutorial is completed
+  bool isTutorialCompleted(String tutorialId) {
+    return getCompletedTutorials().contains(tutorialId);
+  }
+
+  /// Mark a tutorial as completed
+  void markTutorialCompleted(String tutorialId) {
+    final completed = getCompletedTutorials();
+    if (!completed.contains(tutorialId)) {
+      completed.add(tutorialId);
+      setCompletedTutorials(completed);
+    }
   }
 }
