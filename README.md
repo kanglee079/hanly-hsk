@@ -1,6 +1,6 @@
-# HanLy HSK - Học Tiếng Trung
+# Từ Vựng - Từ Điển HSK Chuyên Nghiệp XiKang
 
-Ứng dụng học tiếng Trung HSK dành cho người Việt.
+Ứng dụng từ điển và học từ vựng tiếng Trung HSK chuyên nghiệp dành cho người Việt.
 
 ## Features
 - Email + Password + 2FA Authentication

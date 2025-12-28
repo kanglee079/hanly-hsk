@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Học Tiếng Trung HSK – HanLy</string>
+	<string>Từ Vựng - Từ Điển HSK Chuyên Nghiệp XiKang</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>HanLy</string>
+	<string>TuVungTuDienHSKXiKang</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -55,5 +55,37 @@
 	<string>Ứng dụng cần quyền nhận dạng giọng nói để đánh giá phát âm tiếng Trung của bạn</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Ứng dụng cần quyền microphone để ghi âm giọng nói và luyện phát âm</string>
+	<!-- App Store and Privacy Requirements -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ứng dụng cần quyền truy cập thư viện ảnh để lưu và chia sẻ hình ảnh từ bài học</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Ứng dụng cần quyền lưu ảnh vào thư viện để chia sẻ tiến độ học tập</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Ứng dụng sử dụng dữ liệu để cải thiện trải nghiệm học tập cá nhân của bạn</string>
+	<!-- App Transport Security -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<!-- Required for App Store -->
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleDefault</string>
 </dict>
 </plist>

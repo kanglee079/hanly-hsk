@@ -4,7 +4,7 @@ class S {
   S._();
 
   // App
-  static const String appName = 'Học Tiếng Trung HSK – HanLy';
+  static const String appName = 'Từ Vựng - Từ Điển HSK Chuyên Nghiệp XiKang';
 
   // Common
   static const String ok = 'OK';

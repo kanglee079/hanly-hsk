@@ -10,7 +10,7 @@ class AppConfig {
   );
 
   /// App name
-  static const String appName = 'Học Tiếng Trung HSK – HanLy';
+  static const String appName = 'Từ Vựng - Từ Điển HSK Chuyên Nghiệp XiKang';
 
   /// App version
   static const String appVersion = '1.0.0';

@@ -39,5 +39,28 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    # Fix deployment target for all pods (especially Try pod)
+    target.build_configurations.each do |config|
+      if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 12.0
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      end
+    end
+    
+    # Fix Swift 6 concurrency issues for flutter_tts
+    if target.name == 'flutter_tts'
+      target.build_configurations.each do |config|
+        config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+        config.build_settings['SWIFT_CONCURRENCY_BACKCOMPAT'] = 'YES'
+      end
+    end
+    
+    # Suppress deprecated API warnings for url_launcher_ios
+    if target.name == 'url_launcher_ios'
+      target.build_configurations.each do |config|
+        config.build_settings['GCC_WARN_DEPRECATED_FUNCTIONS'] = 'NO'
+        config.build_settings['CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS'] = 'NO'
+      end
+    end
   end
 end
