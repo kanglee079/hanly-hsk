@@ -60,6 +60,48 @@ class _HskExamReviewScreenState extends State<HskExamReviewScreen> {
     return '${secs}s';
   }
 
+  /// Map optionId to label (A, B, C) based on question options
+  String? _getOptionLabel(String questionId, String optionId) {
+    if (review == null) return null;
+    
+    // Find question in test
+    ExamQuestion? question;
+    for (final section in review!.test.sections) {
+      final found = section.questions.firstWhere(
+        (q) => q.id == questionId,
+        orElse: () => ExamQuestion(id: '', type: '', prompt: ''),
+      );
+      if (found.id.isNotEmpty) {
+        question = found;
+        break;
+      }
+    }
+    
+    if (question == null || question.id.isEmpty) return null;
+    
+    // Find option index
+    final index = question.options.indexWhere((opt) => opt.id == optionId);
+    if (index == -1) return null;
+    
+    // Return label (A, B, C, D)
+    return String.fromCharCode(65 + index);
+  }
+  
+  /// Get display text for option
+  /// Backend returns label (A, B, C) directly, but we check if it's optionId and map it
+  String _getDisplayOption(String questionId, String optionValue) {
+    // If it's already a single letter (A, B, C), return as is (backend returns label)
+    if (optionValue.length == 1 && 
+        optionValue.codeUnitAt(0) >= 65 && 
+        optionValue.codeUnitAt(0) <= 90) {
+      return optionValue;
+    }
+    
+    // If backend returns optionId instead of label, try to map it
+    final label = _getOptionLabel(questionId, optionValue);
+    return label ?? optionValue;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -386,7 +428,7 @@ class _HskExamReviewScreenState extends State<HskExamReviewScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'Đáp án: ${answer.correctOption}',
+                      'Đáp án: ${_getDisplayOption(answer.questionId, answer.correctOption)}',
                       style: AppTypography.labelMedium.copyWith(
                         color: const Color(0xFF10B981),
                         fontWeight: FontWeight.w600,
@@ -426,7 +468,9 @@ class _HskExamReviewScreenState extends State<HskExamReviewScreen> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        didNotAnswer ? 'Không chọn' : answer.selectedOption,
+                        didNotAnswer 
+                            ? 'Không chọn' 
+                            : _getDisplayOption(answer.questionId, answer.selectedOption),
                         style: AppTypography.labelMedium.copyWith(
                           color: didNotAnswer
                               ? AppColors.textTertiary

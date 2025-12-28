@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/hm_bottom_sheet.dart';
 import '../../data/models/hsk_exam_model.dart';
 import '../../data/repositories/hsk_exam_repo.dart';
 import '../../services/audio_service.dart';
@@ -31,7 +32,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
   // Current state
   int currentSectionIndex = 0;
   int currentQuestionIndex = 0;
-  Map<String, String> answers = {}; // questionId -> optionLabel (A, B, C)
+  Map<String, String> answers = {}; // questionId -> optionLabel (A, B, C) - backend expects label
 
   // Timer
   Timer? _timer;
@@ -133,6 +134,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
 
   int get answeredCount => answers.length;
 
+  /// Select an answer - stores the option label (A, B, C) as backend expects label
   void _selectAnswer(String optionLabel) {
     final question = currentQuestion;
     if (question == null) return;
@@ -185,12 +187,27 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
 
       final timeSpent = (test!.totalDuration * 60) - remainingSeconds;
 
+      // Debug: Log answers being sent
+      debugPrint('=== SUBMITTING ANSWERS ===');
+      for (final answer in answersData) {
+        debugPrint('Q: ${answer['questionId']} -> Answer: ${answer['selectedOption']}');
+      }
+      debugPrint('Total: ${answersData.length} answers');
+
       final result = await _examRepo.submitTest(
         testId: test!.id,
         attemptId: attempt!.id,
         answers: answersData,
         timeSpent: timeSpent,
       );
+      
+      // Debug: Log result
+      debugPrint('=== RESULT RECEIVED ===');
+      debugPrint('Score: ${result.score}/${result.maxScore}');
+      debugPrint('Passed: ${result.passed}');
+      for (final answer in result.answers) {
+        debugPrint('Q: ${answer.questionId} -> Selected: ${answer.selectedOption}, Correct: ${answer.correctOption}, IsCorrect: ${answer.isCorrect}');
+      }
 
       Get.back(); // Close loading
       _timer?.cancel();
@@ -208,15 +225,15 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
         canPop: false,
         child: Center(
           child: Container(
-            width: 120,
-            height: 120,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceDark : Colors.white,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(25),
-                  blurRadius: 20,
+                  color: Colors.black.withAlpha(30),
+                  blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
               ],
@@ -225,17 +242,17 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  width: 36,
-                  height: 36,
+                  width: 32,
+                  height: 32,
                   child: CircularProgressIndicator(
-                    strokeWidth: 3,
+                    strokeWidth: 2.5,
                     valueColor: AlwaysStoppedAnimation(AppColors.primary),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Đang nộp...',
-                  style: AppTypography.labelMedium.copyWith(
+                  style: AppTypography.labelSmall.copyWith(
                     color: isDark
                         ? AppColors.textSecondaryDark
                         : AppColors.textSecondary,
@@ -247,7 +264,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
         ),
       ),
       barrierDismissible: false,
-      barrierColor: Colors.black54,
+      barrierColor: Colors.black.withAlpha(128),
     );
   }
 
@@ -255,72 +272,61 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
     final unanswered = totalQuestions - answeredCount;
     final isDark = Get.isDarkMode;
 
-    return Get.dialog<bool>(
-      AlertDialog(
-        backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Nộp bài?',
-          style: AppTypography.titleLarge.copyWith(
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (unanswered > 0)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withAlpha(26),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: AppColors.warning, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Còn $unanswered câu chưa trả lời',
-                        style: AppTypography.bodyMedium
-                            .copyWith(color: AppColors.warning),
-                      ),
+    return HMBottomSheet.show<bool>(
+      title: 'Nộp bài?',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (unanswered > 0)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withAlpha(26),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: AppColors.warning, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Còn $unanswered câu chưa trả lời',
+                      style: AppTypography.bodySmall
+                          .copyWith(color: AppColors.warning),
                     ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 12),
-            Text(
-              'Đã trả lời: $answeredCount/$totalQuestions câu',
-              style: AppTypography.bodyMedium.copyWith(
-                color:
-                    isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text(
-              'Tiếp tục làm',
-              style: TextStyle(
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary),
+          if (unanswered > 0) const SizedBox(height: 12),
+          Text(
+            'Đã trả lời: $answeredCount/$totalQuestions câu',
+            style: AppTypography.bodyMedium.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
           ),
-          ElevatedButton(
-            onPressed: () => Get.back(result: true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Nộp bài'),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: HMButton(
+                  text: 'Tiếp tục làm',
+                  variant: HMButtonVariant.outline,
+                  onPressed: () => Get.back(result: false),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: HMButton(
+                  text: 'Nộp bài',
+                  onPressed: () => Get.back(result: true),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -631,32 +637,12 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
       leading: IconButton(
         icon: const Icon(Icons.close_rounded),
         onPressed: () async {
-          final confirm = await Get.dialog<bool>(
-            AlertDialog(
-              backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              title: Text('Thoát bài thi?',
-                  style: TextStyle(
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary)),
-              content: Text('Tiến độ của bạn sẽ bị mất.',
-                  style: TextStyle(
-                      color: isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondary)),
-              actions: [
-                TextButton(
-                  onPressed: () => Get.back(result: false),
-                  child: const Text('Tiếp tục'),
-                ),
-                TextButton(
-                  onPressed: () => Get.back(result: true),
-                  child: Text('Thoát', style: TextStyle(color: AppColors.error)),
-                ),
-              ],
-            ),
+          final confirm = await HMBottomSheet.showConfirm(
+            title: 'Thoát bài thi?',
+            message: 'Tiến độ của bạn sẽ bị mất.',
+            confirmText: 'Thoát',
+            cancelText: 'Tiếp tục',
+            isDanger: true,
           );
           if (confirm == true) Get.back();
         },
@@ -853,8 +839,8 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
         ...question.options.asMap().entries.map((entry) {
           final index = entry.key;
           final option = entry.value;
-          final label = String.fromCharCode(65 + index);
-          final isSelected = answers[question.id] == label;
+          final label = String.fromCharCode(65 + index); // A, B, C, D
+          final isSelected = answers[question.id] == label; // Compare with label
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -992,7 +978,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
     bool isDark,
   ) {
     return GestureDetector(
-      onTap: () => _selectAnswer(label),
+      onTap: () => _selectAnswer(label), // Send label (A, B, C) to backend
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(14),
