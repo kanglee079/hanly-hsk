@@ -415,7 +415,7 @@ class FlashcardScreen extends GetView<FlashcardController> {
     return Container(
       key: const ValueKey('front'),
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -435,12 +435,13 @@ class FlashcardScreen extends GetView<FlashcardController> {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Level badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: AppColors.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -452,34 +453,35 @@ class FlashcardScreen extends GetView<FlashcardController> {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const Spacer(),
 
           // Hanzi - Main character
           Text(
             vocab.hanzi,
             style: TextStyle(
               fontFamily: 'NotoSansSC',
-              fontSize: 80,
+              fontSize: 88,
               fontWeight: FontWeight.w500,
               color: isDark ? Colors.white : AppColors.textPrimary,
-              height: 1.1,
+              height: 1.0,
             ),
+            textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Pinyin
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.secondary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.secondary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(24),
             ),
             child: Text(
               vocab.pinyin,
               style: AppTypography.titleMedium.copyWith(
                 color: AppColors.secondary,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -520,7 +522,7 @@ class FlashcardScreen extends GetView<FlashcardController> {
     return Container(
       key: const ValueKey('back'),
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -529,218 +531,232 @@ class FlashcardScreen extends GetView<FlashcardController> {
               ? [const Color(0xFF1E40AF), const Color(0xFF3730A3)]
               : [const Color(0xFF3B82F6), const Color(0xFF6366F1)],
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with Hanzi and audio
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        vocab.hanzi,
-                        style: const TextStyle(
-                          fontFamily: 'NotoSansSC',
-                          fontSize: 36,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
+      child: Column(
+        children: [
+          // ===== HEADER: Hanzi + Pinyin + Audio =====
+          Row(
+            children: [
+              // Hanzi and Pinyin
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      vocab.hanzi,
+                      style: const TextStyle(
+                        fontFamily: 'NotoSansSC',
+                        fontSize: 48,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                        height: 1.0,
                       ),
-                      Text(
+                    ),
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
                         vocab.pinyin,
-                        style: AppTypography.titleSmall.copyWith(
+                        style: AppTypography.titleMedium.copyWith(
                           color: Colors.white70,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                // Audio buttons
-                Column(
-                  children: [
-                    _buildAudioButton(
-                      icon: Icons.volume_up_rounded,
-                      label: 'Nghe',
-                      onTap: () => controller.playAudio(),
                     ),
-                    const SizedBox(height: 8),
-                    // _buildAudioButton(
-                    //   icon: Icons.slow_motion_video_rounded,
-                    //   label: 'Chậm',
-                    //   onTap: () => controller.playAudio(slow: true),
-                    // ),
                   ],
                 ),
+              ),
+              // Audio button
+              _buildCompactAudioButton(() => controller.playAudio()),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // ===== CONTENT: Compact sections =====
+          Expanded(
+            child: Column(
+              children: [
+                // Meaning - always show
+                _buildCompactSection('Nghĩa', vocab.meaningVi),
+
+                // Word type - inline if exists
+                if (vocab.wordType != null && vocab.wordType!.isNotEmpty)
+                  _buildCompactSection('Loại từ', vocab.wordType!),
+
+                // Example - if exists
+                if (vocab.examples.isNotEmpty)
+                  _buildCompactSection(
+                    'Ví dụ',
+                    '${vocab.examples.first.hanzi}\n${vocab.examples.first.meaningVi}',
+                  ),
+
+                // Mnemonic - if exists (lowest priority)
+                if (vocab.mnemonic != null && vocab.mnemonic!.isNotEmpty)
+                  _buildCompactSection('Mẹo nhớ', vocab.mnemonic!),
+
+                const Spacer(),
               ],
             ),
+          ),
 
-            const SizedBox(height: 24),
-
-            // Meaning section
-            _buildDetailSection(
-              icon: Icons.translate_rounded,
-              title: 'Nghĩa',
-              content: vocab.meaningVi,
-            ),
-
-            // Word type
-            if (vocab.wordType != null && vocab.wordType!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildDetailSection(
-                icon: Icons.category_outlined,
-                title: 'Loại từ',
-                content: vocab.wordType!,
-              ),
-            ],
-
-            // Mnemonic
-            if (vocab.mnemonic != null && vocab.mnemonic!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildDetailSection(
-                icon: Icons.lightbulb_outline_rounded,
-                title: 'Mẹo nhớ',
-                content: vocab.mnemonic!,
-              ),
-            ],
-
-            // Examples
-            if (vocab.examples.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildDetailSection(
-                icon: Icons.format_quote_rounded,
-                title: 'Ví dụ',
-                content: vocab.examples.first.hanzi,
-                subContent: vocab.examples.first.meaningVi,
-              ),
-            ],
-
-            const SizedBox(height: 24),
-
-            // Tap hint
-            Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          // ===== FOOTER: Favorite + Hint =====
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildFavoriteButton(isDark),
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.touch_app_outlined,
-                    size: 20,
-                    color: Colors.white38,
+                    size: 16,
+                    color: Colors.white.withValues(alpha: 0.4),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Text(
-                    'Chạm để lật lại',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: Colors.white38,
+                    'Lật thẻ',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: Colors.white.withValues(alpha: 0.4),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildAudioButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildCompactAudioButton(VoidCallback onTap) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white.withValues(alpha: 0.15),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.25),
+            width: 1,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 18,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: AppTypography.labelSmall.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        child: const Icon(
+          Icons.volume_up_rounded,
+          color: Colors.white,
+          size: 22,
         ),
       ),
     );
   }
 
-  Widget _buildDetailSection({
-    required IconData icon,
-    required String title,
-    required String content,
-    String? subContent,
-  }) {
+  Widget _buildCompactSection(String title, String content) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Text(
+            title,
+            style: AppTypography.labelSmall.copyWith(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 10,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            content,
+            style: AppTypography.bodyMedium.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+              height: 1.3,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFavoriteButton(bool isDark) {
+    return Obx(() {
+      final vocabs = controller.vocabs;
+      final currentIndex = controller.currentIndex.value;
+      
+      if (vocabs.isEmpty || currentIndex >= vocabs.length) {
+        return const SizedBox.shrink();
+      }
+      
+      final vocab = vocabs[currentIndex];
+      final isFavorite = vocab.isFavorite;
+      
+      return GestureDetector(
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          controller.toggleFavorite();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isFavorite
+                ? AppColors.favorite.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isFavorite
+                  ? AppColors.favorite.withValues(alpha: 0.7)
+                  : Colors.white.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: Colors.white70),
-              const SizedBox(width: 8),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  key: ValueKey(isFavorite),
+                  color: isFavorite ? AppColors.favorite : Colors.white54,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 6),
               Text(
-                title,
+                isFavorite ? 'Đã thích' : 'Yêu thích',
                 style: AppTypography.labelSmall.copyWith(
-                  color: Colors.white70,
-                  letterSpacing: 0.5,
+                  color: isFavorite ? AppColors.favorite : Colors.white54,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 11,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            content,
-            style: AppTypography.bodyLarge.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          if (subContent != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subContent,
-              style: AppTypography.bodySmall.copyWith(
-                color: Colors.white70,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
+        ),
+      );
+    });
   }
 
   Widget _buildControls(BuildContext context, bool isDark) {

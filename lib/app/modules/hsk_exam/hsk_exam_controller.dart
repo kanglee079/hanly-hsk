@@ -3,6 +3,7 @@ import '../../data/models/hsk_exam_model.dart';
 import '../../data/repositories/hsk_exam_repo.dart';
 import '../../services/auth_session_service.dart';
 import '../../core/widgets/hm_toast.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../routes/app_routes.dart';
 
 /// HSK Exam tab controller
@@ -79,7 +80,7 @@ class HskExamController extends GetxController {
       );
     } catch (e) {
       // Failed to load tests
-      HMToast.error('Không thể tải danh sách đề thi');
+      HMToast.error(ToastMessages.examTestsLoadError);
     } finally {
       isLoadingTests.value = false;
     }
@@ -106,7 +107,7 @@ class HskExamController extends GetxController {
   }
 
   void showPremiumUpgrade() {
-    HMToast.info('Đề thi này cần Premium để làm');
+    HMToast.info(ToastMessages.premiumFeatureLocked);
     Get.toNamed(Routes.premium);
   }
 

@@ -111,6 +111,41 @@ class StudyModeModel {
     if (freeLimit == null) return 999; // Unlimited
     return (freeLimit! - usedToday).clamp(0, freeLimit!);
   }
+
+  /// Create a copy with modified fields
+  StudyModeModel copyWith({
+    String? id,
+    String? name,
+    String? nameEn,
+    String? description,
+    String? icon,
+    int? estimatedMinutes,
+    int? wordCount,
+    bool? isPremium,
+    bool? isAvailable,
+    String? unavailableReason,
+    int? freeLimit,
+    int? usedToday,
+    int? remainingToday,
+    bool? premiumUnlimited,
+  }) {
+    return StudyModeModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      nameEn: nameEn ?? this.nameEn,
+      description: description ?? this.description,
+      icon: icon ?? this.icon,
+      estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
+      wordCount: wordCount ?? this.wordCount,
+      isPremium: isPremium ?? this.isPremium,
+      isAvailable: isAvailable ?? this.isAvailable,
+      unavailableReason: unavailableReason ?? this.unavailableReason,
+      freeLimit: freeLimit ?? this.freeLimit,
+      usedToday: usedToday ?? this.usedToday,
+      remainingToday: remainingToday ?? this.remainingToday,
+      premiumUnlimited: premiumUnlimited ?? this.premiumUnlimited,
+    );
+  }
 }
 
 /// Today progress summary

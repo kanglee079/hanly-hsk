@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../../data/models/subscription_model.dart';
 import '../../data/repositories/premium_repo.dart';
 import '../../core/widgets/hm_toast.dart';
+import '../../core/constants/toast_messages.dart';
 
 /// Controller for Premium screen
 class PremiumController extends GetxController {
@@ -59,7 +60,11 @@ class PremiumController extends GetxController {
         name: 'Hàng tháng',
         price: 79000,
         period: 'month',
-        features: ['Flashcards không giới hạn', 'Ôn tập tổng hợp'],
+        features: [
+          'Học từ mới không giới hạn',
+          'Ôn tập tổng hợp',
+          'Thống kê chi tiết',
+        ],
       ),
       PremiumPlanModel(
         id: 'yearly',
@@ -69,14 +74,24 @@ class PremiumController extends GetxController {
         discount: 47,
         originalPrice: 948000,
         popular: true,
-        features: ['Flashcards không giới hạn', 'Ôn tập tổng hợp', 'Ôn thi HSK đầy đủ'],
+        features: [
+          'Học từ mới không giới hạn',
+          'Ôn tập tổng hợp',
+          'Tất cả đề thi HSK',
+          'Bảo vệ streak 3 lần/tháng',
+          'Thống kê 365 ngày',
+        ],
       ),
       PremiumPlanModel(
         id: 'lifetime',
         name: 'Trọn đời',
         price: 999000,
         period: 'lifetime',
-        features: ['Tất cả tính năng Premium', 'Cập nhật miễn phí trọn đời'],
+        features: [
+          'Tất cả tính năng Premium',
+          'Cập nhật miễn phí trọn đời',
+          'Hỗ trợ ưu tiên',
+        ],
       ),
     ];
   }
@@ -129,13 +144,13 @@ class PremiumController extends GetxController {
   /// Purchase selected plan
   Future<void> purchase() async {
     if (isPremium) {
-      HMToast.info('Bạn đã là thành viên Premium!');
+      HMToast.info(ToastMessages.premiumAlreadyMember);
       return;
     }
 
     final plan = selectedPlan;
     if (plan == null) {
-      HMToast.error('Vui lòng chọn gói đăng ký');
+      HMToast.error(ToastMessages.premiumSelectPlan);
       return;
     }
 
@@ -144,7 +159,7 @@ class PremiumController extends GetxController {
     try {
       // TODO: Integrate with StoreKit for iOS
       // For now, show coming soon message
-      HMToast.info('Tính năng thanh toán đang phát triển');
+      HMToast.info(ToastMessages.premiumPaymentComingSoon);
       
       // When StoreKit is integrated:
       // 1. Purchase product via StoreKit
@@ -160,7 +175,7 @@ class PremiumController extends GetxController {
       // HMToast.success('Đăng ký thành công!');
       
     } catch (e) {
-      HMToast.error('Không thể hoàn tất thanh toán');
+      HMToast.error(ToastMessages.premiumPurchaseError);
     } finally {
       isPurchasing.value = false;
     }
@@ -172,7 +187,7 @@ class PremiumController extends GetxController {
     
     try {
       // TODO: Integrate with StoreKit for iOS
-      HMToast.info('Tính năng khôi phục đang phát triển');
+      HMToast.info(ToastMessages.premiumRestoreComingSoon);
       
       // When StoreKit is integrated:
       // 1. Get receipts from StoreKit
@@ -183,7 +198,7 @@ class PremiumController extends GetxController {
       // HMToast.success('Khôi phục thành công!');
       
     } catch (e) {
-      HMToast.error('Không thể khôi phục giao dịch');
+      HMToast.error(ToastMessages.premiumRestoreError);
     } finally {
       isRestoring.value = false;
     }

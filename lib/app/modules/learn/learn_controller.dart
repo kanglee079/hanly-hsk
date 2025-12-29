@@ -4,6 +4,7 @@ import '../../data/repositories/learning_repo.dart';
 import '../../routes/app_routes.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../core/widgets/hm_streak_bottom_sheet.dart';
 import '../today/today_controller.dart';
 import '../practice/practice_controller.dart';
@@ -255,7 +256,18 @@ class LearnController extends GetxController {
   List<StudyModeModel> get mainStudyModes {
     final modes = studyModesData.value?.studyModes ?? [];
     // Return first 4 modes (excluding comprehensive)
-    return modes.where((m) => m.id != 'comprehensive').take(4).toList();
+    final result = modes.where((m) => m.id != 'comprehensive').take(4).toList();
+    
+    // 🔧 FIX: Ensure flashcard (srs_vocabulary) is always available
+    return result.map((mode) {
+      if (mode.id == 'srs_vocabulary') {
+        return mode.copyWith(
+          isPremium: false,
+          isAvailable: true,
+        );
+      }
+      return mode;
+    }).toList();
   }
 
   /// Get comprehensive mode
@@ -284,8 +296,9 @@ class LearnController extends GetxController {
 
     // Check if mode is available
     final modeData = getModeById(mode.apiId);
-    if (modeData != null && !modeData.isAvailable) {
-      _showPremiumDialog(modeData.unavailableReason ?? 'Tính năng này cần Premium');
+    // 🔧 FIX: Never block flashcard (srs_vocabulary) - it's always free
+    if (mode != LearnMode.srsVocabulary && modeData != null && !modeData.isAvailable) {
+      _showPremiumDialog(modeData.unavailableReason ?? ToastMessages.premiumFeatureLocked);
       return;
     }
 
@@ -366,7 +379,7 @@ class LearnController extends GetxController {
     if (qr != null && qr.available) {
       Get.toNamed(Routes.practice, arguments: {'mode': PracticeMode.reviewSRS});
     } else {
-      HMToast.info('Không có từ cần ôn tập');
+      HMToast.info(ToastMessages.practiceNoVocabsToReview);
     }
   }
 

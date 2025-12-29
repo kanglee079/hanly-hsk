@@ -13,6 +13,7 @@ import '../../services/storage_service.dart';
 import '../../services/realtime/realtime_sync_service.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
+import '../../core/constants/toast_messages.dart';
 import '../shell/shell_controller.dart';
 
 export '../../data/models/exercise_model.dart';
@@ -56,6 +57,11 @@ class PracticeController extends GetxController {
   final Map<String, int> _learnNewCorrectByVocab = <String, int>{};
   final Map<String, int> _learnNewTotalByVocab = <String, int>{};
   final Map<String, int> _learnNewTimeSpentMsByVocab = <String, int>{};
+  
+  /// Track count at session START to calculate delta (words learned in THIS session only)
+  int _sessionStartLearnedCount = 0;
+  /// Track vocab IDs learned specifically in THIS session
+  final Set<String> _thisSessionLearnedVocabIds = <String>{};
   
   // Session configuration
   late PracticeMode mode;
@@ -815,7 +821,7 @@ class PracticeController extends GetxController {
     
     if (url == null || url.isEmpty) {
       Logger.w('PracticeController', '⚠️ No audio URL available');
-      HMToast.info('Audio không khả dụng');
+      HMToast.info(ToastMessages.practiceAudioUnavailable);
       return;
     }
     
@@ -891,7 +897,7 @@ class PracticeController extends GetxController {
 
     // Fallback to TTS
     if (_tts == null) {
-      HMToast.info('Audio câu ví dụ đang cập nhật');
+      HMToast.info(ToastMessages.practiceExampleAudioUpdating);
       return;
     }
 
@@ -916,7 +922,7 @@ class PracticeController extends GetxController {
     } catch (e) {
       Logger.e('PracticeController', 'playExampleSentence error', e);
       speakingText.value = null;
-      HMToast.info('TTS chưa sẵn sàng');
+      HMToast.info(ToastMessages.practiceTtsNotReady);
     }
   }
   
@@ -1004,17 +1010,23 @@ class PracticeController extends GetxController {
     _timer?.cancel();
     state.value = PracticeState.complete;
     
-    // Calculate actual counts based on mode
+    // 🔧 FIX: Only count words learned IN THIS SESSION, not cumulative total
+    // Before fix: used _learnNewCompletedVocabIds.length (cumulative today)
+    // After fix: use _thisSessionLearnedVocabIds.length (only this session)
     final sessionNewCount = mode == PracticeMode.learnNew 
-        ? _learnNewCompletedVocabIds.length 
+        ? _thisSessionLearnedVocabIds.length  // Only THIS session's new words
         : 0;
     final sessionReviewCount = (mode == PracticeMode.reviewSRS || mode == PracticeMode.reviewToday)
         ? vocabs.length
         : 0;
     
     Logger.d('PracticeController', 
-      '[FINISH] mode=$mode, newCount=$sessionNewCount, '
-      'reviewCount=$sessionReviewCount, minutes=${(elapsedSeconds.value / 60).ceil()}');
+      '[FINISH] mode=$mode, '
+      'thisSessionNew=${_thisSessionLearnedVocabIds.length}, '
+      'totalToday=${_learnNewCompletedVocabIds.length}, '
+      'newCount=$sessionNewCount, '
+      'reviewCount=$sessionReviewCount, '
+      'minutes=${(elapsedSeconds.value / 60).ceil()}');
     
     try {
       await _learningRepo.finishSession(SessionResultModel(
@@ -1055,11 +1067,13 @@ class PracticeController extends GetxController {
           // 🚨 CHECK 1: API says new queue is LOCKED
           if (today.isNewQueueLocked) {
             if (today.isBlockedByReviewOverload) {
-              HMToast.warning(today.reviewOverloadInfo?.message ?? 'Có quá nhiều từ cần ôn tập!\nHãy ôn bớt để học tiếp.');
+              final count = today.reviewQueue.length;
+              HMToast.warning(ToastMessages.reviewOverload(count));
             } else if (today.isBlockedByMastery) {
-              HMToast.warning(today.unlockRequirement?.message ?? 'Cần master từ đã học trước!');
+              final wordsToMaster = today.unlockRequirement?.wordsToMaster ?? 0;
+              HMToast.warning(ToastMessages.masteryRequired(wordsToMaster));
             } else {
-              HMToast.warning(today.lockMessage.isNotEmpty ? today.lockMessage : 'Chưa thể học từ mới.');
+              HMToast.warning(ToastMessages.newWordsLocked);
             }
             return;
           }
@@ -1071,7 +1085,7 @@ class PracticeController extends GetxController {
           final actualRemaining = today.dailyNewLimit - actualLearned;
           
           if (actualRemaining <= 0) {
-            HMToast.info('Bạn đã đạt giới hạn ${today.dailyNewLimit} từ mới hôm nay! 🎉');
+            HMToast.info(ToastMessages.practiceNoNewWordsToday);
             return;
           }
           final available = today.newQueue
@@ -1097,7 +1111,7 @@ class PracticeController extends GetxController {
       
       if (newVocabs.isEmpty) {
         HMToast.info(mode == PracticeMode.learnNew
-            ? 'Không còn từ mới để học hôm nay!'
+            ? ToastMessages.practiceNoNewWordsAvailable
             : 'Không còn từ vựng để học!');
         return;
       }
@@ -1143,7 +1157,7 @@ class PracticeController extends GetxController {
       
     } catch (e) {
       Logger.e('PracticeController', 'Continue session error', e);
-      HMToast.error('Không thể tải thêm từ');
+      HMToast.error(ToastMessages.practiceLoadMoreError);
     } finally {
       isLoading.value = false;
     }
@@ -1155,7 +1169,14 @@ class PracticeController extends GetxController {
     try {
       final cached = _storage.getLearnNewCompletedVocabIds(_todayKey);
       _learnNewCompletedVocabIds.addAll(cached);
-      Logger.d('PracticeController', '🧠 LearnNew local completed today: ${_learnNewCompletedVocabIds.length} vocabs');
+      
+      // 🔧 FIX: Record the count at session START to calculate delta later
+      _sessionStartLearnedCount = _learnNewCompletedVocabIds.length;
+      _thisSessionLearnedVocabIds.clear(); // Reset for this session
+      
+      Logger.d('PracticeController', 
+        '🧠 LearnNew local completed today: ${_learnNewCompletedVocabIds.length} vocabs '
+        '(session starts with: $_sessionStartLearnedCount)');
     } catch (e) {
       Logger.e('PracticeController', 'Failed to load LearnNew local progress', e);
     }
@@ -1166,6 +1187,7 @@ class PracticeController extends GetxController {
     if (_learnNewCompletedVocabIds.contains(vocabId)) return;
 
     _learnNewCompletedVocabIds.add(vocabId);
+    _thisSessionLearnedVocabIds.add(vocabId); // 🔧 FIX: Track this session's words
     _storage.addLearnNewCompletedVocabId(_todayKey, vocabId);
     
     // Lưu full vocab data để dùng cho củng cố (reviewToday)

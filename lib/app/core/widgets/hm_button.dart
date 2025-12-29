@@ -50,7 +50,12 @@ class HMButton extends StatelessWidget {
         child: SizedBox(
           width: fullWidth ? double.infinity : null,
           height: _getHeight(),
-          child: _buildButton(context, isDark, enabled),
+          child: fullWidth
+              ? _buildButton(context, isDark, enabled)
+              : ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 0),
+                  child: _buildButton(context, isDark, enabled),
+                ),
         ),
       ),
     );

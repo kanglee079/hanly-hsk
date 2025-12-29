@@ -885,7 +885,8 @@ class _DynamicModeCard extends StatelessWidget {
                   ),
                 ],
               ),
-            ] else if (isLocked) ...[
+            ] else if (isLocked && mode.id != 'srs_vocabulary') ...[
+              // 🔧 FIX: Never show Premium lock for flashcard (srs_vocabulary)
               const SizedBox(height: 10),
               Row(
                 children: [

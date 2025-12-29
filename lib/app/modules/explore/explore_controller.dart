@@ -8,6 +8,7 @@ import '../../data/repositories/collections_repo.dart';
 import '../../services/storage_service.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../routes/app_routes.dart';
 
 /// Recent item model
@@ -419,10 +420,10 @@ class ExploreController extends GetxController {
     try {
       if (vocab.isFavorite) {
         await _favoritesRepo.removeFavorite(vocab.id);
-        HMToast.info('Đã xóa khỏi yêu thích');
+        HMToast.success(ToastMessages.favoritesRemoveSuccess);
       } else {
         await _favoritesRepo.addFavorite(vocab.id);
-        HMToast.success('Đã thêm vào yêu thích');
+        HMToast.success(ToastMessages.favoritesAddSuccess);
       }
       
       final index = vocabs.indexWhere((v) => v.id == vocab.id);
@@ -431,7 +432,7 @@ class ExploreController extends GetxController {
       }
     } catch (e) {
       Logger.e('ExploreController', 'toggleFavorite error', e);
-      HMToast.error('Không thể cập nhật');
+      HMToast.error(ToastMessages.favoritesUpdateError);
     }
   }
 }

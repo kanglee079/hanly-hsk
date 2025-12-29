@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/hm_bottom_sheet.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../data/models/hsk_exam_model.dart';
 import '../../data/repositories/hsk_exam_repo.dart';
 import '../../services/audio_service.dart';
@@ -214,7 +215,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
       _showResultScreen(result, timeSpent);
     } catch (e) {
       Get.back();
-      HMToast.error('Không thể nộp bài. Vui lòng thử lại.');
+      HMToast.error(ToastMessages.examSubmitError);
     }
   }
 

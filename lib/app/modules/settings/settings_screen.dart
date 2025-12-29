@@ -311,6 +311,7 @@ class _TutorialResetTile extends StatelessWidget {
             text: 'Đặt lại',
             variant: HMButtonVariant.outline,
             size: HMButtonSize.small,
+            fullWidth: false, // 🔧 FIX: Must be false when used in Row
             onPressed: () {
               if (Get.isRegistered<TutorialService>()) {
                 Get.find<TutorialService>().resetAllTutorials();

@@ -3,6 +3,7 @@ import '../../data/models/vocab_model.dart';
 import '../../data/repositories/favorites_repo.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../routes/app_routes.dart';
 
 /// Favorites controller
@@ -39,10 +40,10 @@ class FavoritesController extends GetxController {
     try {
       await _favoritesRepo.removeFavorite(vocab.id);
       favorites.removeWhere((v) => v.id == vocab.id);
-      HMToast.info('Đã xóa khỏi yêu thích');
+      HMToast.success(ToastMessages.favoritesRemoveSuccess);
     } catch (e) {
       Logger.e('FavoritesController', 'removeFavorite error', e);
-      HMToast.error('Không thể xóa');
+      HMToast.error(ToastMessages.favoritesRemoveError);
     }
   }
 }

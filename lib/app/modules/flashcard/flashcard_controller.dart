@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../data/models/vocab_model.dart';
 import '../../data/repositories/learning_repo.dart';
+import '../../data/repositories/favorites_repo.dart';
 import '../../services/audio_service.dart';
 import '../../services/realtime/today_store.dart';
 
@@ -23,6 +25,7 @@ class FlashcardController extends GetxController {
   final LearningRepo _learningRepo = Get.find<LearningRepo>();
   final AudioService _audioService = Get.find<AudioService>();
   final TodayStore _todayStore = Get.find<TodayStore>();
+  final FavoritesRepo _favoritesRepo = Get.find<FavoritesRepo>();
 
   static const int totalCards = 10; // Tổng số thẻ mỗi lần học
 
@@ -198,17 +201,20 @@ class FlashcardController extends GetxController {
       // === STEP 6: Shuffle to mix new and review words naturally ===
       finalList.shuffle();
 
+      // === STEP 7: Sync favorite status from backend ===
+      await _syncFavoriteStatus(finalList);
+
       // Update stats
       newWordsCount.value = newAdded;
       reviewWordsCount.value = reviewAdded;
       vocabs.value = finalList;
 
       if (vocabs.isEmpty) {
-        // Provide helpful message based on situation
+        // Provide clear, helpful message based on situation
         if (todayData?.newQueue.isEmpty == true && totalLearned == 0) {
-          HMToast.info('Hãy học từ mới trước để sử dụng Flashcard!');
+          HMToast.info(ToastMessages.flashcardNoNewWords);
         } else {
-          HMToast.info('Không có từ nào khả dụng. Hãy học thêm từ mới!');
+          HMToast.info(ToastMessages.flashcardNoVocabsAvailable);
         }
       }
 
@@ -216,7 +222,7 @@ class FlashcardController extends GetxController {
         'Final deck: ${vocabs.length} cards (${newWordsCount.value} new + ${reviewWordsCount.value} review)');
     } catch (e) {
       Logger.e('FlashcardController', 'Failed to load vocabs', e);
-      HMToast.error('Không thể tải từ vựng');
+      HMToast.error(ToastMessages.flashcardLoadError);
     } finally {
       isLoading.value = false;
     }
@@ -267,7 +273,7 @@ class FlashcardController extends GetxController {
       _audioService.play(url);
       Logger.d('FlashcardController', 'Playing ${slow ? "slow" : "normal"} audio: $url');
     } else {
-      HMToast.warning(slow ? 'Không có audio chậm' : 'Không có audio');
+      HMToast.warning(slow ? ToastMessages.flashcardNoSlowAudio : ToastMessages.flashcardNoAudio);
       Logger.w('FlashcardController', 'No ${slow ? "slow" : "normal"} audio URL for ${vocab.hanzi}');
     }
   }
@@ -281,6 +287,58 @@ class FlashcardController extends GetxController {
 
   void goBack() {
     Get.back();
+  }
+
+  /// Sync favorite status from backend
+  Future<void> _syncFavoriteStatus(List<VocabModel> vocabsList) async {
+    try {
+      // Load favorites list from backend
+      final favoritesList = await _favoritesRepo.getFavorites();
+      final favoriteIds = favoritesList.map((v) => v.id).toSet();
+      
+      // Update isFavorite for each vocab
+      for (int i = 0; i < vocabsList.length; i++) {
+        if (favoriteIds.contains(vocabsList[i].id)) {
+          vocabsList[i] = vocabsList[i].copyWith(isFavorite: true);
+        }
+      }
+      
+      Logger.d('FlashcardController', 'Synced favorite status for ${vocabsList.length} vocabs');
+    } catch (e) {
+      Logger.w('FlashcardController', 'Failed to sync favorite status: $e');
+      // Don't block if favorites sync fails
+    }
+  }
+
+  /// Toggle favorite for current vocab
+  Future<void> toggleFavorite() async {
+    final vocab = currentVocab;
+    if (vocab == null) return;
+
+    try {
+      final wasFavorite = vocab.isFavorite;
+      
+      if (wasFavorite) {
+        await _favoritesRepo.removeFavorite(vocab.id);
+      } else {
+        await _favoritesRepo.addFavorite(vocab.id);
+      }
+
+      // Update vocab in list
+      final index = vocabs.indexWhere((v) => v.id == vocab.id);
+      if (index != -1) {
+        vocabs[index] = vocab.copyWith(isFavorite: !wasFavorite);
+      }
+
+      HMToast.success(
+        wasFavorite 
+          ? ToastMessages.favoritesRemoveSuccess 
+          : ToastMessages.favoritesAddSuccess
+      );
+    } catch (e) {
+      Logger.e('FlashcardController', 'toggleFavorite error', e);
+      HMToast.error(ToastMessages.favoritesUpdateError);
+    }
   }
   
   /// Get display text for user stage

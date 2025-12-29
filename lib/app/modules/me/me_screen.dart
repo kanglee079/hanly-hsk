@@ -51,6 +51,11 @@ class MeScreen extends GetView<MeController> {
 
                     const SizedBox(height: 20),
 
+                    // Favorites Section
+                    _buildFavoritesSection(isDark),
+
+                    const SizedBox(height: 20),
+
                     // Quick Actions
                     _buildQuickActionsSection(isDark),
 
@@ -484,6 +489,98 @@ class MeScreen extends GetView<MeController> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFavoritesSection(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Yêu thích',
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: controller.goToFavorites,
+          child: HMCard(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                // Animated heart icon
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.elasticOut,
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: 0.8 + (value * 0.2),
+                      child: Transform.rotate(
+                        angle: (1 - value) * 0.1,
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                AppColors.favorite.withAlpha(30),
+                                AppColors.favorite.withAlpha(15),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            Icons.favorite_rounded,
+                            color: AppColors.favorite,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Từ yêu thích',
+                        style: AppTypography.titleMedium.copyWith(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Xem và quản lý từ đã lưu',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isDark
+                      ? AppColors.textTertiaryDark
+                      : AppColors.textTertiary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

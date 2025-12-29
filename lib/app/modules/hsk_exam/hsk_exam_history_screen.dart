@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/models/hsk_exam_model.dart';
 import '../../data/repositories/hsk_exam_repo.dart';
@@ -39,7 +40,7 @@ class _HskExamHistoryScreenState extends State<HskExamHistoryScreen> {
         level: selectedLevel == 'all' ? null : selectedLevel,
       );
     } catch (e) {
-      HMToast.error('Không thể tải lịch sử');
+      HMToast.error(ToastMessages.examHistoryLoadError);
     }
     setState(() => isLoading = false);
   }

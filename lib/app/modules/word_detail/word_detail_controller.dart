@@ -6,6 +6,7 @@ import '../../data/repositories/favorites_repo.dart';
 import '../../services/audio_service.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../routes/app_routes.dart';
 
 /// Word detail controller - loads from API if needed
@@ -209,15 +210,15 @@ class WordDetailController extends GetxController {
       if (v.isFavorite) {
         await _favoritesRepo.removeFavorite(v.id);
         vocab.value = v.copyWith(isFavorite: false);
-        HMToast.info('Đã xóa khỏi yêu thích');
+        HMToast.success(ToastMessages.favoritesRemoveSuccess);
       } else {
         await _favoritesRepo.addFavorite(v.id);
         vocab.value = v.copyWith(isFavorite: true);
-        HMToast.success('Đã thêm vào yêu thích');
+        HMToast.success(ToastMessages.favoritesAddSuccess);
       }
     } catch (e) {
       Logger.e('WordDetailController', 'toggleFavorite error', e);
-      HMToast.error('Không thể cập nhật');
+      HMToast.error(ToastMessages.favoritesUpdateError);
     } finally {
       isLoading.value = false;
     }

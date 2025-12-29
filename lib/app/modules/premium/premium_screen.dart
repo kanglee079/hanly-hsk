@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/constants/toast_messages.dart';
 import '../../data/models/subscription_model.dart';
 import 'premium_controller.dart';
 
@@ -81,15 +82,21 @@ class PremiumScreen extends GetView<PremiumController> {
                             child: Text(
                               controller.isPremium
                                   ? 'Cảm ơn bạn đã ủng hộ HanLy!'
-                                  : 'Mở khóa tất cả tính năng để học tiếng Trung hiệu quả hơn',
+                                  : 'Học không giới hạn • Thống kê chi tiết • Tất cả đề thi HSK',
                               textAlign: TextAlign.center,
                               style: AppTypography.bodyMedium.copyWith(
                                 color: isDark
                                     ? AppColors.textSecondaryDark
                                     : AppColors.textSecondary,
+                                height: 1.5,
                               ),
                             ),
                           ),
+
+                          const SizedBox(height: 32),
+
+                          // Key Premium Features Highlight
+                          _buildKeyFeaturesHighlight(isDark),
 
                           const SizedBox(height: 32),
 
@@ -167,14 +174,14 @@ class PremiumScreen extends GetView<PremiumController> {
                         _FooterLink(
                           text: 'Điều khoản',
                           onTap: () {
-                            HMToast.info('Tính năng đang phát triển');
+                            HMToast.info(ToastMessages.settingsFeatureComingSoon);
                           },
                         ),
                         const _FooterDot(),
                         _FooterLink(
                           text: 'Bảo mật',
                           onTap: () {
-                            HMToast.info('Tính năng đang phát triển');
+                            HMToast.info(ToastMessages.settingsFeatureComingSoon);
                           },
                         ),
                       ],
@@ -385,9 +392,9 @@ class PremiumScreen extends GetView<PremiumController> {
   Widget _buildBenefitsGrid(bool isDark) {
     final benefits = [
       _BenefitItem(
-        icon: Icons.style_rounded,
-        title: 'Flashcards\nkhông giới hạn',
-        color: const Color(0xFFFF9800),
+        icon: Icons.all_inclusive_rounded,
+        title: 'Học từ mới\nkhông giới hạn',
+        color: const Color(0xFF2196F3),
       ),
       _BenefitItem(
         icon: Icons.auto_awesome_rounded,
@@ -397,7 +404,7 @@ class PremiumScreen extends GetView<PremiumController> {
       _BenefitItem(
         icon: Icons.quiz_rounded,
         title: 'Ôn thi HSK\nđầy đủ',
-        color: const Color(0xFF2196F3),
+        color: const Color(0xFF00BCD4),
       ),
       _BenefitItem(
         icon: Icons.shield_rounded,
@@ -405,9 +412,24 @@ class PremiumScreen extends GetView<PremiumController> {
         color: const Color(0xFF4CAF50),
       ),
       _BenefitItem(
+        icon: Icons.analytics_rounded,
+        title: 'Thống kê\nchi tiết',
+        color: const Color(0xFFFF9800),
+      ),
+      _BenefitItem(
+        icon: Icons.download_rounded,
+        title: 'Tải offline\n6 cấp độ',
+        color: const Color(0xFF9C27B0),
+      ),
+      _BenefitItem(
+        icon: Icons.sports_esports_rounded,
+        title: 'Game 30s\n10 lượt/ngày',
+        color: const Color(0xFFE91E63),
+      ),
+      _BenefitItem(
         icon: Icons.block_rounded,
         title: 'Không\nquảng cáo',
-        color: const Color(0xFFE91E63),
+        color: const Color(0xFFF44336),
       ),
       _BenefitItem(
         icon: Icons.support_agent_rounded,
@@ -425,7 +447,7 @@ class PremiumScreen extends GetView<PremiumController> {
           crossAxisCount: 3,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1,
+          childAspectRatio: 0.95, // Slightly taller for better text display
         ),
         itemCount: benefits.length,
         itemBuilder: (context, index) {
@@ -471,12 +493,16 @@ class PremiumScreen extends GetView<PremiumController> {
 
   Widget _buildComparisonTable(bool isDark) {
     final features = [
-      _FeatureRow('Flashcards mỗi ngày', '10', '∞'),
+      _FeatureRow('Từ mới mỗi ngày', '30 từ', 'Không giới hạn'),
+      _FeatureRow('Flashcards', '10 thẻ/ngày', 'Không giới hạn'),
       _FeatureRow('Ôn tập tổng hợp', '✗', '✓'),
-      _FeatureRow('Ôn thi HSK', '1 đề/level', 'Tất cả'),
-      _FeatureRow('Game 30s', '3 lượt/ngày', '10 lượt'),
+      _FeatureRow('Ôn thi HSK', '1 đề/level', 'Tất cả đề'),
+      _FeatureRow('Game 30s', '3 lượt/ngày', '10 lượt/ngày'),
       _FeatureRow('Bảo vệ streak', '✗', '3 lần/tháng'),
-      _FeatureRow('Quảng cáo', '✓', '✗'),
+      _FeatureRow('Thống kê chi tiết', '7 ngày', '365 ngày'),
+      _FeatureRow('Tải offline', 'HSK1-2', 'HSK1-6'),
+      _FeatureRow('Quảng cáo', 'Có', 'Không'),
+      _FeatureRow('Hỗ trợ', 'Email', 'Ưu tiên'),
     ];
 
     return Padding(
@@ -608,6 +634,130 @@ class PremiumScreen extends GetView<PremiumController> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildKeyFeaturesHighlight(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary.withAlpha(20),
+              AppColors.primary.withAlpha(10),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.primary.withAlpha(40),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(26),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.star_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Tính năng Premium độc quyền',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureHighlight(
+              '📚 Học từ mới không giới hạn',
+              'Free: 30 từ/ngày • Premium: Không giới hạn',
+              isDark,
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureHighlight(
+              '📊 Thống kê chi tiết 365 ngày',
+              'Theo dõi tiến độ học tập dài hạn',
+              isDark,
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureHighlight(
+              '🎯 Tất cả đề thi HSK',
+              'Free: 1 đề/level • Premium: Tất cả đề',
+              isDark,
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureHighlight(
+              '🛡️ Bảo vệ streak 3 lần/tháng',
+              'Không lo mất streak khi quên học',
+              isDark,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureHighlight(String title, String subtitle, bool isDark) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 4),
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: AppTypography.bodySmall.copyWith(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

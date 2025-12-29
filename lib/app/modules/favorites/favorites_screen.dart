@@ -42,77 +42,157 @@ class FavoritesScreen extends GetView<FavoritesController> {
           itemCount: controller.favorites.length,
           itemBuilder: (context, index) {
             final vocab = controller.favorites[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Dismissible(
-                key: Key(vocab.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    borderRadius: AppSpacing.borderRadiusLg,
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: Duration(milliseconds: 300 + (index * 50)),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Transform.translate(
+                  offset: Offset(0, 20 * (1 - value)),
+                  child: Opacity(
+                    opacity: value,
+                    child: child,
                   ),
-                  child: const Icon(
-                    Icons.delete_outline,
-                    color: AppColors.white,
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Dismissible(
+                  key: Key(vocab.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: AppSpacing.borderRadiusLg,
+                    ),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 200),
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: value,
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: AppColors.white,
+                            size: 28,
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                onDismissed: (_) => controller.removeFavorite(vocab),
-                child: HMCard(
-                  onTap: () => controller.openVocabDetail(vocab),
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.getHskColor(vocab.levelInt).withAlpha(25),
-                          borderRadius: AppSpacing.borderRadiusMd,
-                        ),
-                        child: Center(
-                          child: Text(
-                            vocab.hanzi,
-                            style: AppTypography.hanziSmall.copyWith(
-                              fontSize: 20,
-                              color: AppColors.getHskColor(vocab.levelInt),
+                  onDismissed: (_) => controller.removeFavorite(vocab),
+                  child: HMCard(
+                    onTap: () => controller.openVocabDetail(vocab),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        // Animated hanzi container
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: Duration(milliseconds: 400 + (index * 30)),
+                          curve: Curves.elasticOut,
+                          builder: (context, value, child) {
+                            return Transform.scale(
+                              scale: 0.7 + (value * 0.3),
+                              child: Transform.rotate(
+                                angle: (1 - value) * 0.1,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.getHskColor(vocab.levelInt).withAlpha(40),
+                                  AppColors.getHskColor(vocab.levelInt).withAlpha(20),
+                                ],
+                              ),
+                              borderRadius: AppSpacing.borderRadiusMd,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.getHskColor(vocab.levelInt).withAlpha(20),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                vocab.hanzi,
+                                style: AppTypography.hanziSmall.copyWith(
+                                  fontSize: 24,
+                                  color: AppColors.getHskColor(vocab.levelInt),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              vocab.pinyin,
-                              style: AppTypography.pinyinSmall.copyWith(
-                                color: isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textSecondary,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                vocab.pinyin,
+                                style: AppTypography.pinyinSmall.copyWith(
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
-                            Text(
-                              vocab.meaningVi,
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimary,
+                              const SizedBox(height: 4),
+                              Text(
+                                vocab.meaningVi,
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const Icon(
-                        Icons.favorite_rounded,
-                        color: AppColors.favorite,
-                      ),
-                    ],
+                        // Animated heart icon
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: Duration(milliseconds: 500 + (index * 40)),
+                          curve: Curves.elasticOut,
+                          builder: (context, value, child) {
+                            return Transform.scale(
+                              scale: 0.5 + (value * 0.5),
+                              child: Transform.rotate(
+                                angle: (1 - value) * 0.2,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.favorite.withAlpha(15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.favorite_rounded,
+                              color: AppColors.favorite,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
