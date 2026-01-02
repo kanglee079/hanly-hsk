@@ -1,28 +1,22 @@
 /// Exercise types for the learning system
 enum ExerciseType {
   // Multiple Choice
-  hanziToMeaning,   // Show Hanzi → Choose correct meaning
-  meaningToHanzi,   // Show Meaning → Choose correct Hanzi
-  audioToHanzi,     // Play audio → Choose correct Hanzi
-  audioToMeaning,   // Play audio → Choose correct meaning
-  hanziToPinyin,    // Show Hanzi → Choose correct pinyin
-  fillBlank,        // Fill in the blank in sentence
-  
+  hanziToMeaning, // Show Hanzi → Choose correct meaning
+  meaningToHanzi, // Show Meaning → Choose correct Hanzi
+  audioToHanzi, // Play audio → Choose correct Hanzi
+  audioToMeaning, // Play audio → Choose correct meaning
+  hanziToPinyin, // Show Hanzi → Choose correct pinyin
+  fillBlank, // Fill in the blank in sentence
   // Interactive
-  matchingPairs,    // Match Hanzi with meanings
-  sentenceOrder,    // Arrange words to form sentence
-  strokeWriting,    // Draw character strokes
-  
+  matchingPairs, // Match Hanzi with meanings
+  sentenceOrder, // Arrange words to form sentence
+  strokeWriting, // Draw character strokes
   // Pronunciation
-  speakWord,        // Speak the word shown
+  speakWord, // Speak the word shown
 }
 
 /// Exercise difficulty
-enum ExerciseDifficulty {
-  easy,
-  medium,
-  hard,
-}
+enum ExerciseDifficulty { easy, medium, hard }
 
 /// A single exercise/question
 class Exercise {
@@ -30,7 +24,7 @@ class Exercise {
   final ExerciseType type;
   final ExerciseDifficulty difficulty;
   final String vocabId;
-  
+
   // Question data
   final String? questionHanzi;
   final String? questionPinyin;
@@ -39,22 +33,22 @@ class Exercise {
   final String? questionSlowAudioUrl; // Slow audio variant
   final String? questionSentence; // For fill blank
   final int? blankPosition; // Position of blank in sentence
-  
+
   // Options (for MCQ)
   final List<String> options;
   final int correctIndex;
-  
+
   // For matching game
   final List<MatchingItem>? matchingItems;
-  
+
   // For sentence ordering
   final List<String>? sentenceWords;
   final String? correctSentence;
-  
+
   // Metadata
   final int xpReward;
   final int timeLimit; // seconds, 0 = no limit
-  
+
   Exercise({
     required this.id,
     required this.type,
@@ -75,7 +69,7 @@ class Exercise {
     this.xpReward = 10,
     this.timeLimit = 0,
   });
-  
+
   /// Get appropriate audio URL based on speed mode
   String? getAudioUrl({bool slow = false}) {
     if (slow) {
@@ -84,11 +78,11 @@ class Exercise {
     }
     return questionAudioUrl;
   }
-  
+
   /// Check if slow audio is available (native slow, not fallback)
-  bool get hasNativeSlowAudio => 
+  bool get hasNativeSlowAudio =>
       questionSlowAudioUrl != null && questionSlowAudioUrl!.isNotEmpty;
-  
+
   /// Check if answer is correct
   bool checkAnswer(dynamic answer) {
     switch (type) {
@@ -99,7 +93,7 @@ class Exercise {
       case ExerciseType.hanziToPinyin:
       case ExerciseType.fillBlank:
         return answer == correctIndex;
-        
+
       case ExerciseType.matchingPairs:
         // Answer should be a map of matched pairs
         if (answer is! Map<int, int>) return false;
@@ -109,19 +103,19 @@ class Exercise {
           if (matched[item.leftIndex] != item.rightIndex) return false;
         }
         return true;
-        
+
       case ExerciseType.sentenceOrder:
         if (answer is! List<String>) return false;
         final answerList = answer;
         return answerList.join('') == correctSentence?.replaceAll(' ', '');
-        
+
       case ExerciseType.strokeWriting:
       case ExerciseType.speakWord:
         // These are evaluated separately
         return true;
     }
   }
-  
+
   /// Get correct answer for display
   String get correctAnswerDisplay {
     switch (type) {
@@ -145,11 +139,11 @@ class Exercise {
 
 /// Item for matching game
 class MatchingItem {
-  final int leftIndex;  // Index in left column
+  final int leftIndex; // Index in left column
   final int rightIndex; // Index in right column
   final String leftText;
   final String rightText;
-  
+
   MatchingItem({
     required this.leftIndex,
     required this.rightIndex,
@@ -167,7 +161,7 @@ class ExerciseResult {
   final int xpEarned;
   final dynamic userAnswer;
   final String? feedback;
-  
+
   ExerciseResult({
     required this.exerciseId,
     required this.type,
@@ -192,7 +186,7 @@ class SessionConfig {
   final bool useSRSRating; // Show again/hard/good/easy buttons
   final int timeLimit; // 0 = no limit
   final int xpMultiplier;
-  
+
   const SessionConfig({
     required this.id,
     required this.name,
@@ -206,7 +200,7 @@ class SessionConfig {
     this.timeLimit = 0,
     this.xpMultiplier = 1,
   });
-  
+
   /// Predefined session configs
   /// Learn New: Structured pipeline per word
   /// Flow: Learning Content → Hanzi→Meaning → Meaning→Hanzi → Audio→Hanzi
@@ -215,9 +209,9 @@ class SessionConfig {
     name: 'Học từ mới',
     description: 'Học từ vựng mới với đầy đủ nội dung',
     exerciseTypes: [
-      ExerciseType.hanziToMeaning,  // Quiz 1: Xem từ → Chọn nghĩa
-      ExerciseType.meaningToHanzi,  // Quiz 2: Xem nghĩa → Chọn từ
-      ExerciseType.audioToHanzi,    // Quiz 3: Nghe → Chọn từ (nếu có audio)
+      ExerciseType.hanziToMeaning, // Quiz 1: Xem từ → Chọn nghĩa
+      ExerciseType.audioToHanzi, // Quiz 2: Nghe → Chọn từ (nếu có audio)
+      ExerciseType.fillBlank, // Quiz 3: Điền vào chỗ trống
     ],
     vocabCount: 5,
     exercisesPerVocab: 3, // All 3 exercise types per vocab
@@ -226,15 +220,12 @@ class SessionConfig {
     useSRSRating: false,
     xpMultiplier: 2,
   );
-  
+
   static const reviewSRS = SessionConfig(
     id: 'review_srs',
     name: 'Ôn tập SRS',
     description: 'Ôn tập nhanh với Spaced Repetition',
-    exerciseTypes: [
-      ExerciseType.hanziToMeaning,
-      ExerciseType.meaningToHanzi,
-    ],
+    exerciseTypes: [ExerciseType.hanziToMeaning, ExerciseType.meaningToHanzi],
     vocabCount: 10,
     exercisesPerVocab: 1,
     showLearningContent: false,
@@ -242,15 +233,12 @@ class SessionConfig {
     useSRSRating: true,
     xpMultiplier: 1,
   );
-  
+
   static const listeningPractice = SessionConfig(
     id: 'listening',
     name: 'Luyện nghe',
     description: 'Nghe và chọn đáp án đúng',
-    exerciseTypes: [
-      ExerciseType.audioToHanzi,
-      ExerciseType.audioToMeaning,
-    ],
+    exerciseTypes: [ExerciseType.audioToHanzi, ExerciseType.audioToMeaning],
     vocabCount: 15,
     exercisesPerVocab: 1,
     showLearningContent: false,
@@ -258,14 +246,12 @@ class SessionConfig {
     useSRSRating: false,
     xpMultiplier: 1,
   );
-  
+
   static const matchingGame = SessionConfig(
     id: 'matching',
     name: 'Ghép từ',
     description: 'Ghép Hanzi với nghĩa',
-    exerciseTypes: [
-      ExerciseType.matchingPairs,
-    ],
+    exerciseTypes: [ExerciseType.matchingPairs],
     vocabCount: 6, // 6 pairs per round
     exercisesPerVocab: 1,
     showLearningContent: false,
@@ -273,15 +259,12 @@ class SessionConfig {
     useSRSRating: false,
     xpMultiplier: 1,
   );
-  
+
   static const game30s = SessionConfig(
     id: 'game30s',
     name: 'Game 30s',
     description: 'Trả lời nhanh trong 30 giây',
-    exerciseTypes: [
-      ExerciseType.hanziToMeaning,
-      ExerciseType.meaningToHanzi,
-    ],
+    exerciseTypes: [ExerciseType.hanziToMeaning, ExerciseType.meaningToHanzi],
     vocabCount: 20,
     exercisesPerVocab: 1,
     showLearningContent: false,
@@ -291,4 +274,3 @@ class SessionConfig {
     xpMultiplier: 2,
   );
 }
-

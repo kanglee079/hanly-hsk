@@ -48,6 +48,9 @@ dependencies:
   # Speech recognition for pronunciation practice
   speech_to_text: ^6.6.0
   
+  # Onboarding tutorial with smooth animations
+  showcaseview: ^4.0.1
+  
   # Deep linking for magic link authentication
   app_links: ^6.3.3
 

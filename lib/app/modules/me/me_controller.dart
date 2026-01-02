@@ -33,7 +33,7 @@ class MeController extends GetxController {
   // Stats data
   late final Rxn<TodayModel> todayData = _todayStore.today.data;
   final RxBool isUpdatingGoal = false.obs;
-  
+
   // Optimistic local override for daily goal (used immediately after update)
   final RxnInt _localDailyGoalOverride = RxnInt(null);
 
@@ -46,6 +46,7 @@ class MeController extends GetxController {
     // Use user profile as primary source (updated immediately after API call)
     return user?.profile?.dailyNewLimit ?? todayData.value?.dailyNewLimit ?? 20;
   }
+
   int get dailyGoalCurrent => todayData.value?.newLearnedToday ?? 0;
   double get dailyGoalProgress {
     if (dailyGoalTarget == 0) return 0;
@@ -60,7 +61,7 @@ class MeController extends GetxController {
   int get masteredCount => todayData.value?.masteredCount ?? 0;
   int get reviewedToday => todayData.value?.reviewed ?? 0;
   int get totalLearned => todayData.value?.totalLearned ?? 0;
-  
+
   // Streak helpers
   String get streakRank => todayData.value?.streakRank ?? '';
   StreakStatus? get streakStatus => todayData.value?.streakStatus;
@@ -68,25 +69,29 @@ class MeController extends GetxController {
     if (streakStatus != null) return streakStatus!.hasStudiedToday;
     return (todayData.value?.completedMinutes ?? 0) > 0;
   }
+
   bool get isStreakAtRisk {
     _todayStore.now.value;
     return streakStatus?.isAtRisk ?? (!hasStudiedToday && streak > 0);
   }
+
   String get timeUntilLoseStreak {
     _todayStore.now.value;
     return streakStatus?.timeUntilLoseStreak ?? '';
   }
+
   int get completedMinutes => todayData.value?.completedMinutes ?? 0;
-  
+
   // Words learned today (for review feature)
-  int get wordsLearnedToday => todayData.value?.newLearnedToday ?? todayData.value?.newLearned ?? 0;
+  int get wordsLearnedToday =>
+      todayData.value?.newLearnedToday ?? todayData.value?.newLearned ?? 0;
   int get wordsDueToday => todayData.value?.reviewCount ?? 0;
-  
+
   /// Get weekly progress data for streak calendar
   List<StreakDayData> get weeklyStreakData {
     final weeklyProgress = todayData.value?.weeklyProgress ?? [];
     if (weeklyProgress.isEmpty) return [];
-    
+
     return weeklyProgress.map((day) {
       final dt = DateTime.tryParse(day.date);
       return StreakDayData(
@@ -97,7 +102,7 @@ class MeController extends GetxController {
       );
     }).toList();
   }
-  
+
   /// Show streak bottom sheet with detailed info
   void showStreakDetails() {
     HMStreakBottomSheet.show(
@@ -108,7 +113,10 @@ class MeController extends GetxController {
       completedMinutes: completedMinutes,
       dailyGoalMinutes: todayData.value?.dailyGoalMinutes ?? 15,
       weeklyData: weeklyStreakData,
-      onStartLearning: () => Get.toNamed(Routes.practice, arguments: {'mode': PracticeMode.learnNew}),
+      onStartLearning: () => Get.toNamed(
+        Routes.practice,
+        arguments: {'mode': PracticeMode.learnNew},
+      ),
     );
   }
 
@@ -117,11 +125,18 @@ class MeController extends GetxController {
     super.onInit();
     // Ensure data is fresh when screen opens
     _todayStore.syncNow(force: true);
-    
+
     // Watch for user profile changes and sync today data
     ever(_authService.currentUser, (_) {
       // Re-sync today data when user profile changes
       _todayStore.syncNow(force: true);
+    });
+
+    // Listen to onLearnedUpdate event from Practice for refresh
+    ever(_todayStore.onLearnedUpdate, (_) {
+      // Refresh local stats immediately when Practice finishes
+      // Note: Data is already synced by PracticeController
+      todayData.refresh(); // Trigger GetX update
     });
   }
 
@@ -132,10 +147,7 @@ class MeController extends GetxController {
   /// Refresh all data - for pull-to-refresh
   @override
   Future<void> refresh() async {
-    await Future.wait([
-      loadStats(),
-      _authService.fetchCurrentUser(),
-    ]);
+    await Future.wait([loadStats(), _authService.fetchCurrentUser()]);
   }
 
   void goToFavorites() => Get.toNamed(Routes.favorites);
@@ -144,18 +156,16 @@ class MeController extends GetxController {
   void goToPremium() => Get.toNamed(Routes.premium);
   void goToStats() => Get.toNamed(Routes.stats);
   void goToLeaderboard() => Get.toNamed(Routes.leaderboard);
-  
+
   /// Start review session for words learned today
   void reviewTodayWords() {
     if (wordsLearnedToday == 0) {
       HMToast.info('Chưa có từ nào được học hôm nay để ôn tập!');
       return;
     }
-    
+
     // Navigate to practice with reviewSRS mode
-    Get.toNamed(Routes.practice, arguments: {
-      'mode': PracticeMode.reviewSRS,
-    });
+    Get.toNamed(Routes.practice, arguments: {'mode': PracticeMode.reviewSRS});
   }
 
   void goToAccount() {
@@ -193,339 +203,366 @@ class MeController extends GetxController {
     // Get current profile values
     final profile = user?.profile;
     final RxString selectedLevel = RxString(profile?.currentLevel ?? 'HSK1');
-    final RxString selectedGoalType = RxString(profile?.goalType?.apiValue ?? 'both');
+    final RxString selectedGoalType = RxString(
+      profile?.goalType?.apiValue ?? 'both',
+    );
     // Use dailyNewLimit (words) as primary, with fallback to derive from minutes
-    final currentWords = profile?.dailyNewLimit ?? _minutesToWords(profile?.dailyMinutesTarget ?? 15);
+    final currentWords =
+        profile?.dailyNewLimit ??
+        _minutesToWords(profile?.dailyMinutesTarget ?? 15);
     final RxInt selectedWords = RxInt(currentWords);
-    final RxBool listeningEnabled = RxBool((profile?.focusWeights?.listening ?? 0) > 0);
+    final RxBool listeningEnabled = RxBool(
+      (profile?.focusWeights?.listening ?? 0) > 0,
+    );
     final RxBool hanziEnabled = RxBool((profile?.focusWeights?.hanzi ?? 0) > 0);
 
     final result = await Get.bottomSheet<bool>(
-      Builder(builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final screenHeight = MediaQuery.of(context).size.height;
-        final bottomPadding = MediaQuery.of(context).padding.bottom;
+      Builder(
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final screenHeight = MediaQuery.of(context).size.height;
+          final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-        return Container(
-          constraints: BoxConstraints(maxHeight: screenHeight * 0.85),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 8),
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.borderDark : AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
+          return Container(
+            constraints: BoxConstraints(maxHeight: screenHeight * 0.85),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceDark : AppColors.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 8),
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.borderDark : AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
 
-              // Title row with close button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Điều chỉnh học tập',
-                        style: AppTypography.titleLarge.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Get.back(),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.surfaceVariantDark
-                              : AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          size: 20,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: Obx(() => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Title row with close button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
                     children: [
-                      // HSK Level Section
-                      Text(
-                        'Cấp độ HSK hiện tại',
-                        style: AppTypography.titleSmall.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
+                      Expanded(
+                        child: Text(
+                          'Điều chỉnh học tập',
+                          style: AppTypography.titleLarge.copyWith(
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [1, 2, 3, 4, 5, 6].map((level) {
-                          final isSelected = selectedLevel.value == 'HSK$level';
-                          return GestureDetector(
-                            onTap: () => selectedLevel.value = 'HSK$level',
-                            child: Container(
-                              width: 56,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : (isDark
-                                        ? AppColors.surfaceVariantDark
-                                        : AppColors.surfaceVariant),
-                                borderRadius: BorderRadius.circular(12),
-                                border: isSelected
-                                    ? null
-                                    : Border.all(
-                                        color: isDark
-                                            ? AppColors.borderDark
-                                            : AppColors.border,
-                                      ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'HSK$level',
-                                style: AppTypography.labelMedium.copyWith(
-                                  color: isSelected
-                                      ? AppColors.white
-                                      : (isDark
-                                          ? AppColors.textPrimaryDark
-                                          : AppColors.textPrimary),
-                                  fontWeight:
-                                      isSelected ? FontWeight.w600 : FontWeight.w500,
-                                ),
-                              ),
+                      GestureDetector(
+                        onTap: () => Get.back(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.surfaceVariantDark
+                                : AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: Obx(
+                      () => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // HSK Level Section
+                          Text(
+                            'Cấp độ HSK hiện tại',
+                            style: AppTypography.titleSmall.copyWith(
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
-                          );
-                        }).toList(),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Goal Type Section
-                      Text(
-                        'Mục tiêu học tập',
-                        style: AppTypography.titleSmall.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildGoalTypeOption(
-                        'hsk_exam',
-                        'Thi HSK',
-                        'Tập trung ôn thi, học theo cấu trúc HSK',
-                        Icons.school,
-                        selectedGoalType.value == 'hsk_exam',
-                        isDark,
-                        () => selectedGoalType.value = 'hsk_exam',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildGoalTypeOption(
-                        'conversation',
-                        'Giao tiếp',
-                        'Học hội thoại, nghe nói thực tế',
-                        Icons.chat_bubble_outline,
-                        selectedGoalType.value == 'conversation',
-                        isDark,
-                        () => selectedGoalType.value = 'conversation',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildGoalTypeOption(
-                        'both',
-                        'Cả hai',
-                        'Kết hợp thi cử và giao tiếp',
-                        Icons.auto_awesome,
-                        selectedGoalType.value == 'both',
-                        isDark,
-                        () => selectedGoalType.value = 'both',
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Daily Words Section (primary)
-                      Text(
-                        'Số từ mới mỗi ngày',
-                        style: AppTypography.titleSmall.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [5, 10, 20, 30].map((words) {
-                          final isSelected = selectedWords.value == words;
-                          return Expanded(
-                            child: GestureDetector(
-                              onTap: () => selectedWords.value = words,
-                              child: Container(
-                                margin: EdgeInsets.only(
-                                  right: words != 30 ? 8 : 0,
-                                ),
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : (isDark
-                                          ? AppColors.surfaceVariantDark
-                                          : AppColors.surfaceVariant),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: isSelected
-                                      ? null
-                                      : Border.all(
-                                          color: isDark
-                                              ? AppColors.borderDark
-                                              : AppColors.border,
-                                        ),
-                                ),
-                                alignment: Alignment.center,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '$words',
-                                      style: AppTypography.titleMedium.copyWith(
-                                        color: isSelected
-                                            ? AppColors.white
-                                            : (isDark
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [1, 2, 3, 4, 5, 6].map((level) {
+                              final isSelected =
+                                  selectedLevel.value == 'HSK$level';
+                              return GestureDetector(
+                                onTap: () => selectedLevel.value = 'HSK$level',
+                                child: Container(
+                                  width: 56,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : (isDark
+                                              ? AppColors.surfaceVariantDark
+                                              : AppColors.surfaceVariant),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: isSelected
+                                        ? null
+                                        : Border.all(
+                                            color: isDark
+                                                ? AppColors.borderDark
+                                                : AppColors.border,
+                                          ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'HSK$level',
+                                    style: AppTypography.labelMedium.copyWith(
+                                      color: isSelected
+                                          ? AppColors.white
+                                          : (isDark
                                                 ? AppColors.textPrimaryDark
                                                 : AppColors.textPrimary),
-                                        fontWeight: isSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.w500,
-                                      ),
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
                                     ),
-                                    Text(
-                                      'từ',
-                                      style: AppTypography.labelSmall.copyWith(
-                                        color: isSelected
-                                            ? AppColors.white.withAlpha(200)
-                                            : (isDark
-                                                ? AppColors.textTertiaryDark
-                                                : AppColors.textTertiary),
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
+                              );
+                            }).toList(),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Goal Type Section
+                          Text(
+                            'Mục tiêu học tập',
+                            style: AppTypography.titleSmall.copyWith(
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildGoalTypeOption(
+                            'hsk_exam',
+                            'Thi HSK',
+                            'Tập trung ôn thi, học theo cấu trúc HSK',
+                            Icons.school,
+                            selectedGoalType.value == 'hsk_exam',
+                            isDark,
+                            () => selectedGoalType.value = 'hsk_exam',
+                          ),
+                          const SizedBox(height: 8),
+                          _buildGoalTypeOption(
+                            'conversation',
+                            'Giao tiếp',
+                            'Học hội thoại, nghe nói thực tế',
+                            Icons.chat_bubble_outline,
+                            selectedGoalType.value == 'conversation',
+                            isDark,
+                            () => selectedGoalType.value = 'conversation',
+                          ),
+                          const SizedBox(height: 8),
+                          _buildGoalTypeOption(
+                            'both',
+                            'Cả hai',
+                            'Kết hợp thi cử và giao tiếp',
+                            Icons.auto_awesome,
+                            selectedGoalType.value == 'both',
+                            isDark,
+                            () => selectedGoalType.value = 'both',
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Daily Words Section (primary)
+                          Text(
+                            'Số từ mới mỗi ngày',
+                            style: AppTypography.titleSmall.copyWith(
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [5, 10, 20, 30].map((words) {
+                              final isSelected = selectedWords.value == words;
+                              return Expanded(
+                                child: GestureDetector(
+                                  onTap: () => selectedWords.value = words,
+                                  child: Container(
+                                    margin: EdgeInsets.only(
+                                      right: words != 30 ? 8 : 0,
+                                    ),
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : (isDark
+                                                ? AppColors.surfaceVariantDark
+                                                : AppColors.surfaceVariant),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: isSelected
+                                          ? null
+                                          : Border.all(
+                                              color: isDark
+                                                  ? AppColors.borderDark
+                                                  : AppColors.border,
+                                            ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '$words',
+                                          style: AppTypography.titleMedium
+                                              .copyWith(
+                                                color: isSelected
+                                                    ? AppColors.white
+                                                    : (isDark
+                                                          ? AppColors
+                                                                .textPrimaryDark
+                                                          : AppColors
+                                                                .textPrimary),
+                                                fontWeight: isSelected
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w500,
+                                              ),
+                                        ),
+                                        Text(
+                                          'từ',
+                                          style: AppTypography.labelSmall
+                                              .copyWith(
+                                                color: isSelected
+                                                    ? AppColors.white.withAlpha(
+                                                        200,
+                                                      )
+                                                    : (isDark
+                                                          ? AppColors
+                                                                .textTertiaryDark
+                                                          : AppColors
+                                                                .textTertiary),
+                                                fontSize: 10,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 8),
+                          // Show estimated time
+                          Obx(
+                            () => Text(
+                              _getWordsDescription(selectedWords.value),
+                              style: AppTypography.bodySmall.copyWith(
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondary,
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 8),
-                      // Show estimated time
-                      Obx(() => Text(
-                        _getWordsDescription(selectedWords.value),
-                        style: AppTypography.bodySmall.copyWith(
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondary,
-                        ),
-                      )),
+                          ),
 
-                      const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                      // Focus Skills Section
-                      Text(
-                        'Kỹ năng tập trung',
-                        style: AppTypography.titleSmall.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildSkillToggle(
-                              'Nghe',
-                              Icons.headphones,
-                              listeningEnabled.value,
-                              isDark,
-                              () => listeningEnabled.value = !listeningEnabled.value,
+                          // Focus Skills Section
+                          Text(
+                            'Kỹ năng tập trung',
+                            style: AppTypography.titleSmall.copyWith(
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildSkillToggle(
-                              'Chữ Hán',
-                              Icons.translate,
-                              hanziEnabled.value,
-                              isDark,
-                              () => hanziEnabled.value = !hanziEnabled.value,
-                            ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSkillToggle(
+                                  'Nghe',
+                                  Icons.headphones,
+                                  listeningEnabled.value,
+                                  isDark,
+                                  () => listeningEnabled.value =
+                                      !listeningEnabled.value,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildSkillToggle(
+                                  'Chữ Hán',
+                                  Icons.translate,
+                                  hanziEnabled.value,
+                                  isDark,
+                                  () =>
+                                      hanziEnabled.value = !hanziEnabled.value,
+                                ),
+                              ),
+                            ],
                           ),
+
+                          const SizedBox(height: 24),
                         ],
                       ),
+                    ),
+                  ),
+                ),
 
-                      const SizedBox(height: 24),
+                // Fixed bottom buttons
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPadding + 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: HMButton(
+                          text: S.cancel,
+                          variant: HMButtonVariant.outline,
+                          onPressed: () => Get.back(),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: HMButton(
+                          text: S.save,
+                          onPressed: () => Get.back(result: true),
+                        ),
+                      ),
                     ],
-                  )),
+                  ),
                 ),
-              ),
-
-              // Fixed bottom buttons
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPadding + 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: HMButton(
-                        text: S.cancel,
-                        variant: HMButtonVariant.outline,
-                        onPressed: () => Get.back(),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: HMButton(
-                        text: S.save,
-                        onPressed: () => Get.back(result: true),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
+              ],
+            ),
+          );
+        },
+      ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
@@ -557,7 +594,9 @@ class MeController extends GetxController {
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withAlpha(20)
-              : (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant),
+              : (isDark
+                    ? AppColors.surfaceVariantDark
+                    : AppColors.surfaceVariant),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
@@ -574,9 +613,7 @@ class MeController extends GetxController {
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary.withAlpha(30)
-                    : (isDark
-                        ? AppColors.surfaceDark
-                        : AppColors.surface),
+                    : (isDark ? AppColors.surfaceDark : AppColors.surface),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -584,8 +621,8 @@ class MeController extends GetxController {
                 color: isSelected
                     ? AppColors.primary
                     : (isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary),
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary),
                 size: 20,
               ),
             ),
@@ -616,11 +653,7 @@ class MeController extends GetxController {
               ),
             ),
             if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: AppColors.primary,
-                size: 24,
-              ),
+              Icon(Icons.check_circle, color: AppColors.primary, size: 24),
           ],
         ),
       ),
@@ -641,7 +674,9 @@ class MeController extends GetxController {
         decoration: BoxDecoration(
           color: isEnabled
               ? AppColors.primary.withAlpha(20)
-              : (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant),
+              : (isDark
+                    ? AppColors.surfaceVariantDark
+                    : AppColors.surfaceVariant),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isEnabled
@@ -658,8 +693,8 @@ class MeController extends GetxController {
               color: isEnabled
                   ? AppColors.primary
                   : (isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary),
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary),
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -669,8 +704,8 @@ class MeController extends GetxController {
                 color: isEnabled
                     ? AppColors.primary
                     : (isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimary),
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary),
                 fontWeight: isEnabled ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
@@ -730,126 +765,130 @@ class MeController extends GetxController {
   Future<void> adjustDailyWordCount() async {
     final currentGoal = dailyGoalTarget;
     final RxInt selectedGoal = RxInt(currentGoal);
-    
+
     // Get limits based on premium status
-    final maxWords = isPremium 
-        ? AppLimits.premiumDailyNewWords.clamp(5, 100) 
+    final maxWords = isPremium
+        ? AppLimits.premiumDailyNewWords.clamp(5, 100)
         : AppLimits.freeDailyNewWords;
     final divisions = ((maxWords - 5) / 5).round();
 
     final result = await Get.bottomSheet<int>(
-      Builder(builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final bottomPadding = MediaQuery.of(context).padding.bottom;
+      Builder(
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 8),
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.borderDark : AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
+          return Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceDark : AppColors.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 8),
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.borderDark : AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
 
-              // Title row with close button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Điều chỉnh mục tiêu từ',
-                        style: AppTypography.titleLarge.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
+                // Title row with close button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Điều chỉnh mục tiêu từ',
+                          style: AppTypography.titleLarge.copyWith(
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Get.back(),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.surfaceVariantDark
-                              : AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          size: 20,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Content
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Số từ mới học mỗi ngày',
-                          style: AppTypography.bodyMedium.copyWith(
+                      GestureDetector(
+                        onTap: () => Get.back(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.surfaceVariantDark
+                                : AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            size: 20,
                             color: isDark
                                 ? AppColors.textSecondaryDark
                                 : AppColors.textSecondary,
                           ),
                         ),
-                        const Spacer(),
-                        // Show tier badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isPremium 
-                                ? AppColors.secondary.withAlpha(20)
-                                : AppColors.primary.withAlpha(15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            isPremium ? '⭐ Premium' : 'Free',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: isPremium 
-                                  ? AppColors.secondary 
-                                  : AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Số từ mới học mỗi ngày',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const Spacer(),
+                          // Show tier badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isPremium
+                                  ? AppColors.secondary.withAlpha(20)
+                                  : AppColors.primary.withAlpha(15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              isPremium ? '⭐ Premium' : 'Free',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: isPremium
+                                    ? AppColors.secondary
+                                    : AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Goal selector with Obx
-                    Obx(() => Column(
+                      // Goal selector with Obx
+                      Obx(
+                        () => Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             // Display current selection
@@ -859,16 +898,15 @@ class MeController extends GetxController {
                                   children: [
                                     TextSpan(
                                       text: '${selectedGoal.value}',
-                                      style:
-                                          AppTypography.displaySmall.copyWith(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: AppTypography.displaySmall
+                                          .copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                     TextSpan(
                                       text: ' ${S.words}/ngày',
-                                      style:
-                                          AppTypography.titleMedium.copyWith(
+                                      style: AppTypography.titleMedium.copyWith(
                                         color: isDark
                                             ? AppColors.textSecondaryDark
                                             : AppColors.textSecondary,
@@ -888,15 +926,17 @@ class MeController extends GetxController {
                                     ? AppColors.surfaceVariantDark
                                     : AppColors.surfaceVariant,
                                 thumbColor: AppColors.primary,
-                                overlayColor:
-                                    AppColors.primary.withAlpha(25),
+                                overlayColor: AppColors.primary.withAlpha(25),
                                 trackHeight: 6,
                                 thumbShape: const RoundSliderThumbShape(
                                   enabledThumbRadius: 12,
                                 ),
                               ),
                               child: Slider(
-                                value: selectedGoal.value.toDouble().clamp(5, maxWords.toDouble()),
+                                value: selectedGoal.value.toDouble().clamp(
+                                  5,
+                                  maxWords.toDouble(),
+                                ),
                                 min: 5,
                                 max: maxWords.toDouble(),
                                 divisions: divisions,
@@ -908,8 +948,7 @@ class MeController extends GetxController {
 
                             // Labels
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   '5 ${S.words}',
@@ -929,7 +968,7 @@ class MeController extends GetxController {
                                 ),
                               ],
                             ),
-                            
+
                             // Upgrade hint for free users
                             if (!isPremium) ...[
                               const SizedBox(height: 16),
@@ -955,10 +994,11 @@ class MeController extends GetxController {
                                       Expanded(
                                         child: Text(
                                           'Nâng cấp Premium để học không giới hạn',
-                                          style: AppTypography.bodySmall.copyWith(
-                                            color: AppColors.secondary,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                          style: AppTypography.bodySmall
+                                              .copyWith(
+                                                color: AppColors.secondary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
                                         ),
                                       ),
                                       Icon(
@@ -972,37 +1012,39 @@ class MeController extends GetxController {
                               ),
                             ],
                           ],
-                        )),
-                  ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Fixed bottom buttons
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 24, 20, bottomPadding + 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: HMButton(
-                        text: S.cancel,
-                        variant: HMButtonVariant.outline,
-                        onPressed: () => Get.back(),
+                // Fixed bottom buttons
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 24, 20, bottomPadding + 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: HMButton(
+                          text: S.cancel,
+                          variant: HMButtonVariant.outline,
+                          onPressed: () => Get.back(),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: HMButton(
-                        text: S.save,
-                        onPressed: () => Get.back(result: selectedGoal.value),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: HMButton(
+                          text: S.save,
+                          onPressed: () => Get.back(result: selectedGoal.value),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      }),
+              ],
+            ),
+          );
+        },
+      ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
@@ -1011,7 +1053,7 @@ class MeController extends GetxController {
       isUpdatingGoal.value = true;
       // Optimistically update local override for immediate UI feedback
       _localDailyGoalOverride.value = result;
-      
+
       try {
         await _meRepo.updateProfile({'dailyNewLimit': result});
         // Sync both user profile AND today data to update UI
@@ -1051,7 +1093,7 @@ class MeController extends GetxController {
   }
 
   // ===== HELPER METHODS =====
-  
+
   /// Convert words to minutes (words is primary)
   int _wordsToMinutes(int words) {
     switch (words) {
@@ -1067,7 +1109,7 @@ class MeController extends GetxController {
         return 15;
     }
   }
-  
+
   /// Convert minutes to words (for backward compatibility)
   int _minutesToWords(int minutes) {
     switch (minutes) {
@@ -1083,7 +1125,7 @@ class MeController extends GetxController {
         return 10;
     }
   }
-  
+
   /// Get description for word count
   String _getWordsDescription(int words) {
     switch (words) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
@@ -14,46 +15,31 @@ import 'learn_controller.dart';
 class LearnScreen extends GetView<LearnController> {
   const LearnScreen({super.key});
 
-  // Tutorial keys
-  static final GlobalKey quickReviewKey = GlobalKey();
-  static final GlobalKey studyModesKey = GlobalKey();
-  static final GlobalKey comprehensiveKey = GlobalKey();
-  
-  // Flag to prevent multiple registrations
-  static bool _keysRegistered = false;
-
-  void _registerTutorialKeys() {
-    if (_keysRegistered) return;
-    _keysRegistered = true;
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Get.isRegistered<TutorialService>()) {
-        final tutorialService = Get.find<TutorialService>();
-        tutorialService.registerKey('learn_quick_review', quickReviewKey);
-        tutorialService.registerKey('study_modes_grid', studyModesKey);
-        tutorialService.registerKey('learn_comprehensive', comprehensiveKey);
-      }
-    });
-  }
+  // Get registered keys from TutorialService
+  GlobalKey get _quickReviewKey =>
+      Get.find<TutorialService>().registerKey('learn_quick_review');
+  GlobalKey get _studyModesKey =>
+      Get.find<TutorialService>().registerKey('learn_study_modes');
+  GlobalKey get _comprehensiveKey =>
+      Get.find<TutorialService>().registerKey('learn_comprehensive');
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Register tutorial keys
-    _registerTutorialKeys();
 
     return AppScaffold(
       body: SafeArea(
         bottom: false,
         child: Obx(() {
           // Loading state
-          if (controller.isLoading.value && controller.studyModesData.value == null) {
+          if (controller.isLoading.value &&
+              controller.studyModesData.value == null) {
             return _buildLoadingState(isDark);
           }
 
           // Error state
-          if (controller.errorMessage.value.isNotEmpty && controller.studyModesData.value == null) {
+          if (controller.errorMessage.value.isNotEmpty &&
+              controller.studyModesData.value == null) {
             return _buildErrorState(isDark);
           }
 
@@ -74,26 +60,47 @@ class LearnScreen extends GetView<LearnController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
-                          
+
                           // ===== ÔN TẬP NHANH =====
-                          KeyedSubtree(
-                            key: quickReviewKey,
+                          Showcase(
+                            key: _quickReviewKey,
+                            title: 'Ôn tập nhanh',
+                            description:
+                                'Xem nhanh các từ cần ôn hôm nay và bắt đầu ôn ngay!',
+                            overlayOpacity: 0.7,
+                            targetShapeBorder: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                             child: _buildQuickReviewBanner(isDark),
                           ),
 
                           const SizedBox(height: 12),
 
                           // ===== CHẾ ĐỘ HỌC - GRID 2x2 =====
-                          KeyedSubtree(
-                            key: studyModesKey,
+                          Showcase(
+                            key: _studyModesKey,
+                            title: 'Chế độ học',
+                            description:
+                                'Chọn chế độ học phù hợp: Flashcard, Trắc nghiệm, Viết, Nghe.',
+                            overlayOpacity: 0.7,
+                            targetShapeBorder: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                             child: _buildModeGrid(isDark, constraints),
                           ),
 
                           const SizedBox(height: 12),
 
                           // ===== ÔN TẬP TỔNG HỢP =====
-                          KeyedSubtree(
-                            key: comprehensiveKey,
+                          Showcase(
+                            key: _comprehensiveKey,
+                            title: 'Ôn tập tổng hợp',
+                            description:
+                                'Kết hợp tất cả các chế độ để ôn tập toàn diện.',
+                            overlayOpacity: 0.7,
+                            targetShapeBorder: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                             child: _buildComprehensiveCard(isDark),
                           ),
 
@@ -124,34 +131,66 @@ class LearnScreen extends GetView<LearnController> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               HMSkeleton(width: 150, height: 14),
-              HMSkeleton(width: 60, height: 36, borderRadius: BorderRadius.circular(20)),
+              HMSkeleton(
+                width: 60,
+                height: 36,
+                borderRadius: BorderRadius.circular(20),
+              ),
             ],
           ),
           const SizedBox(height: 6),
           HMSkeleton(width: 180, height: 28),
           const SizedBox(height: 24),
           // Quick review skeleton
-          HMSkeleton(width: double.infinity, height: 72, borderRadius: BorderRadius.circular(20)),
+          HMSkeleton(
+            width: double.infinity,
+            height: 72,
+            borderRadius: BorderRadius.circular(20),
+          ),
           const SizedBox(height: 16),
           // Grid skeleton
           Row(
             children: [
-              Expanded(child: HMSkeleton(height: 160, borderRadius: BorderRadius.circular(20))),
+              Expanded(
+                child: HMSkeleton(
+                  height: 160,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: HMSkeleton(height: 160, borderRadius: BorderRadius.circular(20))),
+              Expanded(
+                child: HMSkeleton(
+                  height: 160,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: HMSkeleton(height: 160, borderRadius: BorderRadius.circular(20))),
+              Expanded(
+                child: HMSkeleton(
+                  height: 160,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: HMSkeleton(height: 160, borderRadius: BorderRadius.circular(20))),
+              Expanded(
+                child: HMSkeleton(
+                  height: 160,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           // Comprehensive skeleton
-          HMSkeleton(width: double.infinity, height: 140, borderRadius: BorderRadius.circular(24)),
+          HMSkeleton(
+            width: double.infinity,
+            height: 140,
+            borderRadius: BorderRadius.circular(24),
+          ),
         ],
       ),
     );
@@ -167,13 +206,17 @@ class LearnScreen extends GetView<LearnController> {
             Icon(
               CupertinoIcons.exclamationmark_triangle,
               size: 64,
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
             const SizedBox(height: 16),
             Text(
               controller.errorMessage.value,
               style: AppTypography.bodyLarge.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -181,7 +224,11 @@ class LearnScreen extends GetView<LearnController> {
             HMButton(
               text: 'Thử lại',
               onPressed: controller.refresh,
-              icon: const Icon(CupertinoIcons.refresh, size: 18, color: Colors.white),
+              icon: const Icon(
+                CupertinoIcons.refresh,
+                size: 18,
+                color: Colors.white,
+              ),
               fullWidth: false,
             ),
           ],
@@ -277,11 +324,7 @@ class LearnScreen extends GetView<LearnController> {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
-                  Icons.bolt,
-                  color: AppColors.white,
-                  size: 24,
-                ),
+                child: const Icon(Icons.bolt, color: AppColors.white, size: 24),
               ),
               const SizedBox(width: 14),
               // Text content
@@ -300,10 +343,14 @@ class LearnScreen extends GetView<LearnController> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (quickReview != null && quickReview.wordCount > 0) ...[
+                        if (quickReview != null &&
+                            quickReview.wordCount > 0) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
@@ -350,15 +397,19 @@ class LearnScreen extends GetView<LearnController> {
                   decoration: BoxDecoration(
                     color: isAvailable
                         ? (isDark
-                            ? AppColors.textPrimaryDark.withValues(alpha: 0.1)
-                            : AppColors.textPrimary.withValues(alpha: 0.08))
+                              ? AppColors.textPrimaryDark.withValues(alpha: 0.1)
+                              : AppColors.textPrimary.withValues(alpha: 0.08))
                         : Colors.transparent,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    isAvailable ? Icons.play_arrow_rounded : Icons.check_circle_outline,
+                    isAvailable
+                        ? Icons.play_arrow_rounded
+                        : Icons.check_circle_outline,
                     color: isAvailable
-                        ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary)
+                        ? (isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary)
                         : AppColors.success,
                     size: 22,
                   ),
@@ -546,7 +597,9 @@ class LearnScreen extends GetView<LearnController> {
       final isLoading = controller.isLoadingWords.value;
 
       return GestureDetector(
-        onTap: isLoading ? null : () => controller.startMode(LearnMode.comprehensive),
+        onTap: isLoading
+            ? null
+            : () => controller.startMode(LearnMode.comprehensive),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -556,17 +609,15 @@ class LearnScreen extends GetView<LearnController> {
               end: Alignment.bottomRight,
               colors: isLocked
                   ? (isDark
-                      ? [const Color(0xFF1E1B3A), const Color(0xFF1A1730)]
-                      : [const Color(0xFFF0F0F5), const Color(0xFFE8E8F0)])
+                        ? [const Color(0xFF1E1B3A), const Color(0xFF1A1730)]
+                        : [const Color(0xFFF0F0F5), const Color(0xFFE8E8F0)])
                   : (isDark
-                      ? [const Color(0xFF2D2B55), const Color(0xFF1E1B3A)]
-                      : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
+                        ? [const Color(0xFF2D2B55), const Color(0xFF1E1B3A)]
+                        : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
             ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isDark
-                  ? const Color(0xFF3D3A6D)
-                  : const Color(0xFFDDD6FE),
+              color: isDark ? const Color(0xFF3D3A6D) : const Color(0xFFDDD6FE),
             ),
           ),
           child: Row(
@@ -583,8 +634,12 @@ class LearnScreen extends GetView<LearnController> {
                             mode?.name ?? 'Ôn tập tổng hợp',
                             style: AppTypography.titleMedium.copyWith(
                               color: isLocked
-                                  ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
-                                  : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+                                  ? (isDark
+                                        ? AppColors.textTertiaryDark
+                                        : AppColors.textTertiary)
+                                  : (isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary),
                               fontWeight: FontWeight.bold,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -593,7 +648,10 @@ class LearnScreen extends GetView<LearnController> {
                         if (isPremium) ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -603,7 +661,11 @@ class LearnScreen extends GetView<LearnController> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.star, color: Colors.white, size: 10),
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.white,
+                                  size: 10,
+                                ),
                                 const SizedBox(width: 3),
                                 Text(
                                   'PRO',
@@ -685,7 +747,9 @@ class LearnScreen extends GetView<LearnController> {
                               Text(
                                 'Mở khóa',
                                 style: AppTypography.labelLarge.copyWith(
-                                  color: AppColors.primary.withValues(alpha: 0.7),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.7,
+                                  ),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -726,7 +790,9 @@ class LearnScreen extends GetView<LearnController> {
                       ? null
                       : [
                           BoxShadow(
-                            color: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                            color: const Color(
+                              0xFF6366F1,
+                            ).withValues(alpha: 0.4),
                             blurRadius: 16,
                             offset: const Offset(0, 8),
                           ),
@@ -802,11 +868,17 @@ class _DynamicModeCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isLocked
                         ? Colors.grey.shade300
-                        : (isDark ? colors.iconColor.withValues(alpha: 0.15) : colors.bgColor),
+                        : (isDark
+                              ? colors.iconColor.withValues(alpha: 0.15)
+                              : colors.bgColor),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Center(
-                    child: _buildModeIcon(mode.id, mode.icon, isLocked ? Colors.grey : colors.iconColor),
+                    child: _buildModeIcon(
+                      mode.id,
+                      mode.icon,
+                      isLocked ? Colors.grey : colors.iconColor,
+                    ),
                   ),
                 ),
                 // Duration badge
@@ -839,8 +911,12 @@ class _DynamicModeCard extends StatelessWidget {
               _getDisplayName(mode.id),
               style: AppTypography.titleMedium.copyWith(
                 color: isLocked
-                    ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
-                    : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+                    ? (isDark
+                          ? AppColors.textTertiaryDark
+                          : AppColors.textTertiary)
+                    : (isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary),
                 fontWeight: FontWeight.bold,
               ),
               maxLines: 1,
@@ -859,7 +935,9 @@ class _DynamicModeCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             // Pending count or locked indicator
-            if (mode.id == 'srs_vocabulary' && mode.wordCount > 0 && !isLocked) ...[
+            if (mode.id == 'srs_vocabulary' &&
+                mode.wordCount > 0 &&
+                !isLocked) ...[
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -893,14 +971,18 @@ class _DynamicModeCard extends StatelessWidget {
                   Icon(
                     CupertinoIcons.lock_fill,
                     size: 12,
-                    color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                    color: isDark
+                        ? AppColors.textTertiaryDark
+                        : AppColors.textTertiary,
                   ),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
                       'Premium',
                       style: AppTypography.labelSmall.copyWith(
-                        color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                        color: isDark
+                            ? AppColors.textTertiaryDark
+                            : AppColors.textTertiary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1072,7 +1154,9 @@ class _ModeCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: isDark ? iconColor.withValues(alpha: 0.15) : iconBgColor,
+                    color: isDark
+                        ? iconColor.withValues(alpha: 0.15)
+                        : iconBgColor,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(icon, color: iconColor, size: 24),
@@ -1106,7 +1190,9 @@ class _ModeCard extends StatelessWidget {
             Text(
               title,
               style: AppTypography.titleMedium.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
               maxLines: 1,

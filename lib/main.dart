@@ -51,7 +51,7 @@ void main() async {
 
   // Initialize storage
   await StorageService.init();
-  
+
   // Initialize date formatting for Vietnamese locale
   await initializeDateFormatting('vi', null);
 
@@ -96,16 +96,25 @@ Future<void> _initDependencies() async {
   Get.put(RealtimeSyncService());
   Get.put(TodayStore());
   Get.put(StudyModesStore());
-  
+
   // Tutorial service
   Get.put(TutorialService());
-  
+
   // Deep Link Service (must be after AuthSessionService)
   await Get.putAsync<DeepLinkService>(() => DeepLinkService().init());
 }
 
 class HanLyApp extends StatelessWidget {
   const HanLyApp({super.key});
+
+  ThemeMode _getThemeMode() {
+    try {
+      final mode = Get.find<StorageService>().themeMode;
+      if (mode == 'light') return ThemeMode.light;
+      if (mode == 'dark') return ThemeMode.dark;
+    } catch (_) {}
+    return ThemeMode.system;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +123,7 @@ class HanLyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: _getThemeMode(),
       initialRoute: AppPages.initial,
       getPages: AppPages.routes,
       defaultTransition: Transition.cupertino,

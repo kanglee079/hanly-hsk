@@ -1,14 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/widgets.dart';
+import '../../services/tutorial_service.dart';
 import 'hsk_exam_controller.dart';
 
 /// HSK Exam Prep main screen - Professional & Clean design
 class HskExamScreen extends GetView<HskExamController> {
   const HskExamScreen({super.key});
+
+  // Get registered keys from TutorialService
+  GlobalKey get _statsKey =>
+      Get.find<TutorialService>().registerKey('hsk_stats');
+  GlobalKey get _levelSelectKey =>
+      Get.find<TutorialService>().registerKey('hsk_level_select');
+  GlobalKey get _practiceKey =>
+      Get.find<TutorialService>().registerKey('hsk_practice');
+  GlobalKey get _skillPracticeKey =>
+      Get.find<TutorialService>().registerKey('hsk_skill_practice');
+  GlobalKey get _historyKey =>
+      Get.find<TutorialService>().registerKey('hsk_history');
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +39,7 @@ class HskExamScreen extends GetView<HskExamController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header - clean and minimal like other tabs
+                // Header
                 _buildHeader(isDark),
 
                 Padding(
@@ -35,23 +49,63 @@ class HskExamScreen extends GetView<HskExamController> {
                     children: [
                       const SizedBox(height: 8),
 
-                      // Stats overview - compact style
-                      Obx(() => _buildStatsRow(isDark)),
+                      // Stats overview
+                      Showcase(
+                        key: _statsKey,
+                        title: 'Thống kê thi HSK',
+                        description:
+                            'Xem số đề đã làm, điểm trung bình và tì lệ đậu.',
+                        overlayOpacity: 0.7,
+                        targetShapeBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Obx(() => _buildStatsRow(isDark)),
+                      ),
 
                       const SizedBox(height: 20),
 
                       // Level selector
-                      _buildLevelSelector(isDark),
+                      Showcase(
+                        key: _levelSelectKey,
+                        title: 'Chọn cấp độ',
+                        description:
+                            'Chọn cấp HSK bạn muốn thi thử từ HSK1 đến HSK6.',
+                        overlayOpacity: 0.7,
+                        targetShapeBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: _buildLevelSelector(isDark),
+                      ),
 
                       const SizedBox(height: 20),
 
                       // Mock tests section
-                      _buildMockTestsSection(isDark),
+                      Showcase(
+                        key: _practiceKey,
+                        title: 'Làm bài thi thử',
+                        description:
+                            'Đề thi mô phỏng thật với các dạng câu hỏi chuẩn HSK.',
+                        overlayOpacity: 0.7,
+                        targetShapeBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: _buildMockTestsSection(isDark),
+                      ),
 
                       const SizedBox(height: 20),
 
                       // Practice section
-                      _buildPracticeSection(isDark),
+                      Showcase(
+                        key: _skillPracticeKey,
+                        title: 'Luyện kỹ năng',
+                        description:
+                            'Luyện từng kỹ năng riêng: Nghe, Đọc, Viết.',
+                        overlayOpacity: 0.7,
+                        targetShapeBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: _buildPracticeSection(isDark),
+                      ),
 
                       const SizedBox(height: 20),
 
@@ -83,7 +137,9 @@ class HskExamScreen extends GetView<HskExamController> {
               Text(
                 'Ôn thi HSK',
                 style: AppTypography.headlineSmall.copyWith(
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -91,25 +147,44 @@ class HskExamScreen extends GetView<HskExamController> {
               Text(
                 'Luyện đề & chuẩn bị kỳ thi',
                 style: AppTypography.bodySmall.copyWith(
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
                 ),
               ),
             ],
           ),
-          // History button - minimal style
-          GestureDetector(
-            onTap: controller.viewHistory,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Lịch sử',
-                style: AppTypography.labelMedium.copyWith(
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-                  fontWeight: FontWeight.w500,
+          // History button
+          Showcase(
+            key: _historyKey,
+            title: 'Lịch sử thi',
+            description:
+                'Xem lại các bài thi đã làm và phân tích điểm mạnh/yếu.',
+            overlayOpacity: 0.7,
+            targetShapeBorder: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: GestureDetector(
+              onTap: controller.viewHistory,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.surfaceVariantDark
+                      : AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Lịch sử',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -168,7 +243,9 @@ class HskExamScreen extends GetView<HskExamController> {
             style: AppTypography.titleMedium.copyWith(
               color: isHighlight
                   ? AppColors.primary
-                  : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+                  : (isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -176,7 +253,9 @@ class HskExamScreen extends GetView<HskExamController> {
           Text(
             label,
             style: AppTypography.labelSmall.copyWith(
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
           ),
         ],
@@ -232,7 +311,9 @@ class HskExamScreen extends GetView<HskExamController> {
           decoration: BoxDecoration(
             color: isSelected
                 ? AppColors.primary
-                : (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant),
+                : (isDark
+                      ? AppColors.surfaceVariantDark
+                      : AppColors.surfaceVariant),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -240,7 +321,9 @@ class HskExamScreen extends GetView<HskExamController> {
             style: AppTypography.labelMedium.copyWith(
               color: isSelected
                   ? Colors.white
-                  : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+                  : (isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
@@ -260,7 +343,9 @@ class HskExamScreen extends GetView<HskExamController> {
             Text(
               'Đề thi thử',
               style: AppTypography.titleSmall.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -351,7 +436,9 @@ class HskExamScreen extends GetView<HskExamController> {
     final isLocked = isPremium && !controller.isPremium;
 
     return HMCard(
-      onTap: isLocked ? controller.showPremiumUpgrade : () => controller.startMockTest(testId),
+      onTap: isLocked
+          ? controller.showPremiumUpgrade
+          : () => controller.startMockTest(testId),
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
@@ -393,7 +480,9 @@ class HskExamScreen extends GetView<HskExamController> {
                       child: Text(
                         title,
                         style: AppTypography.titleSmall.copyWith(
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
@@ -403,7 +492,10 @@ class HskExamScreen extends GetView<HskExamController> {
                     if (isPremium)
                       Container(
                         margin: const EdgeInsets.only(left: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -425,7 +517,9 @@ class HskExamScreen extends GetView<HskExamController> {
                 Text(
                   '$questions câu • $duration phút${bestScore != null ? ' • Cao nhất: $bestScore%' : ''}',
                   style: AppTypography.bodySmall.copyWith(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -440,7 +534,9 @@ class HskExamScreen extends GetView<HskExamController> {
             size: 20,
             color: isLocked
                 ? AppColors.warning
-                : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary),
+                : (isDark
+                      ? AppColors.textTertiaryDark
+                      : AppColors.textTertiary),
           ),
         ],
       ),
@@ -527,10 +623,7 @@ class HskExamScreen extends GetView<HskExamController> {
               child: Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
             ),
           ),
@@ -546,7 +639,9 @@ class HskExamScreen extends GetView<HskExamController> {
           Text(
             subtitle,
             style: AppTypography.bodySmall.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
           ),
         ],
@@ -601,7 +696,9 @@ class HskExamScreen extends GetView<HskExamController> {
             child: Text(
               text,
               style: AppTypography.bodySmall.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
                 height: 1.4,
               ),
             ),

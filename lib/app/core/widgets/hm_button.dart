@@ -5,6 +5,7 @@ import '../theme/app_typography.dart';
 import '../theme/app_shadows.dart';
 
 enum HMButtonVariant { primary, secondary, outline, text, danger }
+
 enum HMButtonSize { small, medium, large }
 
 /// Reusable button with variants
@@ -47,16 +48,18 @@ class HMButton extends StatelessWidget {
                 boxShadow: AppShadows.button,
               )
             : null,
-        child: SizedBox(
-          width: fullWidth ? double.infinity : null,
-          height: _getHeight(),
-          child: fullWidth
-              ? _buildButton(context, isDark, enabled)
-              : ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 0),
+        child: fullWidth
+            ? SizedBox(
+                width: double.infinity,
+                height: _getHeight(),
+                child: _buildButton(context, isDark, enabled),
+              )
+            : IntrinsicWidth(
+                child: SizedBox(
+                  height: _getHeight(),
                   child: _buildButton(context, isDark, enabled),
                 ),
-        ),
+              ),
       ),
     );
   }
@@ -155,19 +158,25 @@ class HMButton extends StatelessWidget {
 
     switch (variant) {
       case HMButtonVariant.primary:
-        bgColor = enabled ? AppColors.primary : AppColors.primary.withAlpha(180);
+        bgColor = enabled
+            ? AppColors.primary
+            : AppColors.primary.withAlpha(180);
         fgColor = AppColors.textOnPrimary;
         break;
       case HMButtonVariant.secondary:
-        bgColor = isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant;
+        bgColor = isDark
+            ? AppColors.surfaceVariantDark
+            : AppColors.surfaceVariant;
         fgColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
         break;
       case HMButtonVariant.outline:
         bgColor = Colors.transparent;
-        fgColor = enabled ? AppColors.primary : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary);
+        fgColor = enabled
+            ? AppColors.primary
+            : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary);
         border = BorderSide(
-          color: enabled 
-              ? AppColors.primary 
+          color: enabled
+              ? AppColors.primary
               : (isDark ? AppColors.borderDark : AppColors.border),
           width: 1.5,
         );

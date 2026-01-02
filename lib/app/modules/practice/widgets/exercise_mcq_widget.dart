@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/hm_button.dart';
 import '../../../data/models/exercise_model.dart';
 
 /// Capitalize first letter
@@ -11,8 +12,8 @@ String _capitalize(String text) {
   return text[0].toUpperCase() + text.substring(1);
 }
 
-/// Multiple choice question widget
-class ExerciseMCQWidget extends StatelessWidget {
+/// Multiple choice question widget with inline feedback and smooth animations
+class ExerciseMCQWidget extends StatefulWidget {
   final Exercise exercise;
   final bool isDark;
   final int selectedAnswer;
@@ -20,6 +21,7 @@ class ExerciseMCQWidget extends StatelessWidget {
   final bool isCorrect;
   final Function(int) onSelectAnswer;
   final VoidCallback? onPlayAudio;
+  final VoidCallback onContinue;
 
   const ExerciseMCQWidget({
     super.key,
@@ -30,27 +32,160 @@ class ExerciseMCQWidget extends StatelessWidget {
     required this.isCorrect,
     required this.onSelectAnswer,
     this.onPlayAudio,
+    required this.onContinue,
   });
+
+  @override
+  State<ExerciseMCQWidget> createState() => _ExerciseMCQWidgetState();
+}
+
+class _ExerciseMCQWidgetState extends State<ExerciseMCQWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _entryController;
+  late List<Animation<double>> _optionAnimations;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    // Create staggered animations for each option
+    final optionCount = widget.exercise.options.length;
+    _optionAnimations = List.generate(optionCount, (index) {
+      final start = index * 0.15;
+      final end = start + 0.4;
+      return CurvedAnimation(
+        parent: _entryController,
+        curve: Interval(
+          start.clamp(0.0, 1.0),
+          end.clamp(0.0, 1.0),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    });
+
+    // Start entry animation
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: AppSpacing.screenPadding,
+      child: Column(
+        children: [
+          // Main content area (question + options) - takes all available space
+          Expanded(
+            child: Padding(
+              padding: AppSpacing.screenPadding,
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+
+                  // Question (compact)
+                  _buildQuestion(),
+
+                  const SizedBox(height: 16),
+
+                  // Options - uses Flexible to scale to available space
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final optionCount = widget.exercise.options.length;
+                        // Calculate max height per option based on available space
+                        final availableHeight = constraints.maxHeight;
+                        final maxOptionHeight =
+                            (availableHeight / optionCount) - 8;
+
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: _buildOptions(
+                            maxOptionHeight.clamp(50.0, 70.0),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom section - ANIMATED: 0 height before answer, expands after
+          _buildBottomSection(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomSection() {
+    // Only render content when answered to avoid layout issues during animation
+    if (!widget.hasAnswered) {
+      return const SizedBox.shrink();
+    }
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        padding: AppSpacing.screenPadding.copyWith(top: 12, bottom: 16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 24),
-            
-            // Question
-            _buildQuestion(),
-            
-            const SizedBox(height: 40),
-            
-            // Options
-            ..._buildOptions(),
-            
-            const SizedBox(height: 32),
+            // Inline feedback message
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  widget.isCorrect
+                      ? Icons.check_circle_rounded
+                      : Icons.cancel_rounded,
+                  color: widget.isCorrect ? AppColors.success : AppColors.error,
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.isCorrect ? 'Chính xác!' : 'Chưa đúng',
+                  style: AppTypography.titleSmall.copyWith(
+                    color: widget.isCorrect
+                        ? AppColors.success
+                        : AppColors.error,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Continue button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: HMButton(
+                text: 'Tiếp tục',
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  widget.onContinue();
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -58,7 +193,7 @@ class ExerciseMCQWidget extends StatelessWidget {
   }
 
   Widget _buildQuestion() {
-    switch (exercise.type) {
+    switch (widget.exercise.type) {
       case ExerciseType.hanziToMeaning:
       case ExerciseType.hanziToPinyin:
         return _buildHanziQuestion();
@@ -76,37 +211,44 @@ class ExerciseMCQWidget extends StatelessWidget {
       children: [
         // Hanzi
         Text(
-          exercise.questionHanzi ?? '',
+          widget.exercise.questionHanzi ?? '',
           style: AppTypography.hanziLarge.copyWith(
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            color: widget.isDark
+                ? AppColors.textPrimaryDark
+                : AppColors.textPrimary,
           ),
         ),
-        
+
         // Pinyin (optional hint)
-        if (exercise.type == ExerciseType.hanziToMeaning && 
-            exercise.questionPinyin != null) ...[
+        if (widget.exercise.type == ExerciseType.hanziToMeaning &&
+            widget.exercise.questionPinyin != null) ...[
           const SizedBox(height: 8),
           Text(
-            exercise.questionPinyin!,
+            widget.exercise.questionPinyin!,
             style: AppTypography.pinyin.copyWith(
               fontSize: 18,
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: widget.isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
           ),
         ],
-        
+
         // Audio button
-        if (exercise.questionAudioUrl != null && onPlayAudio != null) ...[
+        if (widget.exercise.questionAudioUrl != null &&
+            widget.onPlayAudio != null) ...[
           const SizedBox(height: 16),
           _buildAudioButton(),
         ],
-        
+
         // Question text
         const SizedBox(height: 24),
         Text(
           _getQuestionText(),
           style: AppTypography.bodyLarge.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: widget.isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
       ],
@@ -120,23 +262,29 @@ class ExerciseMCQWidget extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+            color: widget.isDark
+                ? AppColors.surfaceVariantDark
+                : AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
-            _capitalize(exercise.questionMeaning ?? ''),
+            _capitalize(widget.exercise.questionMeaning ?? ''),
             style: AppTypography.headlineMedium.copyWith(
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              color: widget.isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
         ),
-        
+
         const SizedBox(height: 24),
         Text(
           'Chọn chữ Hán đúng:',
           style: AppTypography.bodyLarge.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: widget.isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
       ],
@@ -150,37 +298,45 @@ class ExerciseMCQWidget extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+            color: widget.isDark
+                ? AppColors.surfaceVariantDark
+                : AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
-            exercise.questionSentence ?? '',
+            widget.exercise.questionSentence ?? '',
             style: AppTypography.titleLarge.copyWith(
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              color: widget.isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimary,
               height: 1.5,
             ),
             textAlign: TextAlign.center,
           ),
         ),
-        
+
         // Translation
-        if (exercise.questionMeaning != null) ...[
+        if (widget.exercise.questionMeaning != null) ...[
           const SizedBox(height: 12),
           Text(
-            _capitalize(exercise.questionMeaning!),
+            _capitalize(widget.exercise.questionMeaning!),
             style: AppTypography.bodyMedium.copyWith(
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: widget.isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
               fontStyle: FontStyle.italic,
             ),
             textAlign: TextAlign.center,
           ),
         ],
-        
+
         const SizedBox(height: 24),
         Text(
           'Điền từ phù hợp:',
           style: AppTypography.bodyLarge.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: widget.isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
       ],
@@ -189,7 +345,7 @@ class ExerciseMCQWidget extends StatelessWidget {
 
   Widget _buildAudioButton() {
     return GestureDetector(
-      onTap: onPlayAudio,
+      onTap: widget.onPlayAudio,
       child: Container(
         width: 56,
         height: 56,
@@ -207,7 +363,7 @@ class ExerciseMCQWidget extends StatelessWidget {
   }
 
   String _getQuestionText() {
-    switch (exercise.type) {
+    switch (widget.exercise.type) {
       case ExerciseType.hanziToMeaning:
         return 'Chọn nghĩa đúng:';
       case ExerciseType.hanziToPinyin:
@@ -221,17 +377,19 @@ class ExerciseMCQWidget extends StatelessWidget {
     }
   }
 
-  List<Widget> _buildOptions() {
-    return List.generate(exercise.options.length, (index) {
-      final option = exercise.options[index];
-      final isSelected = selectedAnswer == index;
-      final isCorrectOption = index == exercise.correctIndex;
-      
+  List<Widget> _buildOptions(double maxHeight) {
+    return List.generate(widget.exercise.options.length, (index) {
+      final option = widget.exercise.options[index];
+      final isSelected = widget.selectedAnswer == index;
+      final isCorrectOption = index == widget.exercise.correctIndex;
+
       Color? bgColor;
       Color? borderColor;
-      Color textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
-      
-      if (hasAnswered) {
+      Color textColor = widget.isDark
+          ? AppColors.textPrimaryDark
+          : AppColors.textPrimary;
+
+      if (widget.hasAnswered) {
         if (isCorrectOption) {
           bgColor = AppColors.success.withAlpha(30);
           borderColor = AppColors.success;
@@ -245,75 +403,128 @@ class ExerciseMCQWidget extends StatelessWidget {
         borderColor = AppColors.primary;
         bgColor = AppColors.primary.withAlpha(15);
       }
-      
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: GestureDetector(
-          onTap: hasAnswered ? null : () {
-            HapticFeedback.lightImpact();
-            onSelectAnswer(index);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: bgColor ?? (isDark ? AppColors.surfaceDark : AppColors.white),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: borderColor ?? (isDark ? AppColors.borderDark : AppColors.border),
-                width: isSelected || (hasAnswered && isCorrectOption) ? 2 : 1,
-              ),
-              boxShadow: isSelected && !hasAnswered ? [
-                BoxShadow(
-                  color: AppColors.primary.withAlpha(30),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ] : null,
+
+      return AnimatedBuilder(
+        animation: _optionAnimations[index],
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, 20 * (1 - _optionAnimations[index].value)),
+            child: Opacity(
+              opacity: _optionAnimations[index].value,
+              child: child,
             ),
-            child: Row(
-              children: [
-                // Option letter
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: isSelected 
-                        ? AppColors.primary.withAlpha(30) 
-                        : (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      String.fromCharCode(65 + index), // A, B, C, D
-                      style: AppTypography.titleSmall.copyWith(
-                        color: isSelected 
-                            ? AppColors.primary 
-                            : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
-                        fontWeight: FontWeight.w600,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: GestureDetector(
+            onTap: widget.hasAnswered
+                ? null
+                : () {
+                    HapticFeedback.lightImpact();
+                    widget.onSelectAnswer(index);
+                  },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: double.infinity,
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color:
+                    bgColor ??
+                    (widget.isDark ? AppColors.surfaceDark : AppColors.white),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color:
+                      borderColor ??
+                      (widget.isDark ? AppColors.borderDark : AppColors.border),
+                  width: isSelected || (widget.hasAnswered && isCorrectOption)
+                      ? 2
+                      : 1,
+                ),
+                boxShadow: isSelected && !widget.hasAnswered
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withAlpha(30),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  // Option letter
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withAlpha(30)
+                          : (widget.isDark
+                                ? AppColors.surfaceVariantDark
+                                : AppColors.surfaceVariant),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        String.fromCharCode(65 + index), // A, B, C, D
+                        style: AppTypography.titleSmall.copyWith(
+                          color: isSelected
+                              ? AppColors.primary
+                              : (widget.isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondary),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                
-                // Option text
-                Expanded(
-                  child: Text(
-                    _formatOption(option),
-                    style: _getOptionTextStyle(option).copyWith(color: textColor),
+                  const SizedBox(width: 16),
+
+                  // Option text
+                  Expanded(
+                    child: Text(
+                      _formatOption(option),
+                      style: _getOptionTextStyle(
+                        option,
+                      ).copyWith(color: textColor),
+                    ),
                   ),
-                ),
-                
-                // Result icon
-                if (hasAnswered) ...[
-                  if (isCorrectOption)
-                    const Icon(Icons.check_circle, color: AppColors.success, size: 24)
-                  else if (isSelected)
-                    const Icon(Icons.cancel, color: AppColors.error, size: 24),
+
+                  // Result icon with elastic animation
+                  if (widget.hasAnswered) ...[
+                    if (isCorrectOption)
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.elasticOut,
+                        builder: (context, value, child) {
+                          return Transform.scale(scale: value, child: child);
+                        },
+                        child: const Icon(
+                          Icons.check_circle,
+                          color: AppColors.success,
+                          size: 24,
+                        ),
+                      )
+                    else if (isSelected)
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutBack,
+                        builder: (context, value, child) {
+                          return Transform.scale(scale: value, child: child);
+                        },
+                        child: const Icon(
+                          Icons.cancel,
+                          color: AppColors.error,
+                          size: 24,
+                        ),
+                      ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -323,8 +534,8 @@ class ExerciseMCQWidget extends StatelessWidget {
 
   String _formatOption(String option) {
     // Capitalize Vietnamese text
-    if (exercise.type == ExerciseType.hanziToMeaning || 
-        exercise.type == ExerciseType.audioToMeaning) {
+    if (widget.exercise.type == ExerciseType.hanziToMeaning ||
+        widget.exercise.type == ExerciseType.audioToMeaning) {
       return _capitalize(option);
     }
     return option;
@@ -332,16 +543,15 @@ class ExerciseMCQWidget extends StatelessWidget {
 
   TextStyle _getOptionTextStyle(String option) {
     // Use Hanzi style for Chinese characters
-    if (exercise.type == ExerciseType.meaningToHanzi ||
-        exercise.type == ExerciseType.audioToHanzi ||
-        exercise.type == ExerciseType.fillBlank) {
+    if (widget.exercise.type == ExerciseType.meaningToHanzi ||
+        widget.exercise.type == ExerciseType.audioToHanzi ||
+        widget.exercise.type == ExerciseType.fillBlank) {
       return AppTypography.hanziSmall.copyWith(fontSize: 22);
     }
     // Use pinyin style for pinyin options
-    if (exercise.type == ExerciseType.hanziToPinyin) {
+    if (widget.exercise.type == ExerciseType.hanziToPinyin) {
       return AppTypography.pinyin.copyWith(fontSize: 18);
     }
     return AppTypography.bodyLarge;
   }
 }
-

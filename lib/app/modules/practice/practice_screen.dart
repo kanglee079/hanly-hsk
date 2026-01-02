@@ -33,16 +33,14 @@ class PracticeScreen extends GetView<PracticeController> {
         showBackButton: true,
         onBackPressed: controller.exitSession,
         titleWidget: Obx(() => _buildAppBarTitle(isDark)),
-        actions: [
-          Obx(() => _buildTimer(isDark)),
-        ],
+        actions: [Obx(() => _buildTimer(isDark))],
       ),
       body: Obx(() {
         // Show loading
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         // Show empty state if no data
         if (controller.hasNoData.value) {
           return _buildEmptyState(isDark);
@@ -51,7 +49,7 @@ class PracticeScreen extends GetView<PracticeController> {
         switch (controller.state.value) {
           case PracticeState.loading:
             return const Center(child: CircularProgressIndicator());
-            
+
           case PracticeState.learning:
             final vocab = controller.currentVocab;
             if (vocab == null) return _buildEmptyState(isDark);
@@ -61,22 +59,19 @@ class PracticeScreen extends GetView<PracticeController> {
               onContinue: controller.continueToExercise,
               onPlayAudio: () => controller.playAudio(),
               onPlaySlow: () => controller.playAudio(slow: true),
-              onPlayExampleSentence: (text, url, slow) => controller.playExampleSentence(
-                text: text,
-                audioUrl: url,
-                slow: slow,
-              ),
+              onPlayExampleSentence: (text, url, slow) => controller
+                  .playExampleSentence(text: text, audioUrl: url, slow: slow),
             );
-            
+
           case PracticeState.exercise:
             return _buildExercise(isDark);
-            
+
           case PracticeState.feedback:
             return _buildFeedback(isDark);
-            
+
           case PracticeState.pronunciation:
             return _buildPronunciation(isDark);
-            
+
           case PracticeState.rating:
             final vocab = controller.currentVocab;
             if (vocab == null) return _buildEmptyState(isDark);
@@ -85,7 +80,7 @@ class PracticeScreen extends GetView<PracticeController> {
               isDark: isDark,
               onRate: controller.submitRating,
             );
-            
+
           case PracticeState.wrongAnswerReview:
             return WrongAnswersWidget(
               isDark: isDark,
@@ -94,7 +89,7 @@ class PracticeScreen extends GetView<PracticeController> {
               totalCount: controller.totalExercises.value,
               onContinue: controller.continueToComplete,
             );
-            
+
           case PracticeState.complete:
             return PracticeCompleteWidget(
               isDark: isDark,
@@ -112,12 +107,12 @@ class PracticeScreen extends GetView<PracticeController> {
   Widget _buildAppBarTitle(bool isDark) {
     // Access observable to satisfy Obx requirement
     final _ = controller.state.value;
-    
+
     // For matching mode, show title instead of progress
     if (controller.mode == PracticeMode.matching) {
       final matched = controller.matchedLeft.length;
       final total = controller.currentExercise?.matchingItems?.length ?? 0;
-      
+
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -169,7 +164,7 @@ class PracticeScreen extends GetView<PracticeController> {
         ],
       );
     }
-    
+
     // Default: show progress indicator
     return _buildProgressIndicator(isDark);
   }
@@ -177,12 +172,19 @@ class PracticeScreen extends GetView<PracticeController> {
   Widget _buildProgressIndicator(bool isDark) {
     // LearnNew: show word progress (1/N) instead of exercise progress (avoids "loạn")
     final isLearnNew = controller.mode == PracticeMode.learnNew;
-    final total = isLearnNew ? controller.vocabs.length : controller.exercises.length;
+    final total = isLearnNew
+        ? controller.vocabs.length
+        : controller.exercises.length;
     final current = isLearnNew
-        ? (total == 0 ? 0 : (controller.currentExerciseIndex.value ~/ controller.config.exercisesPerVocab) + 1).clamp(0, total)
+        ? (total == 0
+                  ? 0
+                  : (controller.currentExerciseIndex.value ~/
+                            controller.config.exercisesPerVocab) +
+                        1)
+              .clamp(0, total)
         : controller.currentExerciseIndex.value + 1;
     final progress = total > 0 ? (current / total) : 0.0;
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -192,8 +194,8 @@ class PracticeScreen extends GetView<PracticeController> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: isDark 
-                  ? AppColors.surfaceVariantDark 
+              backgroundColor: isDark
+                  ? AppColors.surfaceVariantDark
                   : AppColors.surfaceVariant,
               valueColor: const AlwaysStoppedAnimation(AppColors.primary),
               minHeight: 6,
@@ -204,7 +206,9 @@ class PracticeScreen extends GetView<PracticeController> {
         Text(
           '$current/$total',
           style: AppTypography.labelSmall.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
       ],
@@ -213,15 +217,15 @@ class PracticeScreen extends GetView<PracticeController> {
 
   Widget _buildTimer(bool isDark) {
     final hasTimeLimit = controller.config.timeLimit > 0;
-    final seconds = hasTimeLimit 
-        ? controller.remainingSeconds.value 
+    final seconds = hasTimeLimit
+        ? controller.remainingSeconds.value
         : controller.elapsedSeconds.value;
-    
+
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
-    
+
     final isUrgent = hasTimeLimit && seconds <= 10;
-    
+
     return Padding(
       padding: const EdgeInsets.only(right: 16),
       child: Row(
@@ -239,8 +243,11 @@ class PracticeScreen extends GetView<PracticeController> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.local_fire_department, 
-                    color: AppColors.secondary, size: 14),
+                  const Icon(
+                    Icons.local_fire_department,
+                    color: AppColors.secondary,
+                    size: 14,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '${controller.streak.value}',
@@ -256,9 +263,11 @@ class PracticeScreen extends GetView<PracticeController> {
           Text(
             '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
             style: AppTypography.labelMedium.copyWith(
-              color: isUrgent 
-                  ? AppColors.error 
-                  : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
+              color: isUrgent
+                  ? AppColors.error
+                  : (isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary),
               fontWeight: isUrgent ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -286,8 +295,9 @@ class PracticeScreen extends GetView<PracticeController> {
           isCorrect: controller.isCorrect.value,
           onSelectAnswer: controller.selectAnswer,
           onPlayAudio: () => controller.playAudio(),
+          onContinue: controller.nextExercise,
         );
-        
+
       case ExerciseType.audioToHanzi:
       case ExerciseType.audioToMeaning:
         return ExerciseAudioWidget(
@@ -301,8 +311,9 @@ class PracticeScreen extends GetView<PracticeController> {
           onSelectAnswer: controller.selectAnswer,
           onPlayAudio: () => controller.playAudio(),
           onPlaySlow: () => controller.playAudio(slow: true),
+          onContinue: controller.nextExercise,
         );
-        
+
       case ExerciseType.matchingPairs:
         return ExerciseMatchingWidget(
           exercise: exercise,
@@ -314,18 +325,20 @@ class PracticeScreen extends GetView<PracticeController> {
           showWrongMatch: controller.showWrongMatch.value,
           wrongLeft: controller.wrongLeft.value,
           wrongRight: controller.wrongRight.value,
-          onSelectLeft: (i) => controller.selectMatchingItem(isLeft: true, index: i),
-          onSelectRight: (i) => controller.selectMatchingItem(isLeft: false, index: i),
+          onSelectLeft: (i) =>
+              controller.selectMatchingItem(isLeft: true, index: i),
+          onSelectRight: (i) =>
+              controller.selectMatchingItem(isLeft: false, index: i),
         );
-        
+
       case ExerciseType.sentenceOrder:
         // TODO: Implement sentence ordering
         return _buildPlaceholder('Sắp xếp câu', isDark);
-        
+
       case ExerciseType.strokeWriting:
         // TODO: Implement stroke writing
         return _buildPlaceholder('Luyện viết', isDark);
-        
+
       case ExerciseType.speakWord:
         return _buildPronunciation(isDark);
     }
@@ -335,7 +348,7 @@ class PracticeScreen extends GetView<PracticeController> {
     final vocab = controller.currentVocab;
     final isCorrect = controller.lastAnswerCorrect.value;
     final correctAnswer = controller.lastCorrectAnswerDisplay.value;
-    
+
     return SafeArea(
       child: Padding(
         padding: AppSpacing.screenPadding,
@@ -348,8 +361,8 @@ class PracticeScreen extends GetView<PracticeController> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: isCorrect 
-                    ? AppColors.success.withAlpha(30) 
+                color: isCorrect
+                    ? AppColors.success.withAlpha(30)
                     : AppColors.error.withAlpha(30),
                 shape: BoxShape.circle,
               ),
@@ -360,7 +373,7 @@ class PracticeScreen extends GetView<PracticeController> {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Message
             Text(
               isCorrect ? 'Chính xác! 🎉' : 'Chưa đúng',
@@ -377,7 +390,9 @@ class PracticeScreen extends GetView<PracticeController> {
                 vocab.hanzi,
                 style: AppTypography.hanziLarge.copyWith(
                   fontSize: 44,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -385,40 +400,48 @@ class PracticeScreen extends GetView<PracticeController> {
                 vocab.pinyin,
                 style: AppTypography.pinyin.copyWith(
                   fontSize: 18,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 _capitalize(vocab.meaningVi),
                 style: AppTypography.bodyLarge.copyWith(
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
-            
+
             // Show correct answer if wrong
             if (!isCorrect && correctAnswer.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
                 'Đáp án đúng:',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 correctAnswer,
                 style: AppTypography.titleLarge.copyWith(
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
-            
+
             const Spacer(),
-            
+
             // Continue button
             HMButton(
               text: 'Tiếp tục',
@@ -437,7 +460,7 @@ class PracticeScreen extends GetView<PracticeController> {
   Widget _buildPronunciation(bool isDark) {
     final vocab = controller.currentVocab;
     if (vocab == null) return const SizedBox.shrink();
-    
+
     return SafeArea(
       child: Padding(
         padding: AppSpacing.screenPadding,
@@ -447,7 +470,9 @@ class PracticeScreen extends GetView<PracticeController> {
             Text(
               vocab.hanzi,
               style: AppTypography.hanziLarge.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -455,11 +480,13 @@ class PracticeScreen extends GetView<PracticeController> {
               vocab.pinyin,
               style: AppTypography.pinyin.copyWith(
                 fontSize: 24,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Audio button
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -479,45 +506,53 @@ class PracticeScreen extends GetView<PracticeController> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 32),
-            
-            // Mic button
+
+            // Mic button - fixed size to prevent jitter
             Obx(() {
               final isListening = controller.isListening.value;
               return GestureDetector(
                 onTap: controller.startListening,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  width: isListening ? 90 : 80,
-                  height: isListening ? 90 : 80,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
                     color: isListening ? AppColors.error : AppColors.primary,
                     shape: BoxShape.circle,
-                    boxShadow: isListening ? [
-                      BoxShadow(
-                        color: AppColors.error.withAlpha(100),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ] : null,
+                    boxShadow: isListening
+                        ? [
+                            BoxShadow(
+                              color: AppColors.error.withAlpha(120),
+                              blurRadius: 25,
+                              spreadRadius: 0,
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: Icon(
-                    isListening ? Icons.stop_rounded : Icons.mic_rounded,
-                    size: isListening ? 40 : 36,
-                    color: Colors.white,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      isListening ? Icons.stop_rounded : Icons.mic_rounded,
+                      key: ValueKey(isListening),
+                      size: 36,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               );
             }),
-            
+
             const SizedBox(height: 12),
-            
+
             Obx(() {
               if (controller.isListening.value) {
                 return Text(
                   'Đang nghe...',
-                  style: AppTypography.bodyMedium.copyWith(color: AppColors.error),
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.error,
+                  ),
                 );
               }
               if (controller.hasPronunciationResult.value) {
@@ -543,13 +578,15 @@ class PracticeScreen extends GetView<PracticeController> {
               return Text(
                 'Nhấn mic và đọc từ',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                  color: isDark
+                      ? AppColors.textTertiaryDark
+                      : AppColors.textTertiary,
                 ),
               );
             }),
-            
+
             const Spacer(),
-            
+
             // Bottom buttons
             Obx(() {
               if (controller.hasPronunciationResult.value) {
@@ -595,7 +632,9 @@ class PracticeScreen extends GetView<PracticeController> {
           Text(
             label,
             style: AppTypography.labelSmall.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
           ),
         ],
@@ -617,14 +656,18 @@ class PracticeScreen extends GetView<PracticeController> {
           Text(
             title,
             style: AppTypography.titleMedium.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Đang phát triển...',
             style: AppTypography.bodySmall.copyWith(
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
           ),
           const SizedBox(height: 32),
@@ -642,7 +685,7 @@ class PracticeScreen extends GetView<PracticeController> {
   Widget _buildEmptyState(bool isDark) {
     final message = controller.noDataMessage.value;
     final isSuccess = message.contains('🎉'); // Check if it's a success message
-    
+
     return SafeArea(
       child: Padding(
         padding: AppSpacing.screenPadding,
@@ -650,14 +693,14 @@ class PracticeScreen extends GetView<PracticeController> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Spacer(),
-            
+
             // Icon
             Container(
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: isSuccess 
-                    ? AppColors.success.withAlpha(30) 
+                color: isSuccess
+                    ? AppColors.success.withAlpha(30)
                     : AppColors.warning.withAlpha(30),
                 shape: BoxShape.circle,
               ),
@@ -667,41 +710,42 @@ class PracticeScreen extends GetView<PracticeController> {
                 color: isSuccess ? AppColors.success : AppColors.warning,
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Title
             Text(
               isSuccess ? 'Hoàn thành!' : 'Không có dữ liệu',
               style: AppTypography.headlineMedium.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Message
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
                 message,
                 style: AppTypography.bodyLarge.copyWith(
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
-            
+
             const Spacer(),
-            
+
             // Back button
-            HMButton(
-              text: 'Quay lại',
-              onPressed: () => Get.back(),
-            ),
-            
+            HMButton(text: 'Quay lại', onPressed: () => Get.back()),
+
             const SizedBox(height: 32),
           ],
         ),
@@ -709,4 +753,3 @@ class PracticeScreen extends GetView<PracticeController> {
     );
   }
 }
-

@@ -16,11 +16,11 @@ import '../practice/practice_controller.dart';
 import '../shell/shell_controller.dart';
 
 /// Session mode preset (legacy - for backwards compatibility)
-enum SessionMode { 
-  newWords,    // Learn new words
-  review,      // Review due words (SRS)
+enum SessionMode {
+  newWords, // Learn new words
+  review, // Review due words (SRS)
   reviewToday, // Review words learned today (reinforcement)
-  game30,      // Quick game
+  game30, // Quick game
 }
 
 /// Today controller
@@ -28,7 +28,7 @@ class TodayController extends GetxController {
   final AuthSessionService _authService = Get.find<AuthSessionService>();
   final TodayStore _todayStore = Get.find<TodayStore>();
   final StorageService _storage = Get.find<StorageService>();
-  
+
   // Date key for local cache (yyyy-MM-dd)
   String get _todayKey => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
@@ -48,7 +48,7 @@ class TodayController extends GetxController {
 
   final Rx<RecommendedAction?> nextAction = Rx<RecommendedAction?>(null);
   final RxString displayName = ''.obs;
-  
+
   // Reactive trigger for local cache updates (when returning from Practice)
   final RxInt localLearnedCount = 0.obs;
 
@@ -69,15 +69,23 @@ class TodayController extends GetxController {
     ever(todayData, (_) => _computeNextAction());
     // Also recompute when learnedTodayData updates (may have different count)
     ever(learnedTodayData, (_) => _computeNextAction());
+
+    // Listen to onLearnedUpdate event from Practice for refresh
+    // Note: PracticeController ensures data is synced before triggering this
+    ever(_todayStore.onLearnedUpdate, (_) {
+      _refreshLocalCacheCount();
+      _computeNextAction();
+    });
+
     _computeNextAction();
   }
-  
+
   /// Refresh local cache count (called when returning from Practice)
   void _refreshLocalCacheCount() {
     final localIds = _storage.getLearnNewCompletedVocabIds(_todayKey);
     localLearnedCount.value = localIds.length;
   }
-  
+
   /// Called when screen becomes visible again (from Practice)
   void onScreenVisible() {
     _refreshLocalCacheCount();
@@ -93,9 +101,9 @@ class TodayController extends GetxController {
     _refreshLocalCacheCount(); // Refresh local cache first
     await _todayStore.syncNow(force: true);
   }
-  
+
   /// Compute next recommended action based on today data + local cache
-  /// 
+  ///
   /// Sử dụng TẤT CẢ nguồn data: todayData, learnedTodayData, localCache
   void _computeNextAction() {
     final today = todayData.value;
@@ -103,33 +111,37 @@ class TodayController extends GetxController {
       nextAction.value = null;
       return;
     }
-    
+
     // Lấy learned count từ TẤT CẢ nguồn, dùng giá trị lớn nhất
     final localCount = localLearnedCount.value;
     final todayApiCount = today.newLearnedToday;
     final learnedTodayApiCount = learnedTodayData.value?.count ?? 0;
-    
+
     // Chọn max từ tất cả nguồn
     int actualLearnedCount = localCount;
     if (todayApiCount > actualLearnedCount) actualLearnedCount = todayApiCount;
-    if (learnedTodayApiCount > actualLearnedCount) actualLearnedCount = learnedTodayApiCount;
-    
+    if (learnedTodayApiCount > actualLearnedCount)
+      actualLearnedCount = learnedTodayApiCount;
+
     // Adjust model với learned count thực tế
     final adjusted = today.copyWith(
       newLearnedToday: actualLearnedCount,
-      remainingNewLimit: (today.dailyNewLimit - actualLearnedCount).clamp(0, today.dailyNewLimit),
+      remainingNewLimit: (today.dailyNewLimit - actualLearnedCount).clamp(
+        0,
+        today.dailyNewLimit,
+      ),
     );
     nextAction.value = NextActionEngine.computeNextAction(adjusted);
   }
-  
+
   /// Execute the recommended next action
   void executeNextAction() {
     final action = nextAction.value;
     if (action == null) return;
-    
+
     // Skip if no route (e.g., "Nghỉ ngơi" action)
     if (action.route.isEmpty) return;
-    
+
     // Handle shell navigation with tab switching
     if (action.route == Routes.shell && action.payload != null) {
       final tabIndex = action.payload!['tab'] as int?;
@@ -140,71 +152,88 @@ class TodayController extends GetxController {
         return;
       }
     }
-    
+
     Get.toNamed(action.route, arguments: action.payload);
   }
-  
+
   // ===== FORECAST HELPERS =====
-  
+
   /// Get tomorrow's review count from forecast
   int get tomorrowReviewCount => forecastData.value?.tomorrowReviewCount ?? 0;
-  
+
   /// Get forecast days
   List<ForecastDay> get forecastDays => forecastData.value?.days ?? [];
-  
+
+  // ===== GOAL HELPER =====
+
+  /// Get daily goal in minutes - Calculated from Word Limit to ensure consistency
+  /// Fixes issue where Profile has mismatched values (e.g. 30 words, 10 mins)
+  int get dailyGoalMinutes {
+    final words = dailyNewLimit;
+    if (words >= 30) return 45;
+    if (words >= 20) return 30;
+    if (words >= 10) return 15;
+    return 5;
+  }
+
+  /// Get daily new word limit from User Profile (Source of Truth)
+  int get dailyNewLimit =>
+      _authService.currentUser.value?.profile?.dailyNewLimit ?? 20;
+
   // ===== LEARNED TODAY HELPERS =====
-  
+
   /// Get words learned today
-  List<LearnedTodayItem> get learnedTodayItems => learnedTodayData.value?.items ?? [];
-  
+  List<LearnedTodayItem> get learnedTodayItems =>
+      learnedTodayData.value?.items ?? [];
+
   /// Get learned today count - combine BE data and local cache
   /// Capped at daily limit (không hiển thị hơn limit)
   int get learnedTodayCount {
-    final limit = todayData.value?.dailyNewLimit ?? 30;
-    
+    final limit = dailyNewLimit; // Use profile source
+
     // Lấy max giữa BE và local cache
     final beCount = learnedTodayData.value?.count ?? 0;
     final todayCount = todayData.value?.newLearnedToday ?? 0;
     final localCount = localLearnedCount.value;
-    
+
     // Lấy giá trị lớn nhất
     int rawCount = beCount;
     if (todayCount > rawCount) rawCount = todayCount;
     if (localCount > rawCount) rawCount = localCount;
-    
+
     // Cap tại daily limit (không cho hiển thị quá limit)
     return rawCount > limit ? limit : rawCount;
   }
-  
+
   /// Check if user has reached daily limit
   bool get hasReachedDailyLimit {
-    final limit = todayData.value?.dailyNewLimit ?? 30;
-    return learnedTodayCount >= limit;
+    return learnedTodayCount >= dailyNewLimit;
   }
-  
+
   /// Get remaining words that can be learned today
   int get remainingNewWords {
-    final limit = todayData.value?.dailyNewLimit ?? 30;
+    final limit = dailyNewLimit;
     return (limit - learnedTodayCount).clamp(0, limit);
   }
-  
+
   /// Get list of vocab IDs learned today from local cache
-  List<String> get learnedTodayVocabIds => _storage.getLearnNewCompletedVocabIds(_todayKey);
+  List<String> get learnedTodayVocabIds =>
+      _storage.getLearnNewCompletedVocabIds(_todayKey);
 
   // ===== STREAK HELPERS =====
-  
+
   /// Get current streak value
   int get streak => todayData.value?.streak ?? 0;
-  
+
   /// Get best streak (kỷ lục)
   int get bestStreak => todayData.value?.bestStreak ?? streak;
-  
+
   /// Get streak rank display (Top 5%, Top 10%, etc.)
   String get streakRank => todayData.value?.streakRank ?? '';
-  
+
   /// Get streak status from BE
   StreakStatus? get streakStatus => todayData.value?.streakStatus;
-  
+
   /// Check if user has studied today
   /// Ưu tiên dùng streakStatus từ BE, fallback về completedMinutes
   bool get hasStudiedToday {
@@ -215,31 +244,30 @@ class TodayController extends GetxController {
     // Fallback to checking completedMinutes
     return (todayData.value?.completedMinutes ?? 0) > 0;
   }
-  
+
   /// Check if streak is at risk (sắp mất streak)
   bool get isStreakAtRisk {
     // Tick from store to keep countdown & risk status updating in real-time
     _todayStore.now.value;
     return streakStatus?.isAtRisk ?? (!hasStudiedToday && streak > 0);
   }
-  
+
   /// Get time remaining until streak is lost
   String get timeUntilLoseStreak {
     _todayStore.now.value;
     return streakStatus?.timeUntilLoseStreak ?? '';
   }
-  
+
   /// Get completed minutes today
   int get completedMinutes => todayData.value?.completedMinutes ?? 0;
-  
-  /// Get daily goal minutes
-  int get dailyGoalMinutes => todayData.value?.dailyGoalMinutes ?? 15;
-  
+
+  // dailyGoalMinutes defined above (backed by User Profile)
+
   /// Get weekly progress data for streak calendar
   List<StreakDayData> get weeklyStreakData {
     final weeklyProgress = todayData.value?.weeklyProgress ?? [];
     if (weeklyProgress.isEmpty) return [];
-    
+
     return weeklyProgress.map((day) {
       final dt = DateTime.tryParse(day.date);
       return StreakDayData(
@@ -250,7 +278,7 @@ class TodayController extends GetxController {
       );
     }).toList();
   }
-  
+
   /// Show streak bottom sheet with detailed info
   void showStreakDetails() {
     HMStreakBottomSheet.show(
@@ -269,7 +297,7 @@ class TodayController extends GetxController {
   void startSession(SessionMode mode) {
     // Map old SessionMode to new PracticeMode
     PracticeMode practiceMode;
-    
+
     switch (mode) {
       case SessionMode.newWords:
         practiceMode = PracticeMode.learnNew;
@@ -285,7 +313,7 @@ class TodayController extends GetxController {
         Get.toNamed(Routes.game30Home);
         return;
     }
-    
+
     Get.toNamed(Routes.practice, arguments: {'mode': practiceMode});
   }
 
@@ -297,23 +325,25 @@ class TodayController extends GetxController {
   }
 
   // ===== HSK LEVEL ADVANCEMENT =====
-  
+
   /// Level advancement info from API (via TodayModel)
-  LevelAdvancementInfo? get levelAdvancement => todayData.value?.levelAdvancement;
-  
+  LevelAdvancementInfo? get levelAdvancement =>
+      todayData.value?.levelAdvancement;
+
   /// Check if user can advance to next HSK level
   bool get canAdvanceLevel => levelAdvancement?.canAdvance ?? false;
-  
+
   /// Get current HSK level from profile
   int get currentHskLevel {
     final levelStr = _authService.currentUser.value?.profile?.currentLevel;
     if (levelStr == null) return 1;
     return int.tryParse(levelStr.replaceAll('HSK', '')) ?? 1;
   }
-  
+
   /// Get next HSK level
-  int get nextHskLevel => levelAdvancement?.nextLevelInt ?? (currentHskLevel + 1).clamp(1, 6);
-  
+  int get nextHskLevel =>
+      levelAdvancement?.nextLevelInt ?? (currentHskLevel + 1).clamp(1, 6);
+
   /// Show HSK level advancement dialog
   void showLevelAdvancementDialog() {
     Get.dialog(
@@ -335,7 +365,7 @@ class TodayController extends GetxController {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFD700).withOpacity(0.3),
+                      color: const Color(0xFFFFD700).withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -348,7 +378,7 @@ class TodayController extends GetxController {
                 ),
               ),
               const SizedBox(height: 20),
-              
+
               Text(
                 'Xuất sắc! 🎉',
                 style: AppTypography.headlineSmall.copyWith(
@@ -356,14 +386,14 @@ class TodayController extends GetxController {
                 ),
               ),
               const SizedBox(height: 8),
-              
+
               Text(
                 'Bạn đã hoàn thành HSK$currentHskLevel!',
                 style: AppTypography.titleMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              
+
               Text(
                 'Bạn có muốn chuyển sang học HSK$nextHskLevel?',
                 style: AppTypography.bodyMedium.copyWith(
@@ -372,7 +402,7 @@ class TodayController extends GetxController {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              
+
               // Buttons
               Row(
                 children: [
@@ -401,7 +431,7 @@ class TodayController extends GetxController {
       ),
     );
   }
-  
+
   /// Advance to next HSK level
   Future<void> advanceToNextLevel() async {
     // TODO: Call API POST /me/advance-level when BE is ready

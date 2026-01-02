@@ -28,6 +28,9 @@ class TodayStore extends GetxService {
   RealtimeResource<ForecastModel>? forecast;
   RealtimeResource<LearnedTodayModel>? learnedToday;
 
+  // Event trigger for immediate UI updates (listenable)
+  final RxInt onLearnedUpdate = 0.obs;
+
   /// Local "now" ticker to drive countdown UI without hitting backend.
   final Rx<DateTime> now = DateTime.now().obs;
   Timer? _ticker;
@@ -69,7 +72,10 @@ class TodayStore extends GetxService {
       );
       _rt.register(learnedToday!);
     } else {
-      Logger.w('TodayStore', 'DashboardRepo not available; forecast/learnedToday disabled');
+      Logger.w(
+        'TodayStore',
+        'DashboardRepo not available; forecast/learnedToday disabled',
+      );
     }
 
     _startTicker();
@@ -83,7 +89,11 @@ class TodayStore extends GetxService {
   }
 
   Future<void> syncNow({bool force = false}) async {
-    await _rt.syncNowKeys(const ['today', 'todayForecast', 'learnedToday'], force: force);
+    await _rt.syncNowKeys(const [
+      'today',
+      'todayForecast',
+      'learnedToday',
+    ], force: force);
   }
 
   /// Clear all cached data (called on logout to prevent cross-account data leakage)
@@ -100,5 +110,3 @@ class TodayStore extends GetxService {
     super.onClose();
   }
 }
-
-

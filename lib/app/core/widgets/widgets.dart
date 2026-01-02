@@ -22,3 +22,4 @@ export 'hm_learned_today_widget.dart';
 export 'hm_weekly_stats_sheet.dart';
 export 'hm_section_header.dart';
 export 'hm_tutorial_overlay.dart';
+export 'app_showcase_wrapper.dart';

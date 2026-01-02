@@ -1,16 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/constants/strings_vi.dart';
 import '../../core/widgets/widgets.dart';
 import '../../routes/app_routes.dart';
+import '../../services/tutorial_service.dart';
 import 'me_controller.dart';
 
 /// Me tab screen - Profile & Settings
 class MeScreen extends GetView<MeController> {
   const MeScreen({super.key});
+
+  // Get registered keys from TutorialService
+  GlobalKey get _profileKey =>
+      Get.find<TutorialService>().registerKey('me_profile');
+  GlobalKey get _dailyGoalKey =>
+      Get.find<TutorialService>().registerKey('me_daily_goal');
+  GlobalKey get _statsKey =>
+      Get.find<TutorialService>().registerKey('me_stats');
+  GlobalKey get _favoritesKey =>
+      Get.find<TutorialService>().registerKey('me_favorites');
+  GlobalKey get _settingsKey =>
+      Get.find<TutorialService>().registerKey('me_settings');
 
   @override
   Widget build(BuildContext context) {
@@ -18,70 +32,120 @@ class MeScreen extends GetView<MeController> {
 
     return AppScaffold(
       body: SafeArea(
-        bottom: false, // Allow content to extend under glass nav
+        bottom: false,
         child: RefreshIndicator(
           onRefresh: controller.refresh,
           color: AppColors.primary,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
-            children: [
-              // Header
-              _buildHeader(isDark),
+              children: [
+                // Header
+                _buildHeader(isDark),
 
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              // Profile section
-              _buildProfileSection(isDark),
-
-              const SizedBox(height: 16),
-
-              // Stats section
-              Padding(
-                padding: AppSpacing.screenPadding,
-                child: Column(
-                  children: [
-                    // Daily Goal Card
-                    _buildDailyGoalCard(isDark),
-
-                    const SizedBox(height: 12),
-
-                    // Stats row
-                    _buildStatsRow(isDark),
-
-                    const SizedBox(height: 20),
-
-                    // Favorites Section
-                    _buildFavoritesSection(isDark),
-
-                    const SizedBox(height: 20),
-
-                    // Quick Actions
-                    _buildQuickActionsSection(isDark),
-
-                    const SizedBox(height: 20),
-
-                    // Preferences
-                    _buildPreferencesSection(isDark),
-
-                    const SizedBox(height: 16),
-
-                    // Logout & Delete Account
-                    _buildDangerSection(isDark),
-
-                    const SizedBox(height: 20),
-
-                    // App version
-                    _buildAppVersion(isDark),
-
-                    // Bottom padding for glass nav bar
-                    const SizedBox(height: 100),
-                  ],
+                // Profile section
+                Showcase(
+                  key: _profileKey,
+                  title: 'Hồ sơ của bạn',
+                  description:
+                      'Xem và chỉnh sửa thông tin cá nhân, mục tiêu học tập.',
+                  overlayOpacity: 0.7,
+                  targetShapeBorder: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: _buildProfileSection(isDark),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 16),
+
+                // Stats section
+                Padding(
+                  padding: AppSpacing.screenPadding,
+                  child: Column(
+                    children: [
+                      // Daily Goal Card
+                      Showcase(
+                        key: _dailyGoalKey,
+                        title: 'Mục tiêu hàng ngày',
+                        description:
+                            'Đặt và theo dõi mục tiêu học tập của bạn.',
+                        overlayOpacity: 0.7,
+                        targetShapeBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: _buildDailyGoalCard(isDark),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Stats row
+                      Showcase(
+                        key: _statsKey,
+                        title: 'Thống kê học tập',
+                        description:
+                            'Theo dõi tiến trình, số từ đã thuộc và nhiều chỉ số khác.',
+                        overlayOpacity: 0.7,
+                        targetShapeBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: _buildStatsRow(isDark),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Favorites Section
+                      Showcase(
+                        key: _favoritesKey,
+                        title: 'Từ yêu thích',
+                        description:
+                            'Xem và ôn tập các từ bạn đã lưu vào danh sách yêu thích.',
+                        overlayOpacity: 0.7,
+                        targetShapeBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: _buildFavoritesSection(isDark),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Quick Actions
+                      _buildQuickActionsSection(isDark),
+
+                      const SizedBox(height: 20),
+
+                      // Preferences
+                      Showcase(
+                        key: _settingsKey,
+                        title: 'Cài đặt',
+                        description:
+                            'Tùy chỉnh giao diện, âm thanh và các cài đặt khác.',
+                        overlayOpacity: 0.7,
+                        targetShapeBorder: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: _buildPreferencesSection(isDark),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Logout & Delete Account
+                      _buildDangerSection(isDark),
+
+                      const SizedBox(height: 20),
+
+                      // App version
+                      _buildAppVersion(isDark),
+
+                      // Bottom padding for glass nav bar
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -146,80 +210,84 @@ class MeScreen extends GetView<MeController> {
     );
   }
 
-
   Widget _buildProfileSection(bool isDark) {
-    return Obx(() => Column(
-          children: [
-            // Avatar with edit button
-            Stack(
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primarySurface,
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      width: 3,
-                    ),
+    return Obx(
+      () => Column(
+        children: [
+          // Avatar with edit button
+          Stack(
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primarySurface,
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    width: 3,
                   ),
-                  child: controller.avatarUrl != null
-                      ? ClipOval(
-                          child: Image.network(
-                            controller.avatarUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildAvatarPlaceholder(),
-                          ),
-                        )
-                      : _buildAvatarPlaceholder(),
                 ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: GestureDetector(
-                    onTap: controller.editProfile,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark ? AppColors.backgroundDark : AppColors.white,
-                          width: 2,
+                child: controller.avatarUrl != null
+                    ? ClipOval(
+                        child: Image.network(
+                          controller.avatarUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildAvatarPlaceholder(),
                         ),
+                      )
+                    : _buildAvatarPlaceholder(),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  onTap: controller.editProfile,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.backgroundDark
+                            : AppColors.white,
+                        width: 2,
                       ),
-                      child: const Icon(
-                        Icons.edit,
-                        color: AppColors.white,
-                        size: 16,
-                      ),
+                    ),
+                    child: const Icon(
+                      Icons.edit,
+                      color: AppColors.white,
+                      size: 16,
                     ),
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Display name
-            Text(
-              controller.displayName.isNotEmpty
-                  ? controller.displayName
-                  : 'Người dùng',
-              style: AppTypography.headlineMedium.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
               ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Display name
+          Text(
+            controller.displayName.isNotEmpty
+                ? controller.displayName
+                : 'Người dùng',
+            style: AppTypography.headlineMedium.copyWith(
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
             ),
+          ),
 
-            const SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-            // Pro member badge
-            if (controller.isPremium) _buildProBadge(),
-          ],
-        ));
+          // Pro member badge
+          if (controller.isPremium) _buildProBadge(),
+        ],
+      ),
+    );
   }
 
   Widget _buildAvatarPlaceholder() {
@@ -238,18 +306,12 @@ class MeScreen extends GetView<MeController> {
       decoration: BoxDecoration(
         color: AppColors.primarySurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.workspace_premium,
-            size: 16,
-            color: AppColors.primary,
-          ),
+          Icon(Icons.workspace_premium, size: 16, color: AppColors.primary),
           const SizedBox(width: 6),
           Text(
             S.proMember,
@@ -265,121 +327,123 @@ class MeScreen extends GetView<MeController> {
   }
 
   Widget _buildDailyGoalCard(bool isDark) {
-    return Obx(() => GestureDetector(
-          onTap: controller.adjustDailyWordCount,
-          child: HMCard(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+    return Obx(
+      () => GestureDetector(
+        onTap: controller.adjustDailyWordCount,
+        child: HMCard(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          S.dailyGoal,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiary,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    RichText(
+                      text: TextSpan(
                         children: [
-                          Text(
-                            S.dailyGoal,
-                            style: AppTypography.bodyMedium.copyWith(
+                          TextSpan(
+                            text: '${controller.dailyGoalCurrent}',
+                            style: AppTypography.displaySmall.copyWith(
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '/${controller.dailyGoalTarget}',
+                            style: AppTypography.titleLarge.copyWith(
                               color: isDark
                                   ? AppColors.textSecondaryDark
                                   : AppColors.textSecondary,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: isDark
-                                ? AppColors.textTertiaryDark
-                                : AppColors.textTertiary,
+                          TextSpan(
+                            text: '  ${S.words}',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '${controller.dailyGoalCurrent}',
-                              style: AppTypography.displaySmall.copyWith(
-                                color: isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '/${controller.dailyGoalTarget}',
-                              style: AppTypography.titleLarge.copyWith(
-                                color: isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '  ${S.words}',
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Progress ring
-                HMProgressRing(
-                  progress: controller.dailyGoalProgress,
-                  size: 64,
-                  strokeWidth: 6,
-                  progressColor: AppColors.primary,
-                  backgroundColor: isDark
-                      ? AppColors.surfaceVariantDark
-                      : AppColors.surfaceVariant,
-                  child: HMAnimatedNumber(
-                    value: controller.dailyGoalPercent,
-                    suffix: '%',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary,
-                      fontWeight: FontWeight.bold,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              // Progress ring
+              HMProgressRing(
+                progress: controller.dailyGoalProgress,
+                size: 64,
+                strokeWidth: 6,
+                progressColor: AppColors.primary,
+                backgroundColor: isDark
+                    ? AppColors.surfaceVariantDark
+                    : AppColors.surfaceVariant,
+                child: HMAnimatedNumber(
+                  value: controller.dailyGoalPercent,
+                  suffix: '%',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   Widget _buildStatsRow(bool isDark) {
-    return Obx(() => Row(
-          children: [
-            // Day Streak card - tappable to show streak details
-            Expanded(
-              child: _buildStreakCard(isDark),
-            ),
-            const SizedBox(width: 12),
-            // Total learned card - tappable to show stats
-            Expanded(
-              child: GestureDetector(
-                onTap: controller.goToStats,
-                child: _buildStatCard(
-                  icon: Icons.check_circle_outline,
-                  iconColor: AppColors.success,
-                  value: '${controller.totalLearned}',
-                  label: 'Đã học',
-                  isDark: isDark,
-                  showChevron: true,
-                ),
+    return Obx(
+      () => Row(
+        children: [
+          // Day Streak card - tappable to show streak details
+          Expanded(child: _buildStreakCard(isDark)),
+          const SizedBox(width: 12),
+          // Total learned card - tappable to show stats
+          Expanded(
+            child: GestureDetector(
+              onTap: controller.goToStats,
+              child: _buildStatCard(
+                icon: Icons.check_circle_outline,
+                iconColor: AppColors.success,
+                value: '${controller.totalLearned}',
+                label: 'Đã học',
+                isDark: isDark,
+                showChevron: true,
               ),
             ),
-          ],
-        ));
+          ),
+        ],
+      ),
+    );
   }
 
   /// Streak card using HMStreakWidget for consistent UI
@@ -415,7 +479,9 @@ class MeScreen extends GetView<MeController> {
             Text(
               '${controller.streak}',
               style: AppTypography.headlineSmall.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -423,7 +489,9 @@ class MeScreen extends GetView<MeController> {
             Text(
               S.dayStreak,
               style: AppTypography.bodySmall.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
             ),
           ],
@@ -455,11 +523,7 @@ class MeScreen extends GetView<MeController> {
                   color: iconColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 22,
-                ),
+                child: Icon(icon, color: iconColor, size: 22),
               ),
               if (showChevron)
                 Icon(
@@ -483,8 +547,9 @@ class MeScreen extends GetView<MeController> {
           Text(
             label,
             style: AppTypography.bodySmall.copyWith(
-              color:
-                  isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
           ),
         ],
@@ -587,7 +652,7 @@ class MeScreen extends GetView<MeController> {
   Widget _buildQuickActionsSection(bool isDark) {
     return Obx(() {
       final isPremium = controller.isPremium;
-      
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -670,8 +735,8 @@ class MeScreen extends GetView<MeController> {
               color: isPrimary
                   ? AppColors.white
                   : (isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary),
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary),
             ),
             const SizedBox(height: 8),
             Text(
@@ -680,8 +745,8 @@ class MeScreen extends GetView<MeController> {
                 color: isPrimary
                     ? AppColors.white
                     : (isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimary),
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary),
                 fontWeight: isPrimary ? FontWeight.w600 : FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -760,24 +825,27 @@ class MeScreen extends GetView<MeController> {
             Icon(
               icon,
               size: 22,
-              color:
-                  isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 title,
                 style: AppTypography.bodyLarge.copyWith(
-                  color:
-                      isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                 ),
               ),
             ),
             Icon(
               Icons.chevron_right,
               size: 22,
-              color:
-                  isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
           ],
         ),
@@ -798,11 +866,7 @@ class MeScreen extends GetView<MeController> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.logout,
-                    size: 22,
-                    color: AppColors.error,
-                  ),
+                  const Icon(Icons.logout, size: 22, color: AppColors.error),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
@@ -820,8 +884,9 @@ class MeScreen extends GetView<MeController> {
           // Delete account
           InkWell(
             onTap: controller.deleteAccount,
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(

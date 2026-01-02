@@ -9,6 +9,7 @@ import '../../routes/app_routes.dart';
 import '../../services/cache_service.dart';
 import '../../services/audio_service.dart';
 import '../../services/tutorial_service.dart';
+import 'settings_controller.dart';
 
 /// Settings screen
 class SettingsScreen extends StatelessWidget {
@@ -16,6 +17,8 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Inject controller here since we don't have a binding in AppPages
+    final controller = Get.put(SettingsController());
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AppScaffold(
@@ -23,6 +26,22 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: AppSpacing.screenPadding,
         children: [
+          // Theme section
+          _SectionHeader(title: 'Giao diện', isDark: isDark),
+          const SizedBox(height: 8),
+          Obx(
+            () => _SettingsValueItem(
+              icon: Icons.brightness_6_outlined,
+              title: 'Chế độ nền',
+              value: controller.getThemeModeText(
+                controller.currentThemeMode.value,
+              ),
+              onTap: () => _showThemePicker(context, controller, isDark),
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Cache section
           _SectionHeader(title: 'Bộ nhớ đệm', isDark: isDark),
           const SizedBox(height: 8),
@@ -61,9 +80,115 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 40),
         ],
       ),
     );
+  }
+
+  void _showThemePicker(
+    BuildContext context,
+    SettingsController controller,
+    bool isDark,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Chọn giao diện',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildThemeOption(
+              context,
+              controller,
+              'system',
+              'Hệ thống (Tự động)',
+              Icons.settings_brightness,
+              isDark,
+            ),
+            _buildThemeOption(
+              context,
+              controller,
+              'light',
+              'Sáng',
+              Icons.wb_sunny_outlined,
+              isDark,
+            ),
+            _buildThemeOption(
+              context,
+              controller,
+              'dark',
+              'Tối',
+              Icons.nightlight_outlined,
+              isDark,
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(
+    BuildContext context,
+    SettingsController controller,
+    String mode,
+    String label,
+    IconData icon,
+    bool isDark,
+  ) {
+    return Obx(() {
+      final isSelected = controller.currentThemeMode.value == mode;
+      return ListTile(
+        onTap: () {
+          controller.changeTheme(mode);
+          Get.back();
+        },
+        leading: Icon(
+          icon,
+          color: isSelected
+              ? AppColors.primary
+              : (isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary),
+        ),
+        title: Text(
+          label,
+          style: AppTypography.bodyLarge.copyWith(
+            color: isSelected
+                ? AppColors.primary
+                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+        trailing: isSelected
+            ? Icon(Icons.check, color: AppColors.primary)
+            : null,
+      );
+    });
   }
 }
 
@@ -258,6 +383,76 @@ class _SettingsItem extends StatelessWidget {
   }
 }
 
+class _SettingsValueItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _SettingsValueItem({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 24,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: AppTypography.bodyLarge.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+            ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    value,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: isDark
+                        ? AppColors.textTertiaryDark
+                        : AppColors.textTertiary,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TutorialResetTile extends StatelessWidget {
   final bool isDark;
 
@@ -275,7 +470,7 @@ class _TutorialResetTile extends StatelessWidget {
               color: AppColors.primary.withAlpha(25),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.help_outline_rounded,
               size: 24,
               color: AppColors.primary,
@@ -307,20 +502,23 @@ class _TutorialResetTile extends StatelessWidget {
               ],
             ),
           ),
+          // CRITICAL FIX: fullWidth: false prevents infinite width crash in Row
           HMButton(
             text: 'Đặt lại',
             variant: HMButtonVariant.outline,
             size: HMButtonSize.small,
-            fullWidth: false, // 🔧 FIX: Must be false when used in Row
-            onPressed: () {
-              if (Get.isRegistered<TutorialService>()) {
-                Get.find<TutorialService>().resetAllTutorials();
-                HMToast.success('Đã đặt lại hướng dẫn');
-              }
-            },
+            fullWidth: false,
+            onPressed: _resetTutorial,
           ),
         ],
       ),
     );
+  }
+
+  static void _resetTutorial() {
+    if (Get.isRegistered<TutorialService>()) {
+      Get.find<TutorialService>().resetAllTutorials();
+      HMToast.success('Đã đặt lại hướng dẫn');
+    }
   }
 }

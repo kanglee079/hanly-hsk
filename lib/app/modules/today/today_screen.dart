@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
@@ -15,37 +16,29 @@ import 'today_controller.dart';
 class TodayScreen extends GetView<TodayController> {
   const TodayScreen({super.key});
 
-  // Tutorial keys
-  static final GlobalKey headerKey = GlobalKey();
-  static final GlobalKey nextActionKey = GlobalKey();
-  static final GlobalKey progressRingKey = GlobalKey();
-  static final GlobalKey quickActionsKey = GlobalKey();
-  static final GlobalKey dueTodayKey = GlobalKey();
-  static final GlobalKey weeklyChartKey = GlobalKey();
-  
-  // Flag to prevent multiple registrations
-  static bool _keysRegistered = false;
+  // Get registered keys from TutorialService
+  GlobalKey get _nextActionKey =>
+      Get.find<TutorialService>().registerKey('today_next_action');
+  GlobalKey get _progressRingKey =>
+      Get.find<TutorialService>().registerKey('today_progress_ring');
+  GlobalKey get _streakKey =>
+      Get.find<TutorialService>().registerKey('today_streak');
+  GlobalKey get _quickActionsKey =>
+      Get.find<TutorialService>().registerKey('today_quick_actions');
+  GlobalKey get _learnedTodayKey =>
+      Get.find<TutorialService>().registerKey('today_learned');
+  GlobalKey get _dueTodayKey =>
+      Get.find<TutorialService>().registerKey('today_due');
+  GlobalKey get _forecastKey =>
+      Get.find<TutorialService>().registerKey('today_forecast');
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    return _buildScreenContent(context, isDark);
+  }
 
-    // Register tutorial keys (only once)
-    if (!_keysRegistered) {
-      _keysRegistered = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (Get.isRegistered<TutorialService>()) {
-          final tutorialService = Get.find<TutorialService>();
-          tutorialService.registerKey('today_header', headerKey);
-          tutorialService.registerKey('next_action_card', nextActionKey);
-          tutorialService.registerKey('progress_ring', progressRingKey);
-          tutorialService.registerKey('quick_actions', quickActionsKey);
-          tutorialService.registerKey('due_today_section', dueTodayKey);
-          tutorialService.registerKey('weekly_chart', weeklyChartKey);
-        }
-      });
-    }
-
+  Widget _buildScreenContent(BuildContext context, bool isDark) {
     return AppScaffold(
       body: SafeArea(
         bottom: false,
@@ -60,65 +53,122 @@ class TodayScreen extends GetView<TodayController> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ===== HEADER COMPACT =====
-                  KeyedSubtree(
-                    key: headerKey,
-                    child: _buildCompactHeader(isDark),
-                  ),
+                  _buildCompactHeader(isDark),
 
                   const SizedBox(height: 12),
 
                   // ===== NÚT HỌC CHÍNH (CTA) =====
-                  Obx(() => KeyedSubtree(
-                    key: nextActionKey,
-                    child: _buildNextActionCard(),
-                  )),
+                  Showcase(
+                    key: _nextActionKey,
+                    title: 'Hành động tiếp theo',
+                    description:
+                        'Đây là thẻ gợi ý hành động bạn nên làm tiếp. Nhấn vào để bắt đầu học ngay!',
+                    overlayOpacity: 0.7,
+                    targetShapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Obx(() => _buildNextActionCard()),
+                  ),
 
                   const SizedBox(height: 12),
 
                   // ===== THỐNG KÊ COMPACT =====
-                  Obx(() => KeyedSubtree(
-                    key: progressRingKey,
-                    child: _buildCompactStatsRow(isDark),
-                  )),
+                  Showcase(
+                    key: _progressRingKey,
+                    title: 'Tiến độ hôm nay',
+                    description:
+                        'Vòng tròn hiển thị số từ đã học và thời gian đã học trong ngày.',
+                    overlayOpacity: 0.7,
+                    targetShapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Obx(() {
+                      controller.todayData.value;
+                      controller.localLearnedCount.value;
+                      controller.learnedTodayData.value;
+                      return _buildCompactStatsRow(isDark);
+                    }),
+                  ),
 
                   const SizedBox(height: 12),
 
                   // ===== STREAK WIDGET =====
-                  Obx(() => _buildStreakWidget(isDark)),
+                  Showcase(
+                    key: _streakKey,
+                    title: 'Chuỗi ngày học',
+                    description:
+                        'Duy trì streak để nhận phần thưởng và điểm xếp hạng cao hơn!',
+                    overlayOpacity: 0.7,
+                    targetShapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Obx(() => _buildStreakWidget(isDark)),
+                  ),
 
                   const SizedBox(height: 16),
 
                   // ===== HÀNH ĐỘNG NHANH =====
-                  Obx(() => KeyedSubtree(
-                    key: quickActionsKey,
-                    child: _buildQuickActionsRow(isDark),
-                  )),
+                  Showcase(
+                    key: _quickActionsKey,
+                    title: 'Ôn tập & Luyện tập',
+                    description:
+                        'Chọn Ôn tập SRS để ôn từ cũ, hoặc Game 30s để kiếm XP nhanh!',
+                    overlayOpacity: 0.7,
+                    targetShapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Obx(() => _buildQuickActionsRow(isDark)),
+                  ),
 
                   const SizedBox(height: 16),
 
                   // ===== CỦNG CỐ TỪ VỪA HỌC =====
-                  Obx(() => _buildLearnedTodaySection()),
+                  Showcase(
+                    key: _learnedTodayKey,
+                    title: 'Củng cố từ vừa học',
+                    description:
+                        'Nhấn "Ôn tập" để củng cố ngay các từ bạn vừa học hôm nay.',
+                    overlayOpacity: 0.7,
+                    targetShapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Obx(() => _buildLearnedTodaySection()),
+                  ),
 
                   const SizedBox(height: 12),
 
                   // ===== CẦN ÔN HÔM NAY =====
-                  Obx(() => KeyedSubtree(
-                    key: dueTodayKey,
-                    child: _buildDueTodaySection(isDark),
-                  )),
+                  Showcase(
+                    key: _dueTodayKey,
+                    title: 'Cần ôn hôm nay',
+                    description:
+                        'Danh sách từ đến hạn ôn theo thuật toán SRS. Nhấn "Xem tất cả" để bắt đầu!',
+                    overlayOpacity: 0.7,
+                    targetShapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Obx(() => _buildDueTodaySection(isDark)),
+                  ),
 
                   const SizedBox(height: 12),
 
                   // ===== DỰ BÁO ÔN TẬP =====
-                  Obx(() => _buildForecastSection()),
+                  Showcase(
+                    key: _forecastKey,
+                    title: 'Dự báo ôn tập',
+                    description:
+                        'Xem trước số từ cần ôn trong 7 ngày tới để lên kế hoạch học tập.',
+                    overlayOpacity: 0.7,
+                    targetShapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Obx(() => _buildForecastSection()),
+                  ),
 
                   const SizedBox(height: 16),
 
                   // ===== BIỂU ĐỒ TUẦN =====
-                  Obx(() => KeyedSubtree(
-                    key: weeklyChartKey,
-                    child: _buildWeeklyProgressChart(isDark),
-                  )),
+                  Obx(() => _buildWeeklyProgressChart(isDark)),
 
                   // Bottom padding for glass nav bar
                   const SizedBox(height: 100),
@@ -202,9 +252,9 @@ class TodayScreen extends GetView<TodayController> {
     final streak = controller.streak;
     final hasStudiedToday = controller.hasStudiedToday;
     final isAtRisk = controller.isStreakAtRisk;
-    
+
     if (streak <= 0 && !isAtRisk) return const SizedBox.shrink();
-    
+
     return GestureDetector(
       onTap: controller.showStreakDetails,
       child: Container(
@@ -254,7 +304,10 @@ class TodayScreen extends GetView<TodayController> {
                       if (hasStudiedToday) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
@@ -286,11 +339,7 @@ class TodayScreen extends GetView<TodayController> {
               ),
             ),
             // Arrow
-            Icon(
-              Icons.chevron_right,
-              color: AppColors.textTertiary,
-              size: 20,
-            ),
+            Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 20),
           ],
         ),
       ),
@@ -308,12 +357,17 @@ class TodayScreen extends GetView<TodayController> {
 
     // Sử dụng learnedTodayCount (bao gồm cả local cache)
     final wordsLearned = controller.learnedTodayCount;
-    final goal = data?.dailyNewLimit ?? 20;
+    // Use goals from controller (User Profile source of truth)
+    final goal = controller.dailyNewLimit;
     final completedMinutes = data?.completedMinutes ?? 0;
-    final goalMinutes = data?.dailyGoalMinutes ?? 30;
+    final goalMinutes = controller.dailyGoalMinutes;
 
-    final wordsProgress = goal > 0 ? (wordsLearned / goal).clamp(0.0, 1.0) : 0.0;
-    final timeProgress = goalMinutes > 0 ? (completedMinutes / goalMinutes).clamp(0.0, 1.0) : 0.0;
+    final wordsProgress = goal > 0
+        ? (wordsLearned / goal).clamp(0.0, 1.0)
+        : 0.0;
+    final timeProgress = goalMinutes > 0
+        ? (completedMinutes / goalMinutes).clamp(0.0, 1.0)
+        : 0.0;
 
     return HMCard(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -336,7 +390,9 @@ class TodayScreen extends GetView<TodayController> {
                     strokeCap: StrokeCap.round,
                     backgroundColor: Colors.transparent,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      isDark ? AppColors.surfaceDark : AppColors.border.withAlpha(80),
+                      isDark
+                          ? AppColors.surfaceDark
+                          : AppColors.border.withAlpha(80),
                     ),
                   ),
                 ),
@@ -349,7 +405,9 @@ class TodayScreen extends GetView<TodayController> {
                     strokeWidth: 12,
                     strokeCap: StrokeCap.round,
                     backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
                   ),
                 ),
                 // Inner ring background (Words)
@@ -362,7 +420,9 @@ class TodayScreen extends GetView<TodayController> {
                     strokeCap: StrokeCap.round,
                     backgroundColor: Colors.transparent,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      isDark ? AppColors.surfaceDark : AppColors.border.withAlpha(80),
+                      isDark
+                          ? AppColors.surfaceDark
+                          : AppColors.border.withAlpha(80),
                     ),
                   ),
                 ),
@@ -375,7 +435,9 @@ class TodayScreen extends GetView<TodayController> {
                     strokeWidth: 10,
                     strokeCap: StrokeCap.round,
                     backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryLight),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primaryLight,
+                    ),
                   ),
                 ),
                 // Center content - Minutes
@@ -385,14 +447,18 @@ class TodayScreen extends GetView<TodayController> {
                     Text(
                       '$completedMinutes',
                       style: AppTypography.displaySmall.copyWith(
-                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       'PHÚT',
                       style: AppTypography.labelSmall.copyWith(
-                        color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                        color: isDark
+                            ? AppColors.textTertiaryDark
+                            : AppColors.textTertiary,
                         letterSpacing: 1.5,
                       ),
                     ),
@@ -401,9 +467,9 @@ class TodayScreen extends GetView<TodayController> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Legend row
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -427,13 +493,17 @@ class TodayScreen extends GetView<TodayController> {
                       Text(
                         'Mục tiêu',
                         style: AppTypography.labelSmall.copyWith(
-                          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                          color: isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiary,
                         ),
                       ),
                       Text(
                         '${goalMinutes}m',
                         style: AppTypography.titleMedium.copyWith(
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -441,9 +511,9 @@ class TodayScreen extends GetView<TodayController> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(width: 32),
-              
+
               // Words legend
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -463,13 +533,17 @@ class TodayScreen extends GetView<TodayController> {
                       Text(
                         'Từ mới',
                         style: AppTypography.labelSmall.copyWith(
-                          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                          color: isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiary,
                         ),
                       ),
                       Text(
                         '$wordsLearned/$goal',
                         style: AppTypography.titleMedium.copyWith(
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -483,20 +557,17 @@ class TodayScreen extends GetView<TodayController> {
       ),
     );
   }
-  
+
   /// Build the Next Action CTA card
   Widget _buildNextActionCard() {
     final action = controller.nextAction.value;
     if (action == null) return const SizedBox.shrink();
-    
+
     return Column(
       children: [
         // Show lock warning banner if new learning is blocked
         _buildLockWarningBanner(),
-        HMNextActionCard(
-          action: action,
-          onTap: controller.executeNextAction,
-        ),
+        HMNextActionCard(action: action, onTap: controller.executeNextAction),
       ],
     );
   }
@@ -510,7 +581,7 @@ class TodayScreen extends GetView<TodayController> {
 
     final isReviewOverload = data.isBlockedByReviewOverload;
     final isMasteryRequired = data.isBlockedByMastery;
-    
+
     if (!isReviewOverload && !isMasteryRequired) {
       return const SizedBox.shrink();
     }
@@ -528,7 +599,8 @@ class TodayScreen extends GetView<TodayController> {
       textColor = AppColors.warning;
       icon = '⚠️';
       title = 'Quá tải ôn tập';
-      message = data.reviewOverloadInfo?.message ?? 
+      message =
+          data.reviewOverloadInfo?.message ??
           'Có ${data.reviewQueue.length} từ cần ôn. Hãy ôn bớt để học tiếp!';
     } else {
       bgColor = AppColors.secondary.withAlpha(15);
@@ -537,7 +609,9 @@ class TodayScreen extends GetView<TodayController> {
       icon = '🎯';
       title = 'Cần master từ đã học';
       final req = data.unlockRequirement;
-      message = req?.message ?? 'Hãy ôn tập để master ${req?.wordsToMaster ?? 0} từ còn lại.';
+      message =
+          req?.message ??
+          'Hãy ôn tập để master ${req?.wordsToMaster ?? 0} từ còn lại.';
     }
 
     return Container(
@@ -577,41 +651,43 @@ class TodayScreen extends GetView<TodayController> {
       ),
     );
   }
-  
+
   /// Build learned today section
   /// Hiển thị từ đã học hôm nay với nút Ôn tập (củng cố)
   Widget _buildLearnedTodaySection() {
     final items = controller.learnedTodayItems;
     final count = controller.learnedTodayCount; // Includes local cache
     final isLoading = controller.isLoadingLearnedToday.value;
-    
+
     // Không ẩn nếu count > 0 (có từ trong local cache)
     if (count == 0 && !isLoading) {
       return const SizedBox.shrink();
     }
-    
+
     return HMLearnedTodayWidget(
       items: items,
       count: count,
       isLoading: isLoading,
       showEvenIfEmpty: count > 0, // Show header even if items list is empty
-      onTapReview: count > 0 ? () => controller.startSession(SessionMode.reviewToday) : null,
+      onTapReview: count > 0
+          ? () => controller.startSession(SessionMode.reviewToday)
+          : null,
       onTapItem: (item) {
         Get.toNamed(Routes.wordDetail, arguments: {'vocabId': item.id});
       },
     );
   }
-  
+
   /// Build forecast section
   Widget _buildForecastSection() {
     final days = controller.forecastDays;
     final tomorrowCount = controller.tomorrowReviewCount;
     final isLoading = controller.isLoadingForecast.value;
-    
+
     if (days.isEmpty && !isLoading) {
       return const SizedBox.shrink();
     }
-    
+
     return HMForecastWidget(
       days: days,
       tomorrowCount: tomorrowCount,
@@ -629,30 +705,43 @@ class TodayScreen extends GetView<TodayController> {
     }
 
     // Calculate weekly stats
-    final weeklyNewCount = weeklyProgress.fold(0, (sum, day) => sum + day.newCount);
-    final weeklyReviewCount = weeklyProgress.fold(0, (sum, day) => sum + day.reviewCount);
-    final weeklyMinutes = weeklyProgress.fold(0, (sum, day) => sum + day.minutes);
-    
+    final weeklyNewCount = weeklyProgress.fold(
+      0,
+      (sum, day) => sum + day.newCount,
+    );
+    final weeklyReviewCount = weeklyProgress.fold(
+      0,
+      (sum, day) => sum + day.reviewCount,
+    );
+    final weeklyMinutes = weeklyProgress.fold(
+      0,
+      (sum, day) => sum + day.minutes,
+    );
+
     // Calculate average accuracy ONLY from days with activity
     // (days without activity shouldn't drag down the average)
-    final daysWithActivity = weeklyProgress.where((day) => 
-        day.newCount > 0 || day.reviewCount > 0 || day.minutes > 0
-    ).toList();
-    final avgAccuracy = daysWithActivity.isNotEmpty 
-        ? daysWithActivity.fold(0, (sum, day) => sum + day.accuracy) ~/ daysWithActivity.length
+    final daysWithActivity = weeklyProgress
+        .where(
+          (day) => day.newCount > 0 || day.reviewCount > 0 || day.minutes > 0,
+        )
+        .toList();
+    final avgAccuracy = daysWithActivity.isNotEmpty
+        ? daysWithActivity.fold(0, (sum, day) => sum + day.accuracy) ~/
+              daysWithActivity.length
         : 0;
 
     // Calculate max minutes for scaling
     final maxMinutes = weeklyProgress
         .map((e) => e.minutes)
         .fold(0, (a, b) => a > b ? a : b);
-    
+
     // Heights that adapt to content
     const double barMaxHeight = 60.0;
     const double labelHeight = 16.0;
     const double dayLabelHeight = 16.0;
     const double spacing = 6.0;
-    const double totalHeight = barMaxHeight + labelHeight + dayLabelHeight + spacing * 2;
+    const double totalHeight =
+        barMaxHeight + labelHeight + dayLabelHeight + spacing * 2;
 
     return HMCard(
       padding: const EdgeInsets.all(16),
@@ -674,9 +763,8 @@ class TodayScreen extends GetView<TodayController> {
               ),
               // View details button
               GestureDetector(
-                onTap: () => HMWeeklyStatsSheet.show(
-                  weeklyProgress: weeklyProgress,
-                ),
+                onTap: () =>
+                    HMWeeklyStatsSheet.show(weeklyProgress: weeklyProgress),
                 child: Text(
                   'Xem thêm',
                   style: AppTypography.labelSmall.copyWith(
@@ -687,15 +775,15 @@ class TodayScreen extends GetView<TodayController> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Weekly summary stats row
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark 
-                  ? AppColors.surfaceVariantDark 
+              color: isDark
+                  ? AppColors.surfaceVariantDark
                   : const Color(0xFFF8FAFC),
               borderRadius: AppSpacing.borderRadiusMd,
             ),
@@ -738,15 +826,17 @@ class TodayScreen extends GetView<TodayController> {
                 _WeekStatItem(
                   value: '$avgAccuracy%',
                   label: 'Độ chính xác',
-                  color: avgAccuracy >= 80 ? AppColors.success : AppColors.warning,
+                  color: avgAccuracy >= 80
+                      ? AppColors.success
+                      : AppColors.warning,
                   isDark: isDark,
                 ),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Chart container with fixed height
           SizedBox(
             height: totalHeight,
@@ -773,8 +863,8 @@ class TodayScreen extends GetView<TodayController> {
                                   color: isToday
                                       ? AppColors.primary
                                       : (isDark
-                                          ? AppColors.textTertiaryDark
-                                          : AppColors.textTertiary),
+                                            ? AppColors.textTertiaryDark
+                                            : AppColors.textTertiary),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 10,
                                 ),
@@ -801,12 +891,12 @@ class TodayScreen extends GetView<TodayController> {
                           color: isToday
                               ? null
                               : (day.minutes > 0
-                                  ? (isDark
-                                      ? AppColors.surfaceVariantDark
-                                      : const Color(0xFFE2E8F0))
-                                  : (isDark
-                                      ? AppColors.borderDark
-                                      : AppColors.border)),
+                                    ? (isDark
+                                          ? AppColors.surfaceVariantDark
+                                          : const Color(0xFFE2E8F0))
+                                    : (isDark
+                                          ? AppColors.borderDark
+                                          : AppColors.border)),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -820,9 +910,11 @@ class TodayScreen extends GetView<TodayController> {
                             color: isToday
                                 ? AppColors.primary
                                 : (isDark
-                                    ? AppColors.textTertiaryDark
-                                    : AppColors.textTertiary),
-                            fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
+                                      ? AppColors.textTertiaryDark
+                                      : AppColors.textTertiary),
+                            fontWeight: isToday
+                                ? FontWeight.w600
+                                : FontWeight.w400,
                             fontSize: 10,
                           ),
                           textAlign: TextAlign.center,
@@ -849,7 +941,7 @@ class TodayScreen extends GetView<TodayController> {
         // Section title
         _buildSectionTitle('Ôn tập & Luyện tập', isDark),
         const SizedBox(height: 12),
-        
+
         // Row: Ôn tập SRS + Game 30s
         Row(
           children: [
@@ -861,7 +953,7 @@ class TodayScreen extends GetView<TodayController> {
                 subtitle: dueCount > 0 ? 'Từ cũ cần ôn' : 'Không có từ',
                 badge: dueCount > 0 ? '$dueCount' : null,
                 badgeColor: AppColors.error,
-                onTap: dueCount > 0 
+                onTap: dueCount > 0
                     ? () => controller.startSession(SessionMode.review)
                     : null,
                 isDark: isDark,
@@ -886,9 +978,8 @@ class TodayScreen extends GetView<TodayController> {
     );
   }
 
-  // NOTE: "Củng cố từ vừa học" đã có trong _buildLearnedTodaySection() 
+  // NOTE: "Củng cố từ vừa học" đã có trong _buildLearnedTodaySection()
   // với HMLearnedTodayWidget - KHÔNG trùng lặp ở đây
-
 
   Widget _buildDueTodaySection(bool isDark) {
     final data = controller.todayData.value;
@@ -971,10 +1062,12 @@ class TodayScreen extends GetView<TodayController> {
             Get.toNamed(Routes.srsReviewList);
           }, isDark),
           const SizedBox(height: 12),
-          ...dueItems.map((vocab) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DueVocabCard(vocab: vocab, isDark: isDark),
-              )),
+          ...dueItems.map(
+            (vocab) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _DueVocabCard(vocab: vocab, isDark: isDark),
+            ),
+          ),
         ],
       );
     }
@@ -998,7 +1091,13 @@ class TodayScreen extends GetView<TodayController> {
   }
 
   /// Section header with title, count badge, and action link
-  Widget _buildSectionHeader(String title, int count, String action, VoidCallback onAction, bool isDark) {
+  Widget _buildSectionHeader(
+    String title,
+    int count,
+    String action,
+    VoidCallback onAction,
+    bool isDark,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1007,14 +1106,19 @@ class TodayScreen extends GetView<TodayController> {
             Text(
               title,
               style: AppTypography.titleMedium.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             if (count > 0) ...[
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.warning.withAlpha(20),
                   borderRadius: BorderRadius.circular(12),
@@ -1072,7 +1176,7 @@ class _QuickActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final disabled = isDisabled || onTap == null;
     final opacity = disabled ? 0.5 : 1.0;
-    
+
     return GestureDetector(
       onTap: disabled ? null : onTap,
       child: Opacity(
@@ -1095,9 +1199,11 @@ class _QuickActionCard extends StatelessWidget {
                     ),
                     child: Icon(
                       icon,
-                      color: iconColor ?? (isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondary),
+                      color:
+                          iconColor ??
+                          (isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary),
                       size: 24,
                     ),
                   ),
@@ -1161,29 +1267,22 @@ class _DueVocabCard extends StatelessWidget {
     // Determine urgency based on due date
     final now = DateTime.now();
     final dueDate = vocab.dueDate;
-    final daysOverdue = dueDate != null 
-        ? now.difference(dueDate).inDays 
-        : 0;
-    
+    final daysOverdue = dueDate != null ? now.difference(dueDate).inDays : 0;
+
     final isUrgent = daysOverdue > 3;
     final urgencyColor = isUrgent ? AppColors.error : AppColors.warning;
     final urgencyLabel = isUrgent ? 'Cần ôn' : 'Đến hạn';
     final timeLabel = _getDueDateText(dueDate, daysOverdue);
 
     return GestureDetector(
-      onTap: () => Get.toNamed(
-        Routes.wordDetail,
-        arguments: {'vocab': vocab},
-      ),
+      onTap: () => Get.toNamed(Routes.wordDetail, arguments: {'vocab': vocab}),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceDark : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark 
-                ? AppColors.borderDark 
-                : const Color(0xFFE2E8F0),
+            color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
           ),
         ),
         child: Row(
@@ -1223,7 +1322,9 @@ class _DueVocabCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withAlpha(15),
                           borderRadius: BorderRadius.circular(6),
@@ -1266,7 +1367,10 @@ class _DueVocabCard extends StatelessWidget {
               children: [
                 // Urgency badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: urgencyColor.withAlpha(15),
                     borderRadius: BorderRadius.circular(8),
@@ -1351,9 +1455,7 @@ class _WeekStatItem extends StatelessWidget {
         Text(
           label,
           style: AppTypography.labelSmall.copyWith(
-            color: isDark
-                ? AppColors.textTertiaryDark
-                : AppColors.textTertiary,
+            color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
             fontSize: 10,
           ),
         ),

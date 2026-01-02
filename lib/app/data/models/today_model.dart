@@ -18,14 +18,14 @@ class StreakStatus {
   factory StreakStatus.fromJson(Map<String, dynamic> json) {
     return StreakStatus(
       hasStudiedToday: json['hasStudiedToday'] as bool? ?? false,
-      lastStudyDate: json['lastStudyDate'] != null 
-          ? DateTime.tryParse(json['lastStudyDate'] as String) 
+      lastStudyDate: json['lastStudyDate'] != null
+          ? DateTime.tryParse(json['lastStudyDate'] as String)
           : null,
-      streakSafeUntil: json['streakSafeUntil'] != null 
-          ? DateTime.tryParse(json['streakSafeUntil'] as String) 
+      streakSafeUntil: json['streakSafeUntil'] != null
+          ? DateTime.tryParse(json['streakSafeUntil'] as String)
           : null,
-      willLoseStreakAt: json['willLoseStreakAt'] != null 
-          ? DateTime.tryParse(json['willLoseStreakAt'] as String) 
+      willLoseStreakAt: json['willLoseStreakAt'] != null
+          ? DateTime.tryParse(json['willLoseStreakAt'] as String)
           : null,
     );
   }
@@ -44,7 +44,7 @@ class StreakStatus {
     if (willLoseStreakAt == null) return '';
     final diff = willLoseStreakAt!.difference(DateTime.now());
     if (diff.isNegative) return 'Đã mất streak!';
-    
+
     if (diff.inDays > 0) {
       return '${diff.inDays} ngày ${diff.inHours % 24} giờ';
     } else if (diff.inHours > 0) {
@@ -93,7 +93,8 @@ class UnlockRequirement {
     'message': message,
   };
 
-  int get wordsToMaster => (requiredCount - masteredCount).clamp(0, requiredCount);
+  int get wordsToMaster =>
+      (requiredCount - masteredCount).clamp(0, requiredCount);
 }
 
 /// Review overload info from BE
@@ -122,7 +123,8 @@ class ReviewOverloadInfo {
     'message': message,
   };
 
-  int get excessCount => (currentReviewCount - maxAllowed).clamp(0, currentReviewCount);
+  int get excessCount =>
+      (currentReviewCount - maxAllowed).clamp(0, currentReviewCount);
 }
 
 /// Level advancement notification from BE
@@ -165,8 +167,9 @@ class LevelAdvancementInfo {
   };
 
   /// Get current level number (1-6)
-  int get currentLevelInt => int.tryParse(currentLevel.replaceAll('HSK', '')) ?? 1;
-  
+  int get currentLevelInt =>
+      int.tryParse(currentLevel.replaceAll('HSK', '')) ?? 1;
+
   /// Get next level number (1-6)
   int get nextLevelInt => int.tryParse(nextLevel.replaceAll('HSK', '')) ?? 2;
 }
@@ -174,8 +177,8 @@ class LevelAdvancementInfo {
 /// Today's learning data - matches BE API response
 class TodayModel {
   final int streak;
-  final int bestStreak;          // 🆕 Kỷ lục streak cao nhất từng đạt
-  final String streakRank;       // 'top5', 'top10', 'top25', 'top50', ''
+  final int bestStreak; // 🆕 Kỷ lục streak cao nhất từng đạt
+  final String streakRank; // 'top5', 'top10', 'top25', 'top50', ''
   final StreakStatus? streakStatus; // 🆕 Chi tiết trạng thái streak
   final int totalUsers;
   final int newLearned;
@@ -190,21 +193,21 @@ class TodayModel {
   final List<VocabModel> newQueue;
   final List<VocabModel> reviewQueue;
   final List<DayProgress> weeklyProgress;
-  
+
   // New fields from BE update
-  final int dailyNewLimit;      // Giới hạn từ mới/ngày (từ profile)
-  final int newLearnedToday;    // Số từ mới ĐÃ HỌC hôm nay
-  final int remainingNewLimit;  // Số từ mới CÒN LẠI có thể học hôm nay
-  
+  final int dailyNewLimit; // Giới hạn từ mới/ngày (từ profile)
+  final int newLearnedToday; // Số từ mới ĐÃ HỌC hôm nay
+  final int remainingNewLimit; // Số từ mới CÒN LẠI có thể học hôm nay
+
   // 🆕 Level Progress System fields
-  final bool isNewQueueLocked;       // Có bị lock học từ mới không
-  final String? lockReason;          // 'review_overload' | 'mastery_required' | null
-  final UnlockRequirement? unlockRequirement;  // Thông tin yêu cầu để unlock
+  final bool isNewQueueLocked; // Có bị lock học từ mới không
+  final String? lockReason; // 'review_overload' | 'mastery_required' | null
+  final UnlockRequirement? unlockRequirement; // Thông tin yêu cầu để unlock
   final ReviewOverloadInfo? reviewOverloadInfo; // Thông tin quá tải review
-  
+
   // 🆕 Game limit fields
-  final GameLimitInfo? gameLimit;    // Game 30s daily limit info
-  
+  final GameLimitInfo? gameLimit; // Game 30s daily limit info
+
   // 🆕 Level advancement notification
   final LevelAdvancementInfo? levelAdvancement; // null if not ready to advance
 
@@ -240,6 +243,9 @@ class TodayModel {
   factory TodayModel.fromJson(Map<String, dynamic> json) {
     // Handle wrapped response: { success: true, data: {...} }
     final data = json['data'] ?? json;
+
+    // Parse nested stats object if available (New BE Spec)
+    final stats = data['stats'] as Map<String, dynamic>? ?? {};
 
     // Helper to safely parse int from JSON (handles null, int, double)
     int safeInt(dynamic value, [int defaultValue = 0]) {
@@ -285,35 +291,43 @@ class TodayModel {
     }
 
     return TodayModel(
-      streak: safeInt(data['streak']),
-      bestStreak: safeInt(data['bestStreak']),
+      streak: safeInt(stats['streak'] ?? data['streak']),
+      bestStreak: safeInt(stats['bestStreak'] ?? data['bestStreak']),
       streakRank: data['streakRank'] as String? ?? '',
       streakStatus: streakStatus,
       totalUsers: safeInt(data['totalUsers']),
-      newLearned: safeInt(data['newLearned']),
-      reviewed: safeInt(data['reviewed']),
-      masteredCount: safeInt(data['masteredCount']),
-      totalLearned: safeInt(data['totalLearned']),
-      dailyGoalMinutes: safeInt(data['dailyGoalMinutes'], 15),
-      completedMinutes: safeInt(data['completedMinutes']),
-      todayAccuracy: safeInt(data['todayAccuracy']),
-      newCount: safeInt(data['newCount']),
-      reviewCount: safeInt(data['reviewCount']),
-      newQueue: (data['newQueue'] as List<dynamic>?)
+      newLearned: safeInt(stats['newLearned'] ?? data['newLearned']),
+      reviewed: safeInt(stats['reviewed'] ?? data['reviewed']),
+      masteredCount: safeInt(stats['masteredCount'] ?? data['masteredCount']),
+      totalLearned: safeInt(stats['totalLearned'] ?? data['totalLearned']),
+      dailyGoalMinutes: safeInt(
+        stats['dailyGoalMinutes'] ?? data['dailyGoalMinutes'],
+        15,
+      ),
+      completedMinutes: safeInt(
+        stats['completedMinutes'] ?? data['completedMinutes'],
+      ),
+      todayAccuracy: safeInt(stats['todayAccuracy'] ?? data['todayAccuracy']),
+      newCount: safeInt(stats['newCount'] ?? data['newCount']),
+      reviewCount: safeInt(stats['reviewCount'] ?? data['reviewCount']),
+      newQueue:
+          (data['newQueue'] as List<dynamic>?)
               ?.map((e) => VocabModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      reviewQueue: (data['reviewQueue'] as List<dynamic>?)
+      reviewQueue:
+          (data['reviewQueue'] as List<dynamic>?)
               ?.map((e) => VocabModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      weeklyProgress: (data['weeklyProgress'] as List<dynamic>?)
+      weeklyProgress:
+          (data['weeklyProgress'] as List<dynamic>?)
               ?.map((e) => DayProgress.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
       dailyNewLimit: safeInt(data['dailyNewLimit'], 30),
-      newLearnedToday: safeInt(data['newLearnedToday']) > 0 
-          ? safeInt(data['newLearnedToday']) 
+      newLearnedToday: safeInt(data['newLearnedToday']) > 0
+          ? safeInt(data['newLearnedToday'])
           : safeInt(data['newLearned']),
       remainingNewLimit: safeInt(data['remainingNewLimit'], 30),
       isNewQueueLocked: data['isNewQueueLocked'] as bool? ?? false,
@@ -354,7 +368,8 @@ class TodayModel {
       if (gameLimit != null) 'gamePlaysToday': gameLimit!.gamePlaysToday,
       if (gameLimit != null) 'dailyGameLimit': gameLimit!.dailyGameLimit,
       if (gameLimit != null) 'canPlayGame': gameLimit!.canPlayGame,
-      if (levelAdvancement != null) 'levelAdvancement': levelAdvancement!.toJson(),
+      if (levelAdvancement != null)
+        'levelAdvancement': levelAdvancement!.toJson(),
     };
   }
 
@@ -419,7 +434,7 @@ class TodayModel {
 
   /// Check if user can play Game 30s
   bool get canPlayGame => gameLimit?.canPlayGame ?? true;
-  
+
   /// Get remaining game plays
   int get remainingGamePlays => gameLimit?.remainingPlays ?? 3;
 
@@ -525,7 +540,8 @@ class DayProgress {
   /// Check if this is today
   bool get isToday {
     final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     return date == todayStr;
   }
 }
@@ -556,7 +572,7 @@ class SessionResultModel {
       'newCount': newCount,
       'reviewCount': reviewCount,
       'accuracy': (accuracy * 100).round(), // BE expects 0-100
-      'dateKey': dateKey,
+      // dateKey removed as per strict API spec
     };
   }
 }
@@ -574,7 +590,7 @@ extension ReviewRatingExtension on ReviewRating {
       case ReviewRating.good:
         return 'good';
       case ReviewRating.easy:
-        return 'easy';
+        return 'easy'; // Spec requires lowercase
     }
   }
 }
@@ -600,13 +616,16 @@ class ReviewAnswerResponse {
   factory ReviewAnswerResponse.fromJson(Map<String, dynamic> json) {
     final data = json['data'] ?? json;
     final progress = data['progress'] ?? data;
-    
+
     return ReviewAnswerResponse(
       vocabId: progress['vocabId'] as String? ?? '',
-      state: data['newState'] as String? ?? progress['state'] as String? ?? 'new',
+      state:
+          data['newState'] as String? ?? progress['state'] as String? ?? 'new',
       intervalDays: progress['intervalDays'] as int? ?? 0,
       ease: (progress['ease'] as num?)?.toDouble() ?? 2.5,
-      dueDate: progress['dueDate'] != null ? DateTime.tryParse(progress['dueDate']) : null,
+      dueDate: progress['dueDate'] != null
+          ? DateTime.tryParse(progress['dueDate'])
+          : null,
       reps: progress['reps'] as int? ?? 0,
     );
   }
@@ -633,14 +652,15 @@ class SessionFinishResponse {
   factory SessionFinishResponse.fromJson(Map<String, dynamic> json) {
     final data = json['data'] ?? json;
     final session = data['session'] ?? data;
-    
+
     return SessionFinishResponse(
       minutes: session['minutes'] as int? ?? 0,
       newCount: session['newCount'] as int? ?? 0,
       reviewCount: session['reviewCount'] as int? ?? 0,
       accuracy: session['accuracy'] as int? ?? 0,
       streak: data['streak'] as int? ?? session['streak'] as int? ?? 0,
-      bestStreak: data['bestStreak'] as int? ?? session['bestStreak'] as int? ?? 0,
+      bestStreak:
+          data['bestStreak'] as int? ?? session['bestStreak'] as int? ?? 0,
     );
   }
 }
