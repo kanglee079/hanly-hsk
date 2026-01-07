@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/widgets.dart';
 
 /// Widget shown when practice session is complete
@@ -62,7 +61,7 @@ class PracticeCompleteWidget extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: AppSpacing.screenPadding,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
               const Spacer(flex: 2),

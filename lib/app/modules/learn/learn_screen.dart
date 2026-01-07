@@ -518,11 +518,11 @@ class LearnScreen extends GetView<LearnController> {
               child: SizedBox(
                 height: cardHeight,
                 child: _ModeCard(
-                  icon: Icons.flip_rounded,
-                  iconBgColor: const Color(0xFFFFF3E0),
-                  iconColor: const Color(0xFFFF9800),
-                  title: 'Flashcards',
-                  subtitle: 'SRS • 10 thẻ',
+                  icon: Icons.sort_rounded,
+                  iconBgColor: const Color(0xFFFFF8E1),
+                  iconColor: const Color(0xFFFF8F00),
+                  title: 'Đặt câu',
+                  subtitle: 'Sắp xếp từ tạo câu',
                   duration: '~5m',
                   pendingCount: controller.dueReviewCount,
                   onTap: () => controller.startMode(LearnMode.srsVocabulary),
@@ -1001,7 +1001,8 @@ class _DynamicModeCard extends StatelessWidget {
     IconData iconData;
     switch (modeId) {
       case 'srs_vocabulary':
-        iconData = Icons.flip_rounded;
+      case 'sentence_reorder':
+        iconData = Icons.sort_rounded; // Sentence reorder icon
         break;
       case 'listening':
         iconData = Icons.headphones_rounded;
@@ -1023,7 +1024,8 @@ class _DynamicModeCard extends StatelessWidget {
   String _getDisplayName(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
-        return 'Flashcards';
+      case 'sentence_reorder':
+        return 'Đặt câu'; // Changed from Flashcards to Sentence Reorder
       case 'listening':
         return 'Luyện Nghe';
       case 'writing':
@@ -1042,7 +1044,8 @@ class _DynamicModeCard extends StatelessWidget {
   String _getDisplaySubtitle(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
-        return 'SRS • 10 thẻ';
+      case 'sentence_reorder':
+        return 'Sắp xếp từ tạo câu'; // Updated subtitle
       case 'listening':
         return 'Nghe & chọn đáp án';
       case 'writing':
@@ -1060,9 +1063,10 @@ class _DynamicModeCard extends StatelessWidget {
   _ModeColors _getModeColors(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
+      case 'sentence_reorder':
         return _ModeColors(
-          bgColor: const Color(0xFFFFF3E0),
-          iconColor: const Color(0xFFFF9800),
+          bgColor: const Color(0xFFFFF8E1), // Amber light
+          iconColor: const Color(0xFFFF8F00), // Amber
         );
       case 'listening':
         return _ModeColors(

@@ -634,6 +634,45 @@ class PracticeController extends GetxController {
     // The exercise widget will show the continue button
   }
 
+  // ========== SENTENCE REORDER HANDLING ==========
+
+  /// Handle correct sentence reorder
+  void onSentenceReorderCorrect() {
+    final exercise = currentExercise;
+    if (exercise == null) return;
+
+    totalExercises.value++;
+    correctCount.value++;
+    isCorrect.value = true;
+    hasAnswered.value = true;
+    streak.value++;
+    xpEarned.value += exercise.xpReward * config.xpMultiplier;
+    lastXpAwarded.value = exercise.xpReward * config.xpMultiplier;
+    lastAnswerCorrect.value = true;
+
+    HapticFeedback.mediumImpact();
+  }
+
+  /// Handle incorrect sentence reorder
+  void onSentenceReorderIncorrect() {
+    final exercise = currentExercise;
+    if (exercise == null) return;
+
+    // Only count as attempt on first incorrect
+    if (!hasAnswered.value) {
+      totalExercises.value++;
+      isCorrect.value = false;
+      hasAnswered.value = true;
+      streak.value = 0;
+      lastXpAwarded.value = 0;
+      lastAnswerCorrect.value = false;
+
+      HapticFeedback.heavyImpact();
+    }
+  }
+
+  // ========== MATCHING GAME HANDLING ==========
+
   /// Handle matching game selection
   void selectMatchingItem({required bool isLeft, required int index}) {
     if (matchedLeft.contains(index) && isLeft) return;

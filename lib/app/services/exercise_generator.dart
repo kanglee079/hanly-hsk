@@ -82,9 +82,10 @@ class ExerciseGenerator {
   /// Hanzi → Meaning (Show 你好, choose "Xin chào")
   Exercise _generateHanziToMeaning(VocabModel vocab, List<VocabModel> distractors) {
     final options = _generateMCQOptions(
-      correct: vocab.meaningVi,
-      distractors: distractors.map((v) => v.meaningVi).toList(),
+      correct: vocab.meaningViCapitalized,
+      distractors: distractors.map((v) => v.meaningViCapitalized).toList(),
       count: 4,
+      isChinese: false, // Options are Vietnamese meanings
     );
     
     return Exercise(
@@ -107,6 +108,7 @@ class ExerciseGenerator {
       correct: vocab.hanzi,
       distractors: distractors.map((v) => v.hanzi).toList(),
       count: 4,
+      isChinese: true, // Options are Chinese Hanzi
     );
     
     return Exercise(
@@ -133,6 +135,7 @@ class ExerciseGenerator {
       correct: vocab.hanzi,
       distractors: distractors.map((v) => v.hanzi).toList(),
       count: 4,
+      isChinese: true, // Options are Chinese Hanzi
     );
     
     return Exercise(
@@ -157,9 +160,10 @@ class ExerciseGenerator {
     }
     
     final options = _generateMCQOptions(
-      correct: vocab.meaningVi,
-      distractors: distractors.map((v) => v.meaningVi).toList(),
+      correct: vocab.meaningViCapitalized,
+      distractors: distractors.map((v) => v.meaningViCapitalized).toList(),
       count: 4,
+      isChinese: false, // Options are Vietnamese meanings
     );
     
     return Exercise(
@@ -183,6 +187,7 @@ class ExerciseGenerator {
       correct: vocab.pinyin,
       distractors: distractors.map((v) => v.pinyin).toList(),
       count: 4,
+      isPinyin: true, // Options are Pinyin
     );
     
     return Exercise(
@@ -218,6 +223,7 @@ class ExerciseGenerator {
           correct: vocab.hanzi,
           distractors: distractors.map((v) => v.hanzi).toList(),
           count: 4,
+          isChinese: true, // Options are Chinese Hanzi
         );
         
         return Exercise(
@@ -238,6 +244,8 @@ class ExerciseGenerator {
   }
   
   /// Sentence ordering
+  /// Generate sentence ordering exercise
+  /// Words are sent in CORRECT order - widget handles shuffling
   Exercise? _generateSentenceOrder(VocabModel vocab) {
     final examples = vocab.examples;
     if (examples.isEmpty) {
@@ -247,21 +255,61 @@ class ExerciseGenerator {
     final example = examples.first;
     final sentence = example.hanzi;
     
-    // Split sentence into characters/words (basic split)
-    final words = sentence.split('').where((c) => c.trim().isNotEmpty).toList();
-    if (words.length < 3) return null;
+    // Try to split by common Chinese word boundaries
+    // If sentence has spaces, use them; otherwise split by characters
+    List<String> words;
+    if (sentence.contains(' ')) {
+      // Sentence already has word boundaries
+      words = sentence.split(' ').where((w) => w.trim().isNotEmpty).toList();
+    } else {
+      // Split into 2-3 character groups for more natural words
+      // This is a heuristic - ideally we'd have pre-tokenized data
+      words = _splitIntoChineseWords(sentence);
+    }
     
-    final shuffled = List<String>.from(words)..shuffle(_random);
+    if (words.length < 3) return null;
     
     return Exercise(
       id: 'so_${vocab.id}_${DateTime.now().millisecondsSinceEpoch}',
       type: ExerciseType.sentenceOrder,
       vocabId: vocab.id,
-      questionMeaning: example.meaningVi,
-      sentenceWords: shuffled,
-      correctSentence: sentence,
+      questionMeaning: example.meaningViCapitalized,
+      sentenceWords: words, // Correct order - widget will shuffle
+      correctSentence: words.join(''), // For verification
       xpReward: 20,
     );
+  }
+  
+  /// Split Chinese sentence into word-like segments
+  /// This is a simple heuristic - ideally use tokenized data
+  List<String> _splitIntoChineseWords(String sentence) {
+    // Remove punctuation for cleaner tokens
+    final cleaned = sentence.replaceAll(RegExp(r'[。，！？、；：""''（）【】]'), '');
+    
+    // Simple heuristic: try to split into 2-character groups (most Chinese words are 2 chars)
+    // But preserve single chars at the end
+    final chars = cleaned.split('').where((c) => c.trim().isNotEmpty).toList();
+    final words = <String>[];
+    
+    int i = 0;
+    while (i < chars.length) {
+      // If we have at least 2 chars left, make a 2-char word
+      if (i + 1 < chars.length) {
+        // Randomly decide between 1-char and 2-char words for variety
+        if (_random.nextBool() && chars.length > 4) {
+          words.add(chars[i]);
+          i += 1;
+        } else {
+          words.add(chars[i] + chars[i + 1]);
+          i += 2;
+        }
+      } else {
+        words.add(chars[i]);
+        i += 1;
+      }
+    }
+    
+    return words;
   }
   
   /// Speak word exercise
@@ -308,10 +356,13 @@ class ExerciseGenerator {
   }
   
   /// Helper to generate MCQ options
+  /// [optionType] determines which generic distractors to use if needed
   _MCQOptions _generateMCQOptions({
     required String correct,
     required List<String> distractors,
     int count = 4,
+    bool isChinese = false,
+    bool isPinyin = false,
   }) {
     final options = <String>[correct];
     
@@ -327,8 +378,16 @@ class ExerciseGenerator {
       options.add(d);
     }
     
-    // Add generic distractors if needed
-    final genericDistractors = _getGenericDistractors();
+    // Add generic distractors if needed - USE CORRECT LANGUAGE
+    List<String> genericDistractors;
+    if (isChinese) {
+      genericDistractors = _getChineseGenericDistractors();
+    } else if (isPinyin) {
+      genericDistractors = _getPinyinGenericDistractors();
+    } else {
+      genericDistractors = _getVietnameseGenericDistractors();
+    }
+    
     while (options.length < count && genericDistractors.isNotEmpty) {
       final d = genericDistractors.removeAt(0);
       if (!options.contains(d)) {
@@ -343,14 +402,35 @@ class ExerciseGenerator {
     return _MCQOptions(shuffled: shuffled, correctIndex: correctIndex);
   }
   
-  List<String> _getGenericDistractors() {
+  /// Chinese generic distractors for Hanzi options
+  List<String> _getChineseGenericDistractors() {
     return [
       '谢谢', '你好', '再见', '对不起', '没关系',
       '好', '是', '不', '很', '也',
       '我', '你', '他', '她', '们',
-      'xin chào', 'tạm biệt', 'cảm ơn', 'xin lỗi', 'không sao',
-      'tốt', 'là', 'không', 'rất', 'cũng',
-      'tôi', 'bạn', 'anh ấy', 'cô ấy', 'họ',
+      '什么', '这个', '那个', '一个', '两个',
+      '可以', '不行', '知道', '看见', '听说',
+    ]..shuffle(_random);
+  }
+  
+  /// Vietnamese generic distractors for meaning options
+  List<String> _getVietnameseGenericDistractors() {
+    return [
+      'Xin chào', 'Tạm biệt', 'Cảm ơn', 'Xin lỗi', 'Không sao',
+      'Tốt', 'Là', 'Không', 'Rất', 'Cũng',
+      'Tôi', 'Bạn', 'Anh ấy', 'Cô ấy', 'Họ',
+      'Cái này', 'Cái kia', 'Một cái', 'Hai cái', 'Được',
+      'Không được', 'Biết', 'Nhìn thấy', 'Nghe nói', 'Muốn',
+    ]..shuffle(_random);
+  }
+  
+  /// Pinyin generic distractors
+  List<String> _getPinyinGenericDistractors() {
+    return [
+      'nǐ hǎo', 'zài jiàn', 'xiè xie', 'duì bu qǐ', 'méi guān xi',
+      'hǎo', 'shì', 'bù', 'hěn', 'yě',
+      'wǒ', 'nǐ', 'tā', 'men', 'de',
+      'zhè ge', 'nà ge', 'yī ge', 'liǎng ge', 'kě yǐ',
     ]..shuffle(_random);
   }
 }

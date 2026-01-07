@@ -1,3 +1,12 @@
+/// Extension to capitalize first letter of a string
+extension StringCapitalizeFirst on String {
+  /// Capitalize first letter only
+  String get capitalizeFirst {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1)}';
+  }
+}
+
 /// Vocabulary model - matches BE API response exactly
 class VocabModel {
   final String id;
@@ -71,6 +80,9 @@ class VocabModel {
     this.intervalDays,
     this.lastResult,
   });
+
+  /// Get meaning with first letter capitalized
+  String get meaningViCapitalized => meaningVi.capitalizeFirst;
 
   /// Get SRS state display text
   String get stateDisplay {
@@ -364,6 +376,9 @@ class ExampleModel {
     required this.meaningVi,
     this.audioUrl,
   });
+
+  /// Get meaning with first letter capitalized
+  String get meaningViCapitalized => meaningVi.capitalizeFirst;
 
   factory ExampleModel.fromJson(Map<String, dynamic> json) {
     return ExampleModel(

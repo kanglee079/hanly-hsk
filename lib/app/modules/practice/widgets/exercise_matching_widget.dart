@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/exercise_model.dart';
 
 /// Capitalize first letter
@@ -124,7 +123,7 @@ class _ExerciseMatchingWidgetState extends State<ExerciseMatchingWidget>
         ),
       ),
       child: Padding(
-        padding: AppSpacing.screenPadding.copyWith(top: 16),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
         child: Column(
           children: [
               // Hint text

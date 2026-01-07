@@ -2,15 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/vocab_model.dart';
 import '../../../data/models/today_model.dart';
-
-/// Capitalize first letter
-String _capitalize(String text) {
-  if (text.isEmpty) return text;
-  return text[0].toUpperCase() + text.substring(1);
-}
 
 /// SRS rating widget for review sessions
 class SRSRatingWidget extends StatelessWidget {
@@ -29,7 +22,7 @@ class SRSRatingWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: AppSpacing.screenPadding,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -55,7 +48,7 @@ class SRSRatingWidget extends StatelessWidget {
             const SizedBox(height: 8),
             
             Text(
-              _capitalize(vocab.meaningVi),
+              vocab.meaningViCapitalized,
               style: AppTypography.headlineSmall.copyWith(
                 color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
               ),

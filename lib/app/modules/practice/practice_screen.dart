@@ -11,6 +11,7 @@ import 'widgets/exercise_audio_widget.dart';
 import 'widgets/exercise_matching_widget.dart';
 import 'widgets/learning_content_widget.dart';
 import 'widgets/practice_complete_widget.dart';
+import 'widgets/sentence_reorder_widget.dart';
 import 'widgets/srs_rating_widget.dart';
 import 'widgets/wrong_answers_widget.dart';
 
@@ -332,8 +333,13 @@ class PracticeScreen extends GetView<PracticeController> {
         );
 
       case ExerciseType.sentenceOrder:
-        // TODO: Implement sentence ordering
-        return _buildPlaceholder('Sắp xếp câu', isDark);
+        return SentenceReorderWidget(
+          exercise: exercise,
+          isDark: isDark,
+          onCorrect: () => controller.onSentenceReorderCorrect(),
+          onIncorrect: () => controller.onSentenceReorderIncorrect(),
+          onContinue: controller.nextExercise,
+        );
 
       case ExerciseType.strokeWriting:
         // TODO: Implement stroke writing
