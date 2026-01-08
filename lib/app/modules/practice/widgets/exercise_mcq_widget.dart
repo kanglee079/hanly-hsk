@@ -182,63 +182,74 @@ class _ExerciseMCQWidgetState extends State<ExerciseMCQWidget>
   }
 
   Widget _buildHanziQuestion() {
+    // Compact layout: Hanzi + Audio in row to save vertical space
     return Column(
       children: [
-        // Hanzi
-        Text(
-          widget.exercise.questionHanzi ?? '',
-          style: AppTypography.hanziLarge.copyWith(
-            color: _colors.textPrimary,
-            fontSize: 56,
-          ),
-          textAlign: TextAlign.center,
+        // Row with Hanzi + Pinyin + Audio button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Hanzi + Pinyin
+            Column(
+              children: [
+                Text(
+                  widget.exercise.questionHanzi ?? '',
+                  style: AppTypography.hanziLarge.copyWith(
+                    color: _colors.textPrimary,
+                    fontSize: 56,
+                    height: 1.1,
+                  ),
+                ),
+                if (widget.exercise.questionPinyin != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _colors.accentGold.withAlpha(20),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      widget.exercise.questionPinyin!,
+                      style: AppTypography.pinyin.copyWith(
+                        fontSize: 20,
+                        color: _colors.accentGold,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            // Audio button next to hanzi
+            if (widget.exercise.questionAudioUrl != null && widget.onPlayAudio != null) ...[
+              const SizedBox(width: 20),
+              GestureDetector(
+                onTap: widget.onPlayAudio,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _colors.accentGold.withAlpha(25),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _colors.accentGold.withAlpha(60), width: 1.5),
+                  ),
+                  child: Icon(
+                    Icons.volume_up_rounded,
+                    color: _colors.accentGold,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
 
-        // Pinyin hint
-        if (widget.exercise.questionPinyin != null) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: _colors.accentGold.withAlpha(20),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              widget.exercise.questionPinyin!,
-              style: AppTypography.pinyin.copyWith(
-                fontSize: 16,
-                color: _colors.accentGold,
-              ),
-            ),
-          ),
-        ],
-
-        // Audio button
-        if (widget.exercise.questionAudioUrl != null && widget.onPlayAudio != null) ...[
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: widget.onPlayAudio,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: _colors.accentGold.withAlpha(20),
-                shape: BoxShape.circle,
-                border: Border.all(color: _colors.accentGold.withAlpha(50)),
-              ),
-              child: Icon(
-                Icons.volume_up_rounded,
-                color: _colors.accentGold,
-                size: 22,
-              ),
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         Text(
           _getQuestionText(),
-          style: AppTypography.bodyMedium.copyWith(
+          style: AppTypography.titleMedium.copyWith(
+            fontSize: 16,
             color: _colors.textSecondary,
           ),
           textAlign: TextAlign.center,
@@ -251,25 +262,27 @@ class _ExerciseMCQWidgetState extends State<ExerciseMCQWidget>
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
             color: _colors.accentGold.withAlpha(15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _colors.accentGold.withAlpha(40)),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _colors.accentGold.withAlpha(50)),
           ),
           child: Text(
             _capitalize(widget.exercise.questionMeaning ?? ''),
-            style: AppTypography.headlineSmall.copyWith(
+            style: AppTypography.headlineMedium.copyWith(
               color: _colors.textPrimary,
               fontWeight: FontWeight.w600,
+              fontSize: 24,
             ),
             textAlign: TextAlign.center,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Text(
           'Chọn chữ Hán đúng:',
-          style: AppTypography.bodyMedium.copyWith(
+          style: AppTypography.titleMedium.copyWith(
+            fontSize: 17,
             color: _colors.textSecondary,
           ),
         ),
@@ -278,45 +291,58 @@ class _ExerciseMCQWidgetState extends State<ExerciseMCQWidget>
   }
 
   Widget _buildFillBlankQuestion() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: _colors.accentGold.withAlpha(10),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _colors.accentGold.withAlpha(30)),
-          ),
-          child: Text(
-            widget.exercise.questionSentence ?? '',
-            style: TextStyle(
-              fontFamily: 'NotoSansSC',
-              fontSize: 18,
-              color: _colors.textPrimary,
-              height: 1.5,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 160),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: _colors.accentGold.withAlpha(10),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _colors.accentGold.withAlpha(30)),
+              ),
+              child: Text(
+                widget.exercise.questionSentence ?? '',
+                style: TextStyle(
+                  fontFamily: 'NotoSansSC',
+                  fontSize: 17,
+                  color: _colors.textPrimary,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        if (widget.exercise.questionMeaning != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            widget.exercise.questionMeaning!,
-            style: AppTypography.bodySmall.copyWith(
-              color: _colors.textTertiary,
-              fontStyle: FontStyle.italic,
+            if (widget.exercise.questionMeaning != null) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  widget.exercise.questionMeaning!,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: _colors.textTertiary,
+                    fontStyle: FontStyle.italic,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            Text(
+              'Điền từ phù hợp:',
+              style: AppTypography.bodyMedium.copyWith(
+                color: _colors.textSecondary,
+                fontSize: 14,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-        const SizedBox(height: 12),
-        Text(
-          'Điền từ phù hợp:',
-          style: AppTypography.bodyMedium.copyWith(
-            color: _colors.textSecondary,
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -374,7 +400,7 @@ class _ExerciseMCQWidgetState extends State<ExerciseMCQWidget>
           );
         },
         child: Padding(
-          padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+          padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
           child: GestureDetector(
             onTap: widget.hasAnswered
                 ? null
@@ -385,65 +411,69 @@ class _ExerciseMCQWidgetState extends State<ExerciseMCQWidget>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 58),
               padding: EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: isOptionChinese ? 10 : 12,
+                horizontal: 16,
+                vertical: isOptionChinese ? 12 : 14,
               ),
               decoration: BoxDecoration(
                 color: bgColor,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: borderColor,
-                  width: isSelected || (widget.hasAnswered && isCorrectOption) ? 2 : 1,
+                  width: isSelected || (widget.hasAnswered && isCorrectOption) ? 2.5 : 1.5,
                 ),
               ),
               child: Row(
                 children: [
-                  // Option letter
+                  // Option letter - larger
                   Container(
-                    width: 28,
-                    height: 28,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.primary.withAlpha(40)
+                          ? AppColors.primary.withAlpha(50)
                           : _colors.borderColor.withAlpha(40),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
                       child: Text(
                         String.fromCharCode(65 + index),
                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
                           color: isSelected ? AppColors.primary : textColor,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  // Option text
+                  const SizedBox(width: 14),
+                  // Option text - larger fonts
                   Expanded(
                     child: Text(
                       isOptionChinese ? option : _capitalize(option),
                       style: isOptionChinese
                           ? TextStyle(
                               fontFamily: 'NotoSansSC',
-                              fontSize: 22,
+                              fontSize: 26,
                               fontWeight: FontWeight.w500,
                               color: textColor,
                             )
-                          : AppTypography.bodyMedium.copyWith(
+                          : AppTypography.titleMedium.copyWith(
                               color: textColor,
-                              fontSize: 15,
+                              fontSize: 18,
+                              fontWeight: isSelected || (widget.hasAnswered && isCorrectOption)
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
                             ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  // Result icon
+                  // Result icon - larger
                   if (widget.hasAnswered && (isCorrectOption || isSelected))
                     Padding(
-                      padding: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.only(left: 10),
                       child: TweenAnimationBuilder<double>(
                         tween: Tween(begin: 0.0, end: 1.0),
                         duration: const Duration(milliseconds: 400),
@@ -454,7 +484,7 @@ class _ExerciseMCQWidgetState extends State<ExerciseMCQWidget>
                         child: Icon(
                           isCorrectOption ? Icons.check_circle_rounded : Icons.cancel_rounded,
                           color: isCorrectOption ? AppColors.success : AppColors.error,
-                          size: 22,
+                          size: 28,
                         ),
                       ),
                     ),

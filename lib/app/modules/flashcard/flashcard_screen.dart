@@ -110,15 +110,9 @@ class FlashcardScreen extends GetView<FlashcardController> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isDark ? Colors.white : AppColors.primary,
-              ),
-            ),
+          HMLoadingIndicator(
+            size: 48,
+            color: isDark ? Colors.white : AppColors.primary,
           ),
           const SizedBox(height: 16),
           Text(

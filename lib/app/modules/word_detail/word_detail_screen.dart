@@ -43,7 +43,10 @@ class WordDetailScreen extends GetView<WordDetailController> {
         final hasError = controller.hasError.value;
 
         if (vocab == null && isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const HMLoadingContent(
+            message: 'Đang tải từ vựng...',
+            icon: Icons.translate_rounded,
+          );
         }
 
         if (vocab == null && hasError) {
@@ -57,7 +60,7 @@ class WordDetailScreen extends GetView<WordDetailController> {
         }
 
         if (vocab == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const HMLoadingContent(icon: Icons.translate_rounded);
         }
 
         return SingleChildScrollView(
@@ -329,7 +332,7 @@ class WordDetailScreen extends GetView<WordDetailController> {
                       placeholder: (context, url) => Container(
                         color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                         child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: HMLoadingIndicator.small(),
                         ),
                       ),
                       errorWidget: (context, url, error) => Container(

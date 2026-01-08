@@ -69,7 +69,7 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
     return AppScaffold(
       appBar: HMAppBar(title: deck.name),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const HMLoadingContent(icon: Icons.folder_rounded)
           : Column(
               children: [
                 // Header with stats

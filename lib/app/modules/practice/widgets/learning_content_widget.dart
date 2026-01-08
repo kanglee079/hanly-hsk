@@ -395,13 +395,14 @@ class _LearningContentWidgetState extends State<LearningContentWidget>
 
     return BookPageScaffold(
       isDark: widget.isDark,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       enableScroll: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(child: _buildOrnament()),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          // Header row: Hanzi + Pinyin + Audio buttons
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -409,44 +410,45 @@ class _LearningContentWidgetState extends State<LearningContentWidget>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.vocab.hanzi, style: AppTypography.hanziLarge.copyWith(color: _colors.textPrimary, fontSize: 44)),
-                    const SizedBox(height: 4),
-                    Text(widget.vocab.pinyin, style: AppTypography.pinyin.copyWith(fontSize: 18, color: _colors.accentGold)),
+                    Text(widget.vocab.hanzi, style: AppTypography.hanziLarge.copyWith(color: _colors.textPrimary, fontSize: 56)),
+                    const SizedBox(height: 6),
+                    Text(widget.vocab.pinyin, style: AppTypography.pinyin.copyWith(fontSize: 22, color: _colors.accentGold, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
               if (widget.onPlayAudio != null) _buildSmallAudioButton(Icons.volume_up_rounded, widget.onPlayAudio!, isPrimary: true),
               if (widget.onPlaySlow != null) ...[
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 _buildSmallAudioButton(Icons.slow_motion_video_rounded, widget.onPlaySlow!, isPrimary: false),
               ],
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
+          // Meaning section - larger text
           _buildSection(
             icon: Icons.translate_rounded,
             title: 'Nghĩa',
             child: Text(
               widget.vocab.meaningViCapitalized,
-              style: AppTypography.headlineSmall.copyWith(color: _colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 20),
+              style: AppTypography.headlineMedium.copyWith(color: _colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 26),
             ),
           ),
           if (widget.vocab.wordType != null) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(color: AppColors.primary.withAlpha(15), borderRadius: BorderRadius.circular(10)),
-              child: Text(widget.vocab.wordType!, style: AppTypography.labelMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(color: AppColors.primary.withAlpha(18), borderRadius: BorderRadius.circular(12)),
+              child: Text(widget.vocab.wordType!, style: AppTypography.labelLarge.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 15)),
             ),
           ],
           if (dna != null) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 22),
             _buildSection(
               icon: Icons.auto_awesome_rounded,
               title: 'Cấu tạo',
               child: Wrap(
-                spacing: 10,
-                runSpacing: 8,
+                spacing: 12,
+                runSpacing: 10,
                 children: [
                   if (dna.radical != null) _buildDnaChip('Bộ', dna.radical!),
                   _buildDnaChip('Nét', '${dna.strokeCount}'),
@@ -456,7 +458,7 @@ class _LearningContentWidgetState extends State<LearningContentWidget>
             ),
           ],
           if (example != null) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 22),
             _buildSection(
               icon: Icons.format_quote_rounded,
               title: 'Ví dụ',
@@ -464,13 +466,13 @@ class _LearningContentWidgetState extends State<LearningContentWidget>
                   ? GestureDetector(
                       onTap: () => widget.onPlayExampleSentence!(example.hanzi, example.audioUrl, false),
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: _colors.accentGold.withAlpha(20),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _colors.accentGold.withAlpha(50)),
+                          color: _colors.accentGold.withAlpha(25),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _colors.accentGold.withAlpha(60)),
                         ),
-                        child: Icon(Icons.volume_up_rounded, size: 18, color: _colors.accentGold),
+                        child: Icon(Icons.volume_up_rounded, size: 22, color: _colors.accentGold),
                       ),
                     )
                   : null,
@@ -481,29 +483,29 @@ class _LearningContentWidgetState extends State<LearningContentWidget>
                     example.hanzi,
                     style: TextStyle(
                       fontFamily: 'NotoSansSC',
-                      fontSize: 18,
+                      fontSize: 22,
                       fontWeight: FontWeight.w500,
                       color: _colors.textPrimary,
                       height: 1.5,
                     ),
                   ),
                   if (example.pinyin.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Text(
                       example.pinyin,
-                      style: AppTypography.pinyinSmall.copyWith(color: _colors.accentGold.withAlpha(180), fontSize: 13),
+                      style: AppTypography.pinyin.copyWith(color: _colors.accentGold.withAlpha(200), fontSize: 16),
                     ),
                   ],
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     example.meaningViCapitalized,
-                    style: AppTypography.bodyMedium.copyWith(color: _colors.textSecondary, fontStyle: FontStyle.italic),
+                    style: AppTypography.bodyLarge.copyWith(color: _colors.textSecondary, fontStyle: FontStyle.italic, fontSize: 17),
                   ),
                 ],
               ),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           Center(child: _buildOrnament()),
         ],
       ),
@@ -529,13 +531,13 @@ class _LearningContentWidgetState extends State<LearningContentWidget>
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: _colors.accentGold),
-            const SizedBox(width: 8),
-            Text(title, style: AppTypography.labelLarge.copyWith(color: _colors.accentGold, fontWeight: FontWeight.w600)),
+            Icon(icon, size: 20, color: _colors.accentGold),
+            const SizedBox(width: 10),
+            Text(title, style: AppTypography.titleMedium.copyWith(color: _colors.accentGold, fontWeight: FontWeight.w600, fontSize: 17)),
             if (trailing != null) ...[const Spacer(), trailing],
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         child,
       ],
     );
@@ -573,31 +575,31 @@ class _LearningContentWidgetState extends State<LearningContentWidget>
         onTap();
       },
       child: Container(
-        width: 44,
-        height: 44,
+        width: 50,
+        height: 50,
         decoration: BoxDecoration(
-          color: isPrimary ? _colors.accentGold.withAlpha(25) : _colors.borderColor.withAlpha(25),
+          color: isPrimary ? _colors.accentGold.withAlpha(30) : _colors.borderColor.withAlpha(30),
           shape: BoxShape.circle,
-          border: Border.all(color: isPrimary ? _colors.accentGold.withAlpha(70) : _colors.borderColor.withAlpha(70)),
+          border: Border.all(color: isPrimary ? _colors.accentGold.withAlpha(80) : _colors.borderColor.withAlpha(80), width: 1.5),
         ),
-        child: Icon(icon, size: 22, color: isPrimary ? _colors.accentGold : _colors.textSecondary),
+        child: Icon(icon, size: 26, color: isPrimary ? _colors.accentGold : _colors.textSecondary),
       ),
     );
   }
 
   Widget _buildDnaChip(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: _colors.borderColor.withAlpha(25),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _colors.borderColor.withAlpha(60)),
+        color: _colors.borderColor.withAlpha(30),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _colors.borderColor.withAlpha(70)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$label: ', style: AppTypography.labelSmall.copyWith(color: _colors.textTertiary, fontSize: 11)),
-          Text(value, style: TextStyle(fontFamily: 'NotoSansSC', fontSize: 16, fontWeight: FontWeight.w500, color: _colors.textPrimary)),
+          Text('$label: ', style: AppTypography.labelMedium.copyWith(color: _colors.textTertiary, fontSize: 14)),
+          Text(value, style: TextStyle(fontFamily: 'NotoSansSC', fontSize: 20, fontWeight: FontWeight.w500, color: _colors.textPrimary)),
         ],
       ),
     );
@@ -605,13 +607,13 @@ class _LearningContentWidgetState extends State<LearningContentWidget>
 
   Widget _buildComponentChip(String component) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: _colors.borderColor.withAlpha(25),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _colors.borderColor.withAlpha(60)),
+        color: _colors.borderColor.withAlpha(30),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _colors.borderColor.withAlpha(70)),
       ),
-      child: Text(component, style: TextStyle(fontFamily: 'NotoSansSC', fontSize: 18, fontWeight: FontWeight.w500, color: _colors.textPrimary)),
+      child: Text(component, style: TextStyle(fontFamily: 'NotoSansSC', fontSize: 22, fontWeight: FontWeight.w500, color: _colors.textPrimary)),
     );
   }
 }

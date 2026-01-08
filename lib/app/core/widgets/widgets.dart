@@ -13,6 +13,7 @@ export 'hm_animated_number.dart';
 export 'hm_step_indicator.dart';
 export 'hm_audio_mini_player.dart';
 export 'hm_skeleton.dart';
+export 'hm_loading.dart';
 export 'hm_empty_state.dart';
 export 'hm_toast.dart';
 export 'hm_cached_image.dart';

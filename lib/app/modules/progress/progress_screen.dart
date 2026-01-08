@@ -33,7 +33,10 @@ class ProgressScreen extends GetView<ProgressController> {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const HMLoadingContent(
+            message: 'Đang tải tiến độ...',
+            icon: Icons.trending_up_rounded,
+          );
         }
 
         return SingleChildScrollView(

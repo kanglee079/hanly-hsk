@@ -107,15 +107,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isDark ? Colors.white : const Color(0xFF4CAF50),
-              ),
-            ),
+          HMLoadingIndicator(
+            size: 48,
+            color: isDark ? Colors.white : const Color(0xFF4CAF50),
           ),
           const SizedBox(height: 16),
           Text(

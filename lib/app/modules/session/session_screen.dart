@@ -16,6 +16,16 @@ String capitalizeFirst(String text) {
   return text[0].toUpperCase() + text.substring(1);
 }
 
+/// Format seconds to minutes for display
+/// Uses proper rounding: any learning time counts (minimum 1 minute)
+String _formatMinutes(int seconds) {
+  if (seconds <= 0) return '0';
+  // Round: 30+ seconds of the minute = next minute
+  // Examples: 89s = 1min, 90s = 2min, 150s = 3min
+  final minutes = ((seconds + 30) / 60).floor();
+  return minutes.clamp(1, 9999).toString();
+}
+
 /// Get session mode label
 String _getSessionModeLabel(SessionMode mode) {
   switch (mode) {
@@ -64,7 +74,10 @@ class SessionScreen extends GetView<SessionController> {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const HMLoadingContent(
+            message: 'Đang tải nội dung...',
+            icon: Icons.menu_book_rounded,
+          );
         }
 
         if (controller.isSessionComplete.value) {
@@ -203,7 +216,7 @@ class SessionScreen extends GetView<SessionController> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _StatItem(
-                  value: '${(controller.elapsedSeconds.value / 60).ceil()}',
+                  value: _formatMinutes(controller.elapsedSeconds.value),
                   label: S.minutesLearned,
                   isDark: isDark,
                 ),
@@ -223,7 +236,7 @@ class SessionScreen extends GetView<SessionController> {
             // Continue Learning button (only for new words mode)
             if (controller.sessionMode == SessionMode.newWords)
               Obx(() => controller.isLoadingMore.value 
-                ? const CircularProgressIndicator()
+                ? const HMLoadingIndicator.small()
                 : HMButton(
                     text: 'Học tiếp',
                     onPressed: controller.continueSession,
@@ -262,57 +275,74 @@ class _GuessStep extends StatelessWidget {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
         children: [
+          const Spacer(flex: 2),
+          // Large Hanzi character
           Text(
             vocab.hanzi,
             style: AppTypography.hanziLarge.copyWith(
+              fontSize: 100,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              height: 1.1,
             ),
           ),
-          const SizedBox(height: 24),
-          // Fixed height container for revealed content to prevent layout jumps
-          SizedBox(
-            height: 100,
-            child: Obx(() {
-              if (controller.isRevealed.value) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
+          const SizedBox(height: 32),
+          // Fixed height container for revealed content
+          Obx(() {
+            if (controller.isRevealed.value) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Pinyin with accent color
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withAlpha(15),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Text(
                       vocab.pinyin,
                       style: AppTypography.pinyin.copyWith(
-                        fontSize: 24,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
+                        fontSize: 28,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
+                  ),
+                  const SizedBox(height: 24),
+                  // Large meaning
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
                       capitalizeFirst(vocab.meaningVi),
-                      style: AppTypography.headlineMedium.copyWith(
+                      style: AppTypography.displaySmall.copyWith(
+                        fontSize: 28,
                         color: isDark
                             ? AppColors.textPrimaryDark
                             : AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                  ],
-                );
-              }
-              return Center(
-                child: Text(
-                  'Bạn có nhớ nghĩa không?',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary,
                   ),
-                ),
+                ],
               );
-            }),
-          ),
+            }
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                'Bạn có nhớ nghĩa không?',
+                style: AppTypography.titleLarge.copyWith(
+                  fontSize: 20,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            );
+          }),
+          const Spacer(flex: 3),
         ],
       ),
     );
@@ -337,37 +367,46 @@ class _AudioStep extends StatelessWidget {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
         children: [
+          const Spacer(flex: 2),
+          // Large Hanzi
           Text(
             vocab.hanzi,
             style: AppTypography.hanziLarge.copyWith(
+              fontSize: 100,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              height: 1.1,
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            vocab.pinyin,
-            style: AppTypography.pinyin.copyWith(
-              fontSize: 20,
-              color:
-                  isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          const SizedBox(height: 20),
+          // Pinyin badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withAlpha(15),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Text(
+              vocab.pinyin,
+              style: AppTypography.pinyin.copyWith(
+                fontSize: 26,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           const SizedBox(height: 32),
-          // Audio buttons - Normal and Slow
+          // Audio buttons - larger touch targets
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Normal speed
               _AudioButton(
                 icon: Icons.volume_up_rounded,
                 label: 'Bình thường',
                 onTap: () => controller.playAudio(),
                 isDark: isDark,
               ),
-              const SizedBox(width: 16),
-              // Slow speed
+              const SizedBox(width: 20),
               _AudioButton(
                 icon: Icons.slow_motion_video_rounded,
                 label: 'Chậm',
@@ -377,33 +416,35 @@ class _AudioStep extends StatelessWidget {
               ),
             ],
           ),
-          // Fixed height for meaning to prevent layout jumps
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 50,
-            child: Obx(() {
-              if (controller.isRevealed.value) {
-                return Center(
-                  child: Text(
-                    capitalizeFirst(vocab.meaningVi),
-                    style: AppTypography.headlineSmall.copyWith(
-                      color:
-                          isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-                    ),
-                    textAlign: TextAlign.center,
+          const SizedBox(height: 32),
+          // Meaning display
+          Obx(() {
+            if (controller.isRevealed.value) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  capitalizeFirst(vocab.meaningVi),
+                  style: AppTypography.displaySmall.copyWith(
+                    fontSize: 26,
+                    color: isDark 
+                        ? AppColors.textPrimaryDark 
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
                   ),
-                );
-              }
-              return const SizedBox.shrink();
-            }),
-          ),
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }
+            return const SizedBox(height: 40);
+          }),
+          const Spacer(flex: 3),
         ],
       ),
     );
   }
 }
 
-/// Audio button widget
+/// Audio button widget - larger touch targets
 class _AudioButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -429,31 +470,33 @@ class _AudioButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
                 color: enabled 
-                    ? AppColors.primary.withAlpha(20) 
+                    ? AppColors.primary.withAlpha(25) 
                     : (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant),
-                borderRadius: BorderRadius.circular(32),
+                borderRadius: BorderRadius.circular(36),
                 border: Border.all(
                   color: enabled 
-                      ? AppColors.primary.withAlpha(50) 
+                      ? AppColors.primary.withAlpha(60) 
                       : (isDark ? AppColors.borderDark : AppColors.border),
+                  width: 2,
                 ),
               ),
               child: Icon(
                 icon,
-                size: 28,
+                size: 32,
                 color: enabled 
                     ? AppColors.primary 
                     : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               label,
-              style: AppTypography.labelSmall.copyWith(
+              style: AppTypography.labelMedium.copyWith(
+                fontSize: 14,
                 color: enabled 
                     ? (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)
                     : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary),
@@ -849,7 +892,7 @@ class _ContextStepState extends State<_ContextStep> {
   }
 }
 
-/// Pronunciation step - user speaks the word (compact UI)
+/// Pronunciation step - user speaks the word
 class _PronunciationStep extends StatelessWidget {
   final dynamic vocab;
   final bool isDark;
@@ -863,207 +906,230 @@ class _PronunciationStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Word display - compact
-          Text(
-            vocab.hanzi,
-            style: AppTypography.hanziLarge.copyWith(
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-            ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Spacer(flex: 2),
+        // Large Hanzi
+        Text(
+          vocab.hanzi,
+          style: AppTypography.hanziLarge.copyWith(
+            fontSize: 90,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            height: 1.1,
           ),
-          const SizedBox(height: 8),
-          Text(
+        ),
+        const SizedBox(height: 16),
+        // Pinyin badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withAlpha(15),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Text(
             vocab.pinyin,
             style: AppTypography.pinyin.copyWith(
+              fontSize: 24,
+              color: AppColors.primary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Meaning
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            capitalizeFirst(vocab.meaningVi),
+            style: AppTypography.titleLarge.copyWith(
               fontSize: 20,
               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
-          Text(
-            capitalizeFirst(vocab.meaningVi),
-            style: AppTypography.bodyMedium.copyWith(
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+        ),
+        const SizedBox(height: 28),
+        
+        // Audio buttons
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _CompactAudioButton(
+              icon: Icons.volume_up_rounded,
+              label: 'Nghe mẫu',
+              onTap: () => controller.playAudio(),
+              isDark: isDark,
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(width: 16),
+            _CompactAudioButton(
+              icon: Icons.slow_motion_video_rounded,
+              label: 'Chậm',
+              onTap: () => controller.playAudio(slow: true),
+              isDark: isDark,
+              enabled: vocab.audioSlowUrl != null && vocab.audioSlowUrl!.isNotEmpty,
+            ),
+          ],
+        ),
+        
+        const SizedBox(height: 28),
+        
+        // Microphone button - larger
+        Obx(() {
+          final isListening = controller.isListening.value;
+          final isEvaluating = controller.isEvaluatingPronunciation.value;
           
-          // Audio buttons - inline compact
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _CompactAudioButton(
-                icon: Icons.volume_up_rounded,
-                label: 'Nghe mẫu',
-                onTap: () => controller.playAudio(),
-                isDark: isDark,
+          return GestureDetector(
+            onTap: isEvaluating ? null : controller.startListening,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isListening ? 90 : 80,
+              height: isListening ? 90 : 80,
+              decoration: BoxDecoration(
+                color: isListening 
+                    ? AppColors.error 
+                    : (isEvaluating ? AppColors.warning : AppColors.primary),
+                shape: BoxShape.circle,
+                boxShadow: isListening ? [
+                  BoxShadow(
+                    color: AppColors.error.withAlpha(100),
+                    blurRadius: 20,
+                    spreadRadius: 4,
+                  ),
+                ] : [
+                  BoxShadow(
+                    color: AppColors.primary.withAlpha(60),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              _CompactAudioButton(
-                icon: Icons.slow_motion_video_rounded,
-                label: 'Chậm',
-                onTap: () => controller.playAudio(slow: true),
-                isDark: isDark,
-                enabled: vocab.audioSlowUrl != null && vocab.audioSlowUrl!.isNotEmpty,
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Microphone button
-          Obx(() {
-            final isListening = controller.isListening.value;
-            final isEvaluating = controller.isEvaluatingPronunciation.value;
-            
-            return GestureDetector(
-              onTap: isEvaluating ? null : controller.startListening,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: isListening ? 80 : 70,
-                height: isListening ? 80 : 70,
-                decoration: BoxDecoration(
-                  color: isListening 
-                      ? AppColors.error 
-                      : (isEvaluating ? AppColors.warning : AppColors.primary),
-                  shape: BoxShape.circle,
-                  boxShadow: isListening ? [
-                    BoxShadow(
-                      color: AppColors.error.withAlpha(100),
-                      blurRadius: 15,
-                      spreadRadius: 3,
-                    ),
-                  ] : null,
-                ),
+              child: Center(
                 child: isEvaluating
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                    ? const HMLoadingIndicator.small(color: Colors.white)
                     : Icon(
                         isListening ? Icons.stop_rounded : Icons.mic_rounded,
-                        size: isListening ? 36 : 30,
+                        size: isListening ? 42 : 36,
                         color: Colors.white,
                       ),
               ),
+            ),
+          );
+        }),
+        
+        const SizedBox(height: 12),
+        
+        // Status text
+        Obx(() {
+          if (controller.isListening.value) {
+            return Text(
+              '🎤 Đang nghe...',
+              style: AppTypography.titleMedium.copyWith(
+                fontSize: 16,
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
             );
-          }),
-          
-          const SizedBox(height: 8),
-          
-          // Status text
-          Obx(() {
-            if (controller.isListening.value) {
-              return Text(
-                '🎤 Đang nghe...',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.error,
-                  fontWeight: FontWeight.w600,
-                ),
-              );
-            }
-            if (!controller.hasPronunciationResult.value) {
-              return Text(
-                'Nhấn mic và đọc từ trên',
-                style: AppTypography.bodySmall.copyWith(
-                  color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
-                ),
-              );
-            }
+          }
+          if (!controller.hasPronunciationResult.value) {
+            return Text(
+              'Nhấn mic và đọc từ trên',
+              style: AppTypography.bodyMedium.copyWith(
+                fontSize: 15,
+                color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+        
+        const SizedBox(height: 16),
+        
+        // Result feedback
+        Obx(() {
+          if (!controller.hasPronunciationResult.value) {
             return const SizedBox.shrink();
-          }),
+          }
           
-          const SizedBox(height: 16),
+          final passed = controller.isPronunciationPassed.value;
+          final score = controller.pronunciationScore.value;
+          final feedback = controller.pronunciationFeedback.value;
           
-          // Result feedback - compact
-          Obx(() {
-            if (!controller.hasPronunciationResult.value) {
-              return const SizedBox.shrink();
-            }
-            
-            final passed = controller.isPronunciationPassed.value;
-            final score = controller.pronunciationScore.value;
-            final feedback = controller.pronunciationFeedback.value;
-            
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: passed 
+                  ? AppColors.success.withAlpha(20) 
+                  : AppColors.warning.withAlpha(20),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
                 color: passed 
-                    ? AppColors.success.withAlpha(20) 
-                    : AppColors.warning.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: passed 
-                      ? AppColors.success.withAlpha(50) 
-                      : AppColors.warning.withAlpha(50),
-                ),
+                    ? AppColors.success.withAlpha(60) 
+                    : AppColors.warning.withAlpha(60),
+                width: 1.5,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    passed ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  passed ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                  color: passed ? AppColors.success : AppColors.warning,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '$score điểm',
+                  style: AppTypography.headlineSmall.copyWith(
+                    fontSize: 22,
                     color: passed ? AppColors.success : AppColors.warning,
-                    size: 22,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$score điểm',
-                    style: AppTypography.titleMedium.copyWith(
-                      color: passed ? AppColors.success : AppColors.warning,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (feedback.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        '- $feedback',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: isDark 
-                              ? AppColors.textSecondaryDark 
-                              : AppColors.textSecondary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                ),
+                if (feedback.isNotEmpty) ...[
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      feedback,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: isDark 
+                            ? AppColors.textSecondaryDark 
+                            : AppColors.textSecondary,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
+                  ),
                 ],
+              ],
+            ),
+          );
+        }),
+        
+        // Note about simulator
+        Obx(() {
+          if (!controller.hasPronunciationResult.value && !controller.isListening.value) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                '⚠️ Trên Simulator: Dùng nút "Xác nhận" bên dưới',
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.warning,
+                ),
+                textAlign: TextAlign.center,
               ),
             );
-          }),
-          
-          // Note about simulator
-          Obx(() {
-            if (!controller.hasPronunciationResult.value && !controller.isListening.value) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  '⚠️ Trên Simulator: Dùng nút "Xác nhận" bên dưới',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.warning,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-        ],
-      ),
+          }
+          return const SizedBox.shrink();
+        }),
+        const Spacer(flex: 3),
+      ],
     );
   }
 }
 
-/// Compact audio button for pronunciation step
+/// Compact audio button for pronunciation step - larger touch target
 class _CompactAudioButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1086,16 +1152,17 @@ class _CompactAudioButton extends StatelessWidget {
       child: Opacity(
         opacity: enabled ? 1.0 : 0.4,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
             color: enabled 
-                ? AppColors.primary.withAlpha(15) 
+                ? AppColors.primary.withAlpha(20) 
                 : (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: enabled 
-                  ? AppColors.primary.withAlpha(40) 
+                  ? AppColors.primary.withAlpha(50) 
                   : (isDark ? AppColors.borderDark : AppColors.border),
+              width: 1.5,
             ),
           ),
           child: Row(
@@ -1103,19 +1170,20 @@ class _CompactAudioButton extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 18,
+                size: 22,
                 color: enabled 
                     ? AppColors.primary 
                     : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 10),
               Text(
                 label,
-                style: AppTypography.labelSmall.copyWith(
+                style: AppTypography.labelLarge.copyWith(
+                  fontSize: 15,
                   color: enabled 
                       ? AppColors.primary 
                       : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary),
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -1227,107 +1295,189 @@ class _QuizStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 24),
-          Text(
-            vocab.hanzi,
-            style: AppTypography.hanziLarge.copyWith(
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+    // Fixed layout - no scrolling, compact header
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        // Header: Hanzi + Audio in row for compact layout
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Hanzi + Pinyin
+            Column(
+              children: [
+                Text(
+                  vocab.hanzi,
+                  style: AppTypography.hanziLarge.copyWith(
+                    fontSize: 64,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    vocab.pinyin,
+                    style: AppTypography.pinyin.copyWith(
+                      fontSize: 20,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Chọn nghĩa đúng:',
-            style: AppTypography.bodyMedium.copyWith(
-              color:
-                  isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            const SizedBox(width: 20),
+            // Audio button
+            GestureDetector(
+              onTap: () => controller.playAudio(),
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark ? AppColors.borderDark : AppColors.border,
+                  ),
+                ),
+                child: Icon(
+                  Icons.volume_up_rounded,
+                  size: 24,
+                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                ),
+              ),
             ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        // Instruction
+        Text(
+          'Chọn nghĩa đúng:',
+          style: AppTypography.titleMedium.copyWith(
+            fontSize: 17,
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
           ),
-          const SizedBox(height: 32),
-          Obx(() => Column(
-                children: List.generate(
-                  controller.quizOptions.length,
-                  (index) {
-                    final option = controller.quizOptions[index];
-                    final isSelected = controller.selectedAnswer.value == index;
-                    final hasAnswered = controller.hasAnswered.value;
-                    final isCorrect = option == vocab.meaningVi;
+        ),
+        const SizedBox(height: 16),
+        // Options - fill remaining space
+        Expanded(
+          child: Obx(() => Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: List.generate(
+              controller.quizOptions.length,
+              (index) {
+                final option = controller.quizOptions[index];
+                final isSelected = controller.selectedAnswer.value == index;
+                final hasAnswered = controller.hasAnswered.value;
+                final isCorrect = option == vocab.meaningVi;
 
-                    Color? bgColor;
-                    Color? borderColor;
-                    if (hasAnswered) {
-                      if (isCorrect) {
-                        bgColor = AppColors.successLight;
-                        borderColor = AppColors.success;
-                      } else if (isSelected) {
-                        bgColor = AppColors.errorLight;
-                        borderColor = AppColors.error;
-                      }
-                    } else if (isSelected) {
-                      borderColor = AppColors.primary;
-                    }
+                Color? bgColor;
+                Color? borderColor;
+                IconData? trailingIcon;
+                Color? trailingIconColor;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GestureDetector(
-                        onTap: hasAnswered
-                            ? null
-                            : () => controller.selectAnswer(index),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: bgColor ??
-                                (isDark
-                                    ? AppColors.surfaceDark
-                                    : AppColors.surface),
-                            borderRadius: AppSpacing.borderRadiusMd,
-                            border: Border.all(
-                              color: borderColor ??
-                                  (isDark
-                                      ? AppColors.borderDark
-                                      : AppColors.border),
-                              width: isSelected || (hasAnswered && isCorrect)
-                                  ? 2
-                                  : 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  // Capitalize Vietnamese text
-                                  capitalizeFirst(option),
-                                  style: AppTypography.bodyLarge.copyWith(
-                                    color: isDark
-                                        ? AppColors.textPrimaryDark
-                                        : AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                              if (hasAnswered && isCorrect)
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: AppColors.success,
-                                ),
-                              if (hasAnswered && isSelected && !isCorrect)
-                                const Icon(
-                                  Icons.cancel_rounded,
-                                  color: AppColors.error,
-                                ),
-                            ],
-                          ),
+                if (hasAnswered) {
+                  if (isCorrect) {
+                    bgColor = AppColors.successLight;
+                    borderColor = AppColors.success;
+                    trailingIcon = Icons.check_circle_rounded;
+                    trailingIconColor = AppColors.success;
+                  } else if (isSelected) {
+                    bgColor = AppColors.errorLight;
+                    borderColor = AppColors.error;
+                    trailingIcon = Icons.cancel_rounded;
+                    trailingIconColor = AppColors.error;
+                  }
+                } else if (isSelected) {
+                  borderColor = AppColors.primary;
+                  bgColor = AppColors.primary.withAlpha(10);
+                }
+
+                // Option label (A, B, C, D)
+                final labels = ['A', 'B', 'C', 'D'];
+                final label = index < labels.length ? labels[index] : '${index + 1}';
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: GestureDetector(
+                    onTap: hasAnswered ? null : () => controller.selectAnswer(index),
+                    child: Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(minHeight: 56),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: bgColor ?? (isDark ? AppColors.surfaceDark : AppColors.surface),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: borderColor ?? (isDark ? AppColors.borderDark : AppColors.border),
+                          width: isSelected || (hasAnswered && isCorrect) ? 2 : 1.5,
                         ),
                       ),
-                    );
-                  },
-                ),
-              )),
-        ],
-      ),
+                      child: Row(
+                        children: [
+                          // Option label badge
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: isSelected || (hasAnswered && isCorrect)
+                                  ? (borderColor ?? AppColors.primary).withAlpha(20)
+                                  : (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                label,
+                                style: AppTypography.titleMedium.copyWith(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected || (hasAnswered && isCorrect)
+                                      ? (borderColor ?? AppColors.primary)
+                                      : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Option text
+                          Expanded(
+                            child: Text(
+                              capitalizeFirst(option),
+                              style: AppTypography.titleMedium.copyWith(
+                                fontSize: 17,
+                                fontWeight: isSelected || (hasAnswered && isCorrect) 
+                                    ? FontWeight.w600 
+                                    : FontWeight.w500,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          // Result icon
+                          if (trailingIcon != null)
+                            Icon(
+                              trailingIcon,
+                              size: 24,
+                              color: trailingIconColor,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          )),
+        ),
+      ],
     );
   }
 }

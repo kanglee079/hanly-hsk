@@ -273,4 +273,19 @@ class SessionConfig {
     timeLimit: 30,
     xpMultiplier: 2,
   );
+
+  /// Sentence Formation: Đặt câu - Sắp xếp từ tạo câu đúng
+  /// Flow: Show Vietnamese meaning → Arrange Chinese words → Check → Next
+  static const sentenceFormation = SessionConfig(
+    id: 'sentence_formation',
+    name: 'Đặt câu',
+    description: 'Sắp xếp từ tạo câu đúng',
+    exerciseTypes: [ExerciseType.sentenceOrder],
+    vocabCount: 10,
+    exercisesPerVocab: 1,
+    showLearningContent: false,
+    showPronunciation: false,
+    useSRSRating: false,
+    xpMultiplier: 2,
+  );
 }

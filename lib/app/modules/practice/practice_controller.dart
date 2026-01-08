@@ -1091,6 +1091,7 @@ class PracticeController extends GetxController {
 
   Future<void> _finishSession() async {
     _timer?.cancel();
+    _sessionSaved = true; // Mark as saved to prevent double-save in onClose
     state.value = PracticeState.complete;
 
     // 🔧 FIX: Only count words learned IN THIS SESSION, not cumulative total
@@ -1105,7 +1106,15 @@ class PracticeController extends GetxController {
         ? vocabs.length
         : 0;
 
-    final minutes = (elapsedSeconds.value / 60).ceil();
+    final seconds = elapsedSeconds.value;
+    final result = SessionResultModel(
+      seconds: seconds,
+      newCount: sessionNewCount,
+      reviewCount: sessionReviewCount,
+      accuracy: totalExercises.value > 0
+          ? correctCount.value / totalExercises.value
+          : 1.0,
+    );
 
     Logger.d(
       'PracticeController',
@@ -1114,21 +1123,12 @@ class PracticeController extends GetxController {
           'totalToday=${_learnNewCompletedVocabIds.length}, '
           'newCount=$sessionNewCount, '
           'reviewCount=$sessionReviewCount, '
-          'minutes=$minutes',
+          'seconds=$seconds, minutes=${result.minutes}',
     );
 
     try {
       // 1. Send data to BE
-      await _learningRepo.finishSession(
-        SessionResultModel(
-          minutes: minutes,
-          newCount: sessionNewCount,
-          reviewCount: sessionReviewCount,
-          accuracy: totalExercises.value > 0
-              ? correctCount.value / totalExercises.value
-              : 1.0,
-        ),
-      );
+      await _learningRepo.finishSession(result);
 
       // 2. ⏳ WAIT for BE to commit transaction (Critical for sync)
       await Future.delayed(const Duration(milliseconds: 300));
@@ -1159,10 +1159,54 @@ class PracticeController extends GetxController {
     }
   }
 
+  /// Minimum seconds before saving partial session (avoid spam on quick back)
+  static const int _minSecondsToSave = 10;
+
+  /// Exit session early - saves partial progress in background (non-blocking)
   void exitSession() {
     _timer?.cancel();
+    _savePartialSessionInBackground();
     stopAudio(); // stop audio + TTS
     Get.back();
+  }
+
+  /// Save partial session in background (fire-and-forget, non-blocking)
+  void _savePartialSessionInBackground() {
+    final seconds = elapsedSeconds.value;
+    
+    // Only save if meaningful time spent (avoid spam on quick back)
+    if (seconds < _minSecondsToSave) {
+      Logger.d('PracticeController', '[SKIP_SAVE] seconds=$seconds < $_minSecondsToSave');
+      return;
+    }
+    
+    // Count progress so far
+    final sessionNewCount = mode == PracticeMode.learnNew
+        ? _thisSessionLearnedVocabIds.length
+        : 0;
+    final sessionReviewCount = totalExercises.value;
+    
+    final result = SessionResultModel(
+      seconds: seconds,
+      newCount: sessionNewCount,
+      reviewCount: sessionReviewCount,
+      accuracy: totalExercises.value > 0
+          ? correctCount.value / totalExercises.value
+          : 0.0,
+    );
+    
+    Logger.d(
+      'PracticeController',
+      '[PARTIAL_SAVE] mode=$mode, seconds=$seconds, minutes=${result.minutes}, '
+          'new=$sessionNewCount, review=$sessionReviewCount',
+    );
+    
+    // Fire and forget - don't block UI
+    _learningRepo.finishSession(result).then((_) {
+      _rt.syncNowKeys(const ['today', 'todayForecast'], force: true);
+    }).catchError((e) {
+      Logger.e('PracticeController', 'Failed to save partial session', e);
+    });
   }
 
   /// Continue with more exercises
@@ -1363,8 +1407,17 @@ class PracticeController extends GetxController {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
+  /// Flag to prevent double-saving when exitSession() was already called
+  bool _sessionSaved = false;
+
   @override
   void onClose() {
+    // Save partial session in background if not already saved
+    if (!_sessionSaved && state.value != PracticeState.complete && elapsedSeconds.value >= _minSecondsToSave) {
+      _sessionSaved = true;
+      _savePartialSessionInBackground();
+    }
+    
     _timer?.cancel();
     _audioService.stop();
     _speech?.stop();

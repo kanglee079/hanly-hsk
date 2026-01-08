@@ -385,10 +385,7 @@ class LearnScreen extends GetView<LearnController> {
                 const SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
-                  ),
+                  child: HMLoadingIndicator.small(color: AppColors.primary),
                 )
               else
                 Container(
@@ -524,8 +521,7 @@ class LearnScreen extends GetView<LearnController> {
                   title: 'Đặt câu',
                   subtitle: 'Sắp xếp từ tạo câu',
                   duration: '~5m',
-                  pendingCount: controller.dueReviewCount,
-                  onTap: () => controller.startMode(LearnMode.srsVocabulary),
+                  onTap: () => controller.startMode(LearnMode.sentenceFormation),
                   isDark: isDark,
                 ),
               ),
@@ -729,10 +725,7 @@ class LearnScreen extends GetView<LearnController> {
                           const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary,
-                            ),
+                            child: HMLoadingIndicator.small(color: AppColors.primary),
                           )
                         else if (isLocked)
                           Row(
@@ -1001,6 +994,9 @@ class _DynamicModeCard extends StatelessWidget {
     IconData iconData;
     switch (modeId) {
       case 'srs_vocabulary':
+        iconData = Icons.style_rounded; // Flashcard icon
+        break;
+      case 'sentence_formation':
       case 'sentence_reorder':
         iconData = Icons.sort_rounded; // Sentence reorder icon
         break;
@@ -1024,8 +1020,10 @@ class _DynamicModeCard extends StatelessWidget {
   String _getDisplayName(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
+        return 'Thẻ ghi nhớ'; // Flashcard
+      case 'sentence_formation':
       case 'sentence_reorder':
-        return 'Đặt câu'; // Changed from Flashcards to Sentence Reorder
+        return 'Đặt câu'; // Sentence Formation
       case 'listening':
         return 'Luyện Nghe';
       case 'writing':
@@ -1044,8 +1042,10 @@ class _DynamicModeCard extends StatelessWidget {
   String _getDisplaySubtitle(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
+        return 'Ôn tập với thẻ';
+      case 'sentence_formation':
       case 'sentence_reorder':
-        return 'Sắp xếp từ tạo câu'; // Updated subtitle
+        return 'Sắp xếp từ tạo câu';
       case 'listening':
         return 'Nghe & chọn đáp án';
       case 'writing':
@@ -1063,6 +1063,11 @@ class _DynamicModeCard extends StatelessWidget {
   _ModeColors _getModeColors(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
+        return _ModeColors(
+          bgColor: const Color(0xFFFCE4EC), // Pink light
+          iconColor: const Color(0xFFE91E63), // Pink
+        );
+      case 'sentence_formation':
       case 'sentence_reorder':
         return _ModeColors(
           bgColor: const Color(0xFFFFF8E1), // Amber light

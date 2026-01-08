@@ -95,7 +95,7 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
                     if (controller.isLoadingMore.value) {
                       return const Padding(
                         padding: EdgeInsets.all(20),
-                        child: Center(child: CircularProgressIndicator()),
+                        child: Center(child: HMLoadingIndicator.small()),
                       );
                     }
                     return const SizedBox.shrink();

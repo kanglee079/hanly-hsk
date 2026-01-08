@@ -686,11 +686,15 @@ class SessionController extends GetxController {
     }
   }
 
+  /// Flag to prevent double-saving
+  bool _sessionSaved = false;
+
   Future<void> _finishSession() async {
     _timer?.cancel();
+    _sessionSaved = true;
     isSessionComplete.value = true;
 
-    final minutes = (elapsedSeconds.value / 60).ceil();
+    final seconds = elapsedSeconds.value;
     final accuracy = totalQuizzes > 0 ? correctCount / totalQuizzes : 1.0;
     
     // Calculate counts based on mode
@@ -699,17 +703,19 @@ class SessionController extends GetxController {
         ? queue.length 
         : 0;
     
+    final result = SessionResultModel(
+      seconds: seconds,
+      newCount: sessionNewCount,
+      reviewCount: sessionReviewCount,
+      accuracy: accuracy,
+    );
+    
     Logger.d('SessionController', 
       '[FINISH] mode=$sessionMode, newCount=$sessionNewCount, '
-      'reviewCount=$sessionReviewCount, minutes=$minutes');
+      'reviewCount=$sessionReviewCount, seconds=$seconds, minutes=${result.minutes}');
 
     try {
-      await _learningRepo.finishSession(SessionResultModel(
-        minutes: minutes,
-        newCount: sessionNewCount,
-        reviewCount: sessionReviewCount,
-        accuracy: accuracy,
-      ));
+      await _learningRepo.finishSession(result);
       
       // Refresh all relevant controllers
       await _refreshAllData();
@@ -728,10 +734,47 @@ class SessionController extends GetxController {
     } catch (_) {}
   }
 
+  /// Minimum seconds before saving partial session
+  static const int _minSecondsToSave = 10;
+
+  /// Save partial session in background (fire-and-forget)
+  void _savePartialSessionInBackground() {
+    final seconds = elapsedSeconds.value;
+    
+    // Only save if meaningful time spent
+    if (seconds < _minSecondsToSave) {
+      Logger.d('SessionController', '[SKIP_SAVE] seconds=$seconds < $_minSecondsToSave');
+      return;
+    }
+    
+    final accuracy = totalQuizzes > 0 ? correctCount / totalQuizzes : 0.0;
+    final sessionNewCount = sessionMode == SessionMode.newWords ? currentIndex.value : 0;
+    final sessionReviewCount = currentIndex.value;
+    
+    final result = SessionResultModel(
+      seconds: seconds,
+      newCount: sessionNewCount,
+      reviewCount: sessionReviewCount,
+      accuracy: accuracy,
+    );
+    
+    Logger.d('SessionController', 
+      '[PARTIAL_SAVE] mode=$sessionMode, seconds=$seconds, minutes=${result.minutes}');
+    
+    // Fire and forget - don't block UI
+    _learningRepo.finishSession(result).then((_) {
+      _refreshAllData();
+    }).catchError((e) {
+      Logger.e('SessionController', 'Failed to save partial session', e);
+    });
+  }
+
   void exitSession() {
     _timer?.cancel();
-    // Refresh data before going back
-    _refreshAllData();
+    if (!_sessionSaved && !isSessionComplete.value && elapsedSeconds.value >= _minSecondsToSave) {
+      _sessionSaved = true;
+      _savePartialSessionInBackground();
+    }
     Get.back();
   }
 
@@ -823,6 +866,12 @@ class SessionController extends GetxController {
 
   @override
   void onClose() {
+    // Save partial session in background if not already saved
+    if (!_sessionSaved && !isSessionComplete.value && elapsedSeconds.value >= _minSecondsToSave) {
+      _sessionSaved = true;
+      _savePartialSessionInBackground();
+    }
+    
     _timer?.cancel();
     _audioService.stop();
     _speech?.stop();

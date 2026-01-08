@@ -400,6 +400,7 @@ class PronunciationController extends GetxController {
   Future<void> _finishSession() async {
     _timer?.cancel();
     _recordingTimer?.cancel();
+    _sessionSaved = true;
     isSessionComplete.value = true;
 
     if (attempts.isEmpty) return;
@@ -412,7 +413,7 @@ class PronunciationController extends GetxController {
       
       // Submit session to backend
       final result = SessionResultModel(
-        minutes: (practiceSeconds.value / 60).ceil(),
+        seconds: practiceSeconds.value,
         newCount: 0,
         reviewCount: attempts.length,
         accuracy: accuracy,
@@ -451,15 +452,67 @@ class PronunciationController extends GetxController {
     _startTimer();
   }
 
+  /// Flag to prevent double-saving
+  bool _sessionSaved = false;
+  
+  /// Minimum seconds before saving partial session
+  static const int _minSecondsToSave = 10;
+
+  /// Save partial session in background (fire-and-forget)
+  void _savePartialSessionInBackground() {
+    final seconds = practiceSeconds.value;
+    
+    // Only save if meaningful time spent
+    if (seconds < _minSecondsToSave) {
+      Logger.d('PronunciationController', '[SKIP_SAVE] seconds=$seconds < $_minSecondsToSave');
+      return;
+    }
+    
+    final accuracy = totalAttempts.value > 0 
+        ? passedCount.value / totalAttempts.value 
+        : 0.0;
+    
+    final result = SessionResultModel(
+      seconds: seconds,
+      newCount: 0,
+      reviewCount: attempts.length,
+      accuracy: accuracy,
+    );
+    
+    Logger.d(
+      'PronunciationController',
+      '[PARTIAL_SAVE] seconds=$seconds, minutes=${result.minutes}, attempts=${attempts.length}',
+    );
+    
+    // Fire and forget - don't block UI
+    _learningRepo.finishSession(result).then((_) {
+      if (Get.isRegistered<ShellController>()) {
+        Get.find<ShellController>().refreshAllData();
+      }
+    }).catchError((e) {
+      Logger.e('PronunciationController', 'Failed to save partial session', e);
+    });
+  }
+
   void goBack() {
     _timer?.cancel();
     _recordingTimer?.cancel();
+    if (!_sessionSaved && !isSessionComplete.value && practiceSeconds.value >= _minSecondsToSave) {
+      _sessionSaved = true;
+      _savePartialSessionInBackground();
+    }
     _speech?.stop();
     Get.back();
   }
 
   @override
   void onClose() {
+    // Save partial session in background if not already saved
+    if (!_sessionSaved && !isSessionComplete.value && practiceSeconds.value >= _minSecondsToSave) {
+      _sessionSaved = true;
+      _savePartialSessionInBackground();
+    }
+    
     _timer?.cancel();
     _recordingTimer?.cancel();
     _speech?.stop();

@@ -77,8 +77,9 @@ class ListeningScreen extends GetView<ListeningController> {
           top: false,
           child: Obx(() {
             if (controller.isLoading.value) {
-              return const Center(
-                child: CircularProgressIndicator(),
+              return const HMLoadingContent(
+                message: 'Đang tải bài nghe...',
+                icon: Icons.headphones_rounded,
               );
             }
 

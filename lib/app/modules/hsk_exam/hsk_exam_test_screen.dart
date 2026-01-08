@@ -245,10 +245,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                 SizedBox(
                   width: 32,
                   height: 32,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                  ),
+                  child: HMLoadingIndicator.small(color: AppColors.primary),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -1093,10 +1090,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
             SizedBox(
               width: 40,
               height: 40,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation(AppColors.primary),
-              ),
+              child: HMLoadingIndicator(size: 40, color: AppColors.primary),
             ),
             const SizedBox(height: 16),
             Text(

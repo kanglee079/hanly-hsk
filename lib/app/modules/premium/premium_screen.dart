@@ -1105,7 +1105,7 @@ class _FooterLink extends StatelessWidget {
             ? const SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: HMLoadingIndicator.small(),
               )
             : Text(
                 text,

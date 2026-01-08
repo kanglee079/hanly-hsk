@@ -50,6 +50,8 @@ import '../modules/flashcard/flashcard_binding.dart';
 import '../modules/flashcard/flashcard_screen.dart';
 import '../modules/listening/listening_binding.dart';
 import '../modules/listening/listening_screen.dart';
+import '../modules/sentence_formation/sentence_formation_binding.dart';
+import '../modules/sentence_formation/sentence_formation_screen.dart';
 import '../modules/hsk_exam/hsk_exam_test_screen.dart';
 import '../modules/hsk_exam/hsk_exam_history_screen.dart';
 import '../modules/hsk_exam/hsk_exam_review_screen.dart';
@@ -223,6 +225,13 @@ class AppPages {
       name: Routes.listening,
       page: () => const ListeningScreen(),
       binding: ListeningBinding(),
+    ),
+
+    // Sentence Formation Practice - Đặt câu
+    GetPage(
+      name: Routes.sentenceFormation,
+      page: () => const SentenceFormationScreen(),
+      binding: SentenceFormationBinding(),
     ),
 
     // HSK Exam - Test Taking

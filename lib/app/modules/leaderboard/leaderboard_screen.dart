@@ -29,7 +29,10 @@ class LeaderboardScreen extends GetView<LeaderboardController> {
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const HMLoadingContent(
+                  message: 'Đang tải bảng xếp hạng...',
+                  icon: Icons.leaderboard_rounded,
+                );
               }
 
               final leaderboard = controller.leaderboard.value;

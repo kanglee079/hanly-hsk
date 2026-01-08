@@ -39,7 +39,10 @@ class PracticeScreen extends GetView<PracticeController> {
       body: Obx(() {
         // Show loading
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const HMLoadingContent(
+            message: 'Đang tải bài tập...',
+            icon: Icons.school_rounded,
+          );
         }
 
         // Show empty state if no data
@@ -49,7 +52,10 @@ class PracticeScreen extends GetView<PracticeController> {
 
         switch (controller.state.value) {
           case PracticeState.loading:
-            return const Center(child: CircularProgressIndicator());
+            return const HMLoadingContent(
+              message: 'Đang chuẩn bị...',
+              icon: Icons.auto_awesome_rounded,
+            );
 
           case PracticeState.learning:
             final vocab = controller.currentVocab;

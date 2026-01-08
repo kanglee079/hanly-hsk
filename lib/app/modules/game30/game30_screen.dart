@@ -28,7 +28,7 @@ class Game30Screen extends GetView<Game30Controller> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircularProgressIndicator(color: AppColors.primary),
+                  const HMLoadingIndicator(size: 48),
                   const SizedBox(height: 16),
                   Text(
                     'Đang tải câu hỏi...',

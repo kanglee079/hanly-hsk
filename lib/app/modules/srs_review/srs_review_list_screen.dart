@@ -28,7 +28,10 @@ class SrsReviewListScreen extends GetView<SrsReviewListController> {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const HMLoadingContent(
+                    message: 'Đang tải danh sách ôn tập...',
+                    icon: Icons.schedule_rounded,
+                  );
                 }
 
                 if (controller.reviewQueue.isEmpty) {
@@ -209,10 +212,7 @@ class SrsReviewListScreen extends GetView<SrsReviewListController> {
                       ? const SizedBox(
                           width: 24,
                           height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
+                          child: HMLoadingIndicator.small(color: Colors.white),
                         )
                       : Text(
                           'Ôn tập $count từ SRS',

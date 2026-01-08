@@ -19,7 +19,10 @@ class StatsScreen extends GetView<StatsController> {
       appBar: HMAppBar(title: 'Thống kê'),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const HMLoadingContent(
+            message: 'Đang tải thống kê...',
+            icon: Icons.bar_chart_rounded,
+          );
         }
 
         return SingleChildScrollView(

@@ -21,6 +21,7 @@ enum LearnMode {
   review,        // quick review
   game30,
   pronunciation,
+  sentenceFormation, // sentence_formation - Đặt câu
 }
 
 extension LearnModeExtension on LearnMode {
@@ -42,6 +43,8 @@ extension LearnModeExtension on LearnMode {
         return 'game30';
       case LearnMode.pronunciation:
         return 'pronunciation';
+      case LearnMode.sentenceFormation:
+        return 'sentence_formation';
     }
   }
 
@@ -58,6 +61,8 @@ extension LearnModeExtension on LearnMode {
         return LearnMode.matching;
       case 'comprehensive':
         return LearnMode.comprehensive;
+      case 'sentence_formation':
+        return LearnMode.sentenceFormation;
       default:
         return LearnMode.srsVocabulary;
     }
@@ -130,13 +135,13 @@ class LearnController extends GetxController {
   List<StudyModeModel> _createFallbackModes(int reviewCount, int newCount) {
     return [
       StudyModeModel(
-        id: 'srs_vocabulary',
-        name: 'Flashcards',
-        nameEn: 'SRS • 10 thẻ',
-        description: '$reviewCount từ đến hạn ôn',
-        icon: '🎴',
+        id: 'sentence_formation',
+        name: 'Đặt câu',
+        nameEn: 'Sentence Formation',
+        description: 'Sắp xếp từ tạo câu đúng',
+        icon: '📝',
         estimatedMinutes: 5,
-        wordCount: reviewCount,
+        wordCount: 10,
         isPremium: false,
         isAvailable: true,
       ),
@@ -326,6 +331,10 @@ class LearnController extends GetxController {
       case LearnMode.comprehensive:
         // Mixed exercises
         Get.toNamed(Routes.practice, arguments: {'mode': PracticeMode.comprehensive});
+        break;
+      case LearnMode.sentenceFormation:
+        // Sentence formation - Đặt câu
+        Get.toNamed(Routes.sentenceFormation);
         break;
       default:
         Get.toNamed(Routes.practice, arguments: {'mode': PracticeMode.learnNew});

@@ -291,7 +291,7 @@ class ExploreScreen extends GetView<ExploreController> {
                   if (index >= controller.vocabs.length) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(child: CircularProgressIndicator()),
+                      child: Center(child: HMLoadingIndicator.small()),
                     );
                   }
 

@@ -548,14 +548,14 @@ class DayProgress {
 
 /// Session result for finishing session
 class SessionResultModel {
-  final int minutes;
+  final int seconds; // Track in seconds for accuracy
   final int newCount;
   final int reviewCount;
   final double accuracy;
   final String dateKey; // Format: YYYY-MM-DD
 
   SessionResultModel({
-    required this.minutes,
+    required this.seconds,
     required this.newCount,
     required this.reviewCount,
     required this.accuracy,
@@ -566,13 +566,29 @@ class SessionResultModel {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
+  /// Convert seconds to minutes for BE
+  /// Standard rounding: 30+ seconds of a minute rounds up
+  /// Example: 89s = 1min, 90s = 2min, 29s = 0min
+  int get minutes {
+    if (seconds <= 0) return 0;
+    // Standard rounding: add 30 then divide by 60 and floor
+    return ((seconds + 30) / 60).floor();
+  }
+
+  /// Get formatted display string for UI
+  String get minutesDisplay {
+    if (seconds <= 0) return '0';
+    if (seconds < 60) return '< 1'; // Less than 1 minute
+    return (seconds / 60).ceil().toString();
+  }
+
   Map<String, dynamic> toJson() {
     return {
-      'minutes': minutes,
+      'minutes': minutes, // Send calculated minutes to BE
+      'seconds': seconds, // Also send seconds for more accurate tracking
       'newCount': newCount,
       'reviewCount': reviewCount,
       'accuracy': (accuracy * 100).round(), // BE expects 0-100
-      // dateKey removed as per strict API spec
     };
   }
 }

@@ -137,10 +137,7 @@ class _HskExamReviewScreenState extends State<HskExamReviewScreen> {
         child: SizedBox(
           width: 36,
           height: 36,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation(AppColors.primary),
-          ),
+          child: HMLoadingIndicator(size: 36, color: AppColors.primary),
         ),
       );
     }

@@ -27,7 +27,10 @@ class Game30HomeScreen extends GetView<Game30HomeController> {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const HMLoadingContent(
+                    message: 'Đang tải...',
+                    icon: Icons.leaderboard_rounded,
+                  );
                 }
                 
                 return RefreshIndicator(
@@ -825,10 +828,7 @@ class Game30HomeScreen extends GetView<Game30HomeController> {
                                 ? const SizedBox(
                                     width: 22,
                                     height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
+                                    child: HMLoadingIndicator.small(color: Colors.white),
                                   )
                                 : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
