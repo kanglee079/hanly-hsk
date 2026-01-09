@@ -245,9 +245,35 @@ class AuthSessionService extends GetxService {
       
       return false;
     } catch (e) {
-      Logger.e('AuthSessionService', 'Failed to create new account', e);
+      // If still failing, the backend might have different duplicate detection
+      // (e.g., by IP or user agent). In this case, we just continue without auth
+      // and let the app work in "offline" mode
+      Logger.e('AuthSessionService', 'Failed to create new account - continuing offline', e);
+      
+      // Mark as anonymous even without server confirmation
+      // This allows the app to function in offline/demo mode
+      _storage.isAnonymous = true;
+      isAnonymous.value = true;
+      
       return false;
     }
+  }
+  
+  /// Force reset all auth state and try fresh
+  /// Call this when user explicitly wants to start over
+  Future<bool> forceResetAndCreateAccount() async {
+    Logger.d('AuthSessionService', 'Force resetting auth state...');
+    
+    // Clear everything
+    _storage.clearAuth();
+    _storage.deviceId = null;
+    _storage.isAnonymous = true;
+    _storage.isSetupComplete = false;
+    _storage.isOnboardingComplete = false;
+    _storage.isIntroSeen = false;
+    
+    // Try to create fresh account
+    return await createAnonymousUser();
   }
   
   /// Get auth status from server

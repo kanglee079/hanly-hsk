@@ -126,14 +126,30 @@ class SplashController extends GetxController {
   }
 
   Future<void> _verifyAuthSession() async {
+    final authService = Get.find<AuthSessionService>();
+    
     if (_storage.isLoggedIn) {
+      // Has tokens - verify they're still valid
       try {
-        final authService = Get.find<AuthSessionService>();
-        // Verify token is still valid by loading user profile
         await authService.fetchCurrentUser();
+        Logger.d('SplashController', 'Existing session verified');
       } catch (e) {
         Logger.w('SplashController', 'Session verification failed: $e');
-        // Token might be expired, will be handled during navigation
+        // Token expired, will try to create/login with device ID
+      }
+    } else {
+      // No tokens - try to create or login with device ID
+      // This handles the case where device already has account on server
+      Logger.d('SplashController', 'No tokens, trying device auth...');
+      try {
+        final success = await authService.createAnonymousUser();
+        if (success) {
+          Logger.d('SplashController', 'Device auth successful');
+          // Fetch user profile after successful auth
+          await authService.fetchCurrentUser();
+        }
+      } catch (e) {
+        Logger.w('SplashController', 'Device auth failed: $e');
       }
     }
     await Future.delayed(const Duration(milliseconds: 200));
@@ -151,58 +167,51 @@ class SplashController extends GetxController {
   }
 
   void _navigateToNextScreen() {
+    // Re-check login status after auth attempt in _verifyAuthSession
     final isLoggedIn = _storage.isLoggedIn;
     final isIntroSeen = _storage.isIntroSeen;
     final isSetupComplete = _storage.isSetupComplete;
+    final isOnboardingComplete = _storage.isOnboardingComplete;
     
     Logger.d('SplashController', 
-      'Navigation check: isLoggedIn=$isLoggedIn, isIntroSeen=$isIntroSeen, isSetupComplete=$isSetupComplete');
+      'Navigation: isLoggedIn=$isLoggedIn, isIntroSeen=$isIntroSeen, isSetupComplete=$isSetupComplete, isOnboardingComplete=$isOnboardingComplete');
 
-    // Anonymous-First Flow:
-    // 1. First launch (no tokens) → Intro slides → Setup → Create anonymous → Shell
-    // 2. Returning user (has tokens) → Shell directly
-    // 3. Setup not complete → Setup screen
+    // PRIORITY 1: If logged in (has valid tokens from device auth)
+    // Check if user has completed onboarding/profile setup on server
+    if (isLoggedIn) {
+      final authService = Get.find<AuthSessionService>();
+      final user = authService.currentUser.value;
+      final hasProfile = user?.hasProfile ?? false;
+      
+      if (hasProfile || isOnboardingComplete) {
+        // User has profile - go to main app
+        Logger.d('SplashController', 'Logged in with profile - going to shell');
+        Get.offAllNamed(Routes.shell);
+      } else {
+        // Logged in but no profile - need setup
+        // (This happens when device already had account but never completed setup)
+        Logger.d('SplashController', 'Logged in but no profile - going to setup');
+        _storage.isIntroSeen = true; // Skip intro since already has account
+        Get.offAllNamed(Routes.setup);
+      }
+      return;
+    }
     
+    // PRIORITY 2: Not logged in - first time user flow
     if (!isIntroSeen) {
-      // First launch - show intro slides
-      Logger.d('SplashController', 'First launch - navigating to intro');
+      Logger.d('SplashController', 'First launch - going to intro');
       Get.offAllNamed(Routes.intro);
       return;
     }
     
     if (!isSetupComplete) {
-      // Intro seen but setup not complete
-      Logger.d('SplashController', 'Setup incomplete - navigating to setup');
+      Logger.d('SplashController', 'Setup incomplete - going to setup');
       Get.offAllNamed(Routes.setup);
       return;
     }
     
-    if (isLoggedIn) {
-      // Has valid tokens - go to main app
-      Logger.d('SplashController', 'Logged in - navigating to shell');
-      Get.offAllNamed(Routes.shell);
-    } else {
-      // Setup complete but no tokens (edge case - token expired)
-      // Create new anonymous user and go to shell
-      Logger.d('SplashController', 'No tokens but setup complete - creating anonymous user');
-      _createAnonymousAndNavigate();
-    }
-  }
-  
-  Future<void> _createAnonymousAndNavigate() async {
-    try {
-      final authService = Get.find<AuthSessionService>();
-      final success = await authService.createAnonymousUser();
-      
-      if (success) {
-        Get.offAllNamed(Routes.shell);
-      } else {
-        // Fallback - still try to go to shell (might work offline)
-        Get.offAllNamed(Routes.shell);
-      }
-    } catch (e) {
-      Logger.e('SplashController', 'Failed to create anonymous user', e);
-      Get.offAllNamed(Routes.shell);
-    }
+    // PRIORITY 3: Setup complete but no tokens (edge case - offline or error)
+    Logger.d('SplashController', 'Setup complete but no tokens - going to shell anyway');
+    Get.offAllNamed(Routes.shell);
   }
 }
