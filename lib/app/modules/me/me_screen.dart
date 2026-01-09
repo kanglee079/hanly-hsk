@@ -868,73 +868,92 @@ class MeScreen extends GetView<MeController> {
             ),
           ),
           const SizedBox(height: 12),
+          
+          // Prominent banner for anonymous users
+          if (isAnonymous) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [const Color(0xFF1E3A5F), const Color(0xFF2D4A6F)]
+                      : [AppColors.primarySurface, AppColors.primaryLight.withValues(alpha: 0.2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Text('☁️', style: TextStyle(fontSize: 24)),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Dữ liệu chưa được đồng bộ',
+                              style: AppTypography.titleSmall.copyWith(
+                                color: isDark ? Colors.white : AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Liên kết email để backup & đồng bộ qua các thiết bị',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.8)
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: HMButton(
+                      text: 'Liên kết tài khoản',
+                      onPressed: () => Get.toNamed(Routes.linkAccount),
+                      icon: const Icon(Icons.link_rounded, size: 18, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          
           HMCard(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
                 if (isAnonymous) ...[
-                  // Link account option for anonymous users
-                  InkWell(
-                    onTap: () => Get.toNamed(Routes.linkAccount),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withAlpha(15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.link_rounded,
-                              size: 22,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Liên kết tài khoản',
-                                  style: AppTypography.bodyLarge.copyWith(
-                                    color: isDark
-                                        ? AppColors.textPrimaryDark
-                                        : AppColors.textPrimary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                Text(
-                                  'Backup & đồng bộ dữ liệu',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: isDark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            size: 22,
-                            color: isDark
-                                ? AppColors.textTertiaryDark
-                                : AppColors.textTertiary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  _buildDivider(isDark),
                   // Login to existing account
                   InkWell(
                     onTap: () => Get.toNamed(Routes.login),
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
@@ -958,7 +977,7 @@ class MeScreen extends GetView<MeController> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Đăng nhập tài khoản',
+                                  'Đăng nhập tài khoản khác',
                                   style: AppTypography.bodyLarge.copyWith(
                                     color: isDark
                                         ? AppColors.textPrimaryDark
@@ -967,7 +986,7 @@ class MeScreen extends GetView<MeController> {
                                   ),
                                 ),
                                 Text(
-                                  'Đã có tài khoản? Đăng nhập',
+                                  'Đã có tài khoản? Đăng nhập để đồng bộ',
                                   style: AppTypography.bodySmall.copyWith(
                                     color: isDark
                                         ? AppColors.textSecondaryDark

@@ -19,17 +19,19 @@ class HMForecastWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     if (isLoading) {
-      return _buildSkeleton();
+      return _buildSkeleton(isDark);
     }
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.surfaceDark : AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(
-          color: AppColors.border,
+          color: isDark ? AppColors.borderDark : AppColors.border,
           width: 1,
         ),
       ),
@@ -61,12 +63,13 @@ class HMForecastWidget extends StatelessWidget {
                       'Dự báo ôn tập',
                       style: AppTypography.labelLarge.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
                       ),
                     ),
                     Text(
                       'Số từ cần ôn trong 7 ngày tới',
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -82,7 +85,7 @@ class HMForecastWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.1),
+                color: AppColors.warning.withValues(alpha: isDark ? 0.15 : 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: AppColors.warning.withValues(alpha: 0.3),
@@ -96,7 +99,7 @@ class HMForecastWidget extends StatelessWidget {
                     child: RichText(
                       text: TextSpan(
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textPrimary,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
                         ),
                         children: [
                           const TextSpan(text: 'Ngày mai: '),
@@ -119,13 +122,13 @@ class HMForecastWidget extends StatelessWidget {
           ],
           
           // 7-day chart
-          if (days.isNotEmpty) _buildChart(),
+          if (days.isNotEmpty) _buildChart(isDark),
         ],
       ),
     );
   }
 
-  Widget _buildChart() {
+  Widget _buildChart(bool isDark) {
     final maxCount = days.map((d) => d.reviewCount).reduce((a, b) => a > b ? a : b);
     final normalizedMax = maxCount > 0 ? maxCount : 1;
     
@@ -149,6 +152,9 @@ class HMForecastWidget extends StatelessWidget {
               : barMinHeight;
           final date = DateTime.tryParse(day.dateKey);
           final dayName = _getDayName(date);
+          
+          final secondaryColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+          final borderColor = isDark ? AppColors.borderDark : AppColors.border;
 
           return Expanded(
             child: Padding(
@@ -167,7 +173,7 @@ class HMForecastWidget extends StatelessWidget {
                         ? Text(
                             '${day.reviewCount}',
                             style: AppTypography.labelSmall.copyWith(
-                              color: index == 0 ? AppColors.warning : AppColors.textSecondary,
+                              color: index == 0 ? AppColors.warning : secondaryColor,
                               fontSize: 10,
                               fontWeight: index == 0 ? FontWeight.w600 : FontWeight.normal,
                             ),
@@ -185,7 +191,7 @@ class HMForecastWidget extends StatelessWidget {
                           ? AppColors.warning
                           : (day.reviewCount > 0 
                               ? AppColors.primary.withValues(alpha: 0.6)
-                              : AppColors.border),
+                              : borderColor),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -196,7 +202,7 @@ class HMForecastWidget extends StatelessWidget {
                     child: Text(
                       dayName,
                       style: AppTypography.labelSmall.copyWith(
-                        color: index == 0 ? AppColors.warning : AppColors.textSecondary,
+                        color: index == 0 ? AppColors.warning : secondaryColor,
                         fontSize: 9,
                         fontWeight: index == 0 ? FontWeight.w600 : FontWeight.normal,
                       ),
@@ -218,13 +224,16 @@ class HMForecastWidget extends StatelessWidget {
     return dayNames[(date.weekday - 1) % 7];
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(bool isDark) {
+    final borderColor = isDark ? AppColors.borderDark : AppColors.border;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surface;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,7 +244,7 @@ class HMForecastWidget extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: borderColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
@@ -247,7 +256,7 @@ class HMForecastWidget extends StatelessWidget {
                     width: 100,
                     height: 14,
                     decoration: BoxDecoration(
-                      color: AppColors.border,
+                      color: borderColor,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -256,7 +265,7 @@ class HMForecastWidget extends StatelessWidget {
                     width: 150,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: AppColors.border,
+                      color: borderColor,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),

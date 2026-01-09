@@ -253,37 +253,53 @@ class TodayScreen extends GetView<TodayController> {
     final hasStudiedToday = controller.hasStudiedToday;
     final isAtRisk = controller.isStreakAtRisk;
 
-    if (streak <= 0 && !isAtRisk) return const SizedBox.shrink();
+    // For new users (streak = 0), show welcome widget
+    final isNewUser = streak <= 0 && !isAtRisk;
 
     return GestureDetector(
-      onTap: controller.showStreakDetails,
+      onTap: isNewUser ? null : controller.showStreakDetails,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isAtRisk && !hasStudiedToday
-                ? [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)]
-                : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
+            colors: isNewUser
+                ? (isDark 
+                    ? [const Color(0xFF1E3A5F), const Color(0xFF2D4A6F)]
+                    : [const Color(0xFFE0F2FE), const Color(0xFFBAE6FD)])
+                : isAtRisk && !hasStudiedToday
+                    ? (isDark
+                        ? [const Color(0xFF422006), const Color(0xFF4D2C0D)]
+                        : [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)])
+                    : (isDark
+                        ? [const Color(0xFF3D2F14), const Color(0xFF4D3D1F)]
+                        : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)]),
           ),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isAtRisk && !hasStudiedToday
-                ? AppColors.warning.withValues(alpha: 0.4)
-                : AppColors.streak.withValues(alpha: 0.3),
+            color: isNewUser
+                ? AppColors.primary.withValues(alpha: 0.3)
+                : isAtRisk && !hasStudiedToday
+                    ? AppColors.warning.withValues(alpha: 0.4)
+                    : AppColors.streak.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
           children: [
-            // Streak fire icon
+            // Streak/Welcome icon
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.8),
+                color: isDark 
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Center(
-                child: Text('🔥', style: TextStyle(fontSize: 22)),
+              child: Center(
+                child: Text(
+                  isNewUser ? '👋' : '🔥', 
+                  style: const TextStyle(fontSize: 22),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -295,13 +311,13 @@ class TodayScreen extends GetView<TodayController> {
                   Row(
                     children: [
                       Text(
-                        '$streak ngày streak',
+                        isNewUser ? 'Bắt đầu hành trình!' : '$streak ngày streak',
                         style: AppTypography.titleSmall.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
                         ),
                       ),
-                      if (hasStudiedToday) ...[
+                      if (hasStudiedToday && !isNewUser) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -326,20 +342,29 @@ class TodayScreen extends GetView<TodayController> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    isAtRisk && !hasStudiedToday
-                        ? 'Học ngay để giữ streak!'
+                    isNewUser
+                        ? 'Học từ đầu tiên để bắt đầu streak!'
+                        : isAtRisk && !hasStudiedToday
+                            ? 'Học ngay để giữ streak!'
                         : 'Tiếp tục phát huy nhé! 💪',
                     style: AppTypography.bodySmall.copyWith(
-                      color: isAtRisk && !hasStudiedToday
-                          ? AppColors.warning
-                          : AppColors.textSecondary,
+                      color: isNewUser
+                          ? (isDark ? AppColors.textSecondaryDark : AppColors.primary)
+                          : isAtRisk && !hasStudiedToday
+                              ? AppColors.warning
+                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
                     ),
                   ),
                 ],
               ),
             ),
-            // Arrow
-            Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 20),
+            // Arrow (only show if not new user)
+            if (!isNewUser)
+              Icon(
+                Icons.chevron_right, 
+                color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary, 
+                size: 20,
+              ),
           ],
         ),
       ),
