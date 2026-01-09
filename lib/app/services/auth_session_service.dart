@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import '../data/models/auth_model.dart';
 import '../data/models/user_model.dart';
@@ -89,6 +90,7 @@ class AuthSessionService extends GetxService {
   }
 
   /// Create anonymous user on first launch
+  /// If device already has an account (DUPLICATE_ERROR), try to recover session
   Future<bool> createAnonymousUser() async {
     try {
       isLoading.value = true;
@@ -115,10 +117,126 @@ class AuthSessionService extends GetxService {
       
       return false;
     } catch (e) {
+      // Check if this is a DUPLICATE_ERROR - device already has an account
+      if (_isDuplicateError(e)) {
+        Logger.d('AuthSessionService', 'Device already has account, trying to recover session');
+        return await _recoverExistingSession();
+      }
+      
       Logger.e('AuthSessionService', 'createAnonymousUser error', e);
       return false;
     } finally {
       isLoading.value = false;
+    }
+  }
+  
+  /// Check if the error is a duplicate device error
+  bool _isDuplicateError(dynamic error) {
+    if (error is DioException) {
+      final message = error.message ?? '';
+      final response = error.response?.data;
+      
+      // Check error message
+      if (message.contains('Duplicate') || message.contains('DUPLICATE')) {
+        return true;
+      }
+      
+      // Check response data
+      if (response is Map<String, dynamic>) {
+        final errorCode = response['error']?['code'];
+        if (errorCode == 'DUPLICATE_ERROR' || errorCode == 'DEVICE_EXISTS') {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  /// Try to recover an existing session for this device
+  /// This is called when the device already has an account but no tokens
+  Future<bool> _recoverExistingSession() async {
+    try {
+      // First, check if we already have valid tokens
+      final existingToken = _storage.accessToken;
+      if (existingToken != null && existingToken.isNotEmpty) {
+        // Try to validate the existing token
+        final status = await getAuthStatus();
+        if (status != null) {
+          Logger.d('AuthSessionService', 'Recovered session using existing tokens');
+          return true;
+        }
+      }
+      
+      // Try to refresh using stored refresh token
+      final refreshToken = _storage.refreshToken;
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        try {
+          final tokens = await _authRepo.refreshTokens(refreshToken);
+          _storage.saveTokens(
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+          );
+          _storage.isAnonymous = true;
+          isAnonymous.value = true;
+          Logger.d('AuthSessionService', 'Recovered session using refresh token');
+          return true;
+        } catch (e) {
+          Logger.e('AuthSessionService', 'Failed to refresh existing session', e);
+        }
+      }
+      
+      // If we can't recover, we need to login with device ID
+      // Try calling login-device endpoint if available
+      try {
+        final deviceId = getDeviceId();
+        final deviceInfo = getDeviceInfo();
+        final response = await _authRepo.loginWithDevice(
+          deviceId: deviceId,
+          deviceInfo: deviceInfo,
+        );
+        
+        if (response.success) {
+          _storage.saveTokens(
+            accessToken: response.accessToken,
+            refreshToken: response.refreshToken,
+          );
+          _storage.isAnonymous = true;
+          isAnonymous.value = true;
+          Logger.d('AuthSessionService', 'Recovered session via device login');
+          return true;
+        }
+      } catch (e) {
+        Logger.e('AuthSessionService', 'Device login failed', e);
+      }
+      
+      // Last resort: Generate new device ID and create fresh account
+      Logger.w('AuthSessionService', 'Could not recover session, creating new device identity');
+      _storage.deviceId = null; // Clear old device ID
+      
+      // Retry with new device ID
+      final newDeviceId = getDeviceId(); // This will generate a new one
+      final deviceInfo = getDeviceInfo();
+      
+      final response = await _authRepo.createAnonymousUser(
+        deviceId: newDeviceId,
+        deviceInfo: deviceInfo,
+      );
+      
+      if (response.success) {
+        _storage.saveTokens(
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+        );
+        _storage.isAnonymous = true;
+        isAnonymous.value = true;
+        Logger.d('AuthSessionService', 'Created new anonymous user with new device ID');
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      Logger.e('AuthSessionService', 'Failed to recover existing session', e);
+      return false;
     }
   }
   

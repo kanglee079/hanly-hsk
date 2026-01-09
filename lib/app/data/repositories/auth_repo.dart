@@ -31,6 +31,27 @@ class AuthRepo {
     _checkResponse(response);
     return AnonymousUserResponseModel.fromJson(response.data);
   }
+  
+  /// Login with existing device (for session recovery)
+  /// POST /auth/device-login { deviceId, deviceInfo }
+  Future<AnonymousUserResponseModel> loginWithDevice({
+    required String deviceId,
+    required Map<String, dynamic> deviceInfo,
+  }) async {
+    final response = await _api.post(
+      ApiEndpoints.authDeviceLogin,
+      data: {
+        'deviceId': deviceId,
+        'deviceInfo': deviceInfo,
+      },
+      options: Options(
+        extra: {'__skipAuth': true},
+      ),
+    );
+    
+    _checkResponse(response);
+    return AnonymousUserResponseModel.fromJson(response.data);
+  }
 
   /// Get auth status
   /// GET /auth/status

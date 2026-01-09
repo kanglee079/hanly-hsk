@@ -8,6 +8,7 @@ class ApiEndpoints {
 
   // Auth (Anonymous-First + Email/Password + 2FA)
   static const String authAnonymous = '/auth/anonymous';
+  static const String authDeviceLogin = '/auth/device-login';
   static const String authStatus = '/auth/status';
   static const String authLinkAccount = '/auth/link-account';
   static const String authVerifyLinkAccount = '/auth/verify-link-account';
