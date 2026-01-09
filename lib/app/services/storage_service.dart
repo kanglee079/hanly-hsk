@@ -18,6 +18,16 @@ class StorageService {
   static const String _keyGame30sHighScore = 'game30s_high_score';
   static const String _keyGame30sGamesPlayed = 'game30s_games_played';
   static const String _keyCompletedTutorials = 'completed_tutorials';
+  
+  // Anonymous-First flow keys
+  static const String _keyDeviceId = 'device_id';
+  static const String _keyIsAnonymous = 'is_anonymous';
+  static const String _keyIsIntroSeen = 'is_intro_seen';
+  static const String _keyIsSetupComplete = 'is_setup_complete';
+  static const String _keyUserDisplayName = 'user_display_name';
+  static const String _keyUserLevel = 'user_level';
+  static const String _keyUserGoals = 'user_goals';
+  static const String _keyUserDailyMinutes = 'user_daily_minutes';
 
   final GetStorage _box;
 
@@ -67,11 +77,67 @@ class StorageService {
     }
   }
 
-  // Onboarding complete
+  // Onboarding complete (deprecated, use isSetupComplete)
   bool get isOnboardingComplete =>
       _box.read<bool>(_keyOnboardingComplete) ?? false;
   set isOnboardingComplete(bool value) =>
       _box.write(_keyOnboardingComplete, value);
+  
+  // === Anonymous-First Flow ===
+  
+  // Device ID (unique per device, persists across reinstalls)
+  String? get deviceId => _box.read<String>(_keyDeviceId);
+  set deviceId(String? value) {
+    if (value == null) {
+      _box.remove(_keyDeviceId);
+    } else {
+      _box.write(_keyDeviceId, value);
+    }
+  }
+  
+  // Is user anonymous (not linked email)
+  bool get isAnonymous => _box.read<bool>(_keyIsAnonymous) ?? true;
+  set isAnonymous(bool value) => _box.write(_keyIsAnonymous, value);
+  
+  // Has user seen intro slides
+  bool get isIntroSeen => _box.read<bool>(_keyIsIntroSeen) ?? false;
+  set isIntroSeen(bool value) => _box.write(_keyIsIntroSeen, value);
+  
+  // Has user completed initial setup (name, level, goals)
+  bool get isSetupComplete => _box.read<bool>(_keyIsSetupComplete) ?? false;
+  set isSetupComplete(bool value) => _box.write(_keyIsSetupComplete, value);
+  
+  // User display name (local)
+  String? get userDisplayName => _box.read<String>(_keyUserDisplayName);
+  set userDisplayName(String? value) {
+    if (value == null) {
+      _box.remove(_keyUserDisplayName);
+    } else {
+      _box.write(_keyUserDisplayName, value);
+    }
+  }
+  
+  // User HSK level (local)
+  String? get userLevel => _box.read<String>(_keyUserLevel);
+  set userLevel(String? value) {
+    if (value == null) {
+      _box.remove(_keyUserLevel);
+    } else {
+      _box.write(_keyUserLevel, value);
+    }
+  }
+  
+  // User learning goals (local)
+  List<String> get userGoals {
+    final data = _box.read<List<dynamic>>(_keyUserGoals);
+    if (data == null) return [];
+    return data.cast<String>();
+  }
+  set userGoals(List<String> value) => _box.write(_keyUserGoals, value);
+  
+  // User daily minutes target (local)
+  int get userDailyMinutes => _box.read<int>(_keyUserDailyMinutes) ?? 10;
+  set userDailyMinutes(int value) => _box.write(_keyUserDailyMinutes, value);
 
   // Theme mode: 'light', 'dark', 'system'
   String get themeMode => _box.read<String>(_keyThemeMode) ?? 'system';
@@ -117,7 +183,14 @@ class StorageService {
     // Clear learning progress cache (user-specific!)
     _box.remove(_keyLearnNewCompletedByDate);
     _box.remove(_keyLearnNewVocabsByDate);
-    // Keep lastEmail for convenience
+    // Clear anonymous-first flow data
+    _box.remove(_keyIsAnonymous);
+    _box.remove(_keyIsSetupComplete);
+    _box.remove(_keyUserDisplayName);
+    _box.remove(_keyUserLevel);
+    _box.remove(_keyUserGoals);
+    _box.remove(_keyUserDailyMinutes);
+    // Keep lastEmail and isIntroSeen for convenience
   }
 
   // Clear all storage

@@ -1,5 +1,159 @@
 import 'user_model.dart';
 
+/// Anonymous user response
+/// POST /auth/anonymous
+class AnonymousUserResponseModel {
+  final bool success;
+  final String userId;
+  final String accessToken;
+  final String refreshToken;
+  final bool isAnonymous;
+  final DateTime createdAt;
+
+  AnonymousUserResponseModel({
+    required this.success,
+    required this.userId,
+    required this.accessToken,
+    required this.refreshToken,
+    required this.isAnonymous,
+    required this.createdAt,
+  });
+
+  factory AnonymousUserResponseModel.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? json;
+    return AnonymousUserResponseModel(
+      success: json['success'] as bool? ?? true,
+      userId: data['userId'] as String,
+      accessToken: data['accessToken'] as String,
+      refreshToken: data['refreshToken'] as String,
+      isAnonymous: data['isAnonymous'] as bool? ?? true,
+      createdAt: DateTime.parse(data['createdAt'] as String),
+    );
+  }
+}
+
+/// Auth status response
+/// GET /auth/status
+class AuthStatusResponseModel {
+  final bool success;
+  final String userId;
+  final bool isAnonymous;
+  final bool hasEmail;
+  final String? email;
+  final String? displayName;
+  final DateTime createdAt;
+
+  AuthStatusResponseModel({
+    required this.success,
+    required this.userId,
+    required this.isAnonymous,
+    required this.hasEmail,
+    this.email,
+    this.displayName,
+    required this.createdAt,
+  });
+
+  factory AuthStatusResponseModel.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? json;
+    return AuthStatusResponseModel(
+      success: json['success'] as bool? ?? true,
+      userId: data['userId'] as String,
+      isAnonymous: data['isAnonymous'] as bool? ?? false,
+      hasEmail: data['hasEmail'] as bool? ?? false,
+      email: data['email'] as String?,
+      displayName: data['displayName'] as String?,
+      createdAt: DateTime.parse(data['createdAt'] as String),
+    );
+  }
+}
+
+/// Link account request response
+/// POST /auth/link-account
+class LinkAccountResponseModel {
+  final bool success;
+  final String linkId;
+  final DateTime expiresAt;
+  final String message;
+
+  LinkAccountResponseModel({
+    required this.success,
+    required this.linkId,
+    required this.expiresAt,
+    required this.message,
+  });
+
+  factory LinkAccountResponseModel.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? json;
+    return LinkAccountResponseModel(
+      success: json['success'] as bool? ?? true,
+      linkId: data['linkId'] as String,
+      expiresAt: DateTime.parse(data['expiresAt'] as String),
+      message: data['message'] as String? ?? 'Đã gửi email xác nhận',
+    );
+  }
+}
+
+/// Verify link account response
+/// POST /auth/verify-link-account
+class VerifyLinkAccountResponseModel {
+  final bool success;
+  final String userId;
+  final String email;
+  final bool isAnonymous;
+  final String accessToken;
+  final String refreshToken;
+  final bool merged;
+  final MergeResultModel? mergeResult;
+
+  VerifyLinkAccountResponseModel({
+    required this.success,
+    required this.userId,
+    required this.email,
+    required this.isAnonymous,
+    required this.accessToken,
+    required this.refreshToken,
+    required this.merged,
+    this.mergeResult,
+  });
+
+  factory VerifyLinkAccountResponseModel.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? json;
+    return VerifyLinkAccountResponseModel(
+      success: json['success'] as bool? ?? true,
+      userId: data['userId'] as String,
+      email: data['email'] as String,
+      isAnonymous: data['isAnonymous'] as bool? ?? false,
+      accessToken: data['accessToken'] as String,
+      refreshToken: data['refreshToken'] as String,
+      merged: data['merged'] as bool? ?? false,
+      mergeResult: data['mergeResult'] != null
+          ? MergeResultModel.fromJson(data['mergeResult'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+
+/// Merge result when linking existing account
+class MergeResultModel {
+  final int vocabsLearned;
+  final int streakDays;
+  final String? message;
+
+  MergeResultModel({
+    required this.vocabsLearned,
+    required this.streakDays,
+    this.message,
+  });
+
+  factory MergeResultModel.fromJson(Map<String, dynamic> json) {
+    return MergeResultModel(
+      vocabsLearned: json['vocabsLearned'] as int? ?? 0,
+      streakDays: json['streakDays'] as int? ?? 0,
+      message: json['message'] as String?,
+    );
+  }
+}
+
 /// Auth tokens response
 /// 
 /// Backend response format:

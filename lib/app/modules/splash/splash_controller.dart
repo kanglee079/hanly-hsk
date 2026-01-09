@@ -152,22 +152,57 @@ class SplashController extends GetxController {
 
   void _navigateToNextScreen() {
     final isLoggedIn = _storage.isLoggedIn;
-    Logger.d('SplashController', 'isLoggedIn: $isLoggedIn');
+    final isIntroSeen = _storage.isIntroSeen;
+    final isSetupComplete = _storage.isSetupComplete;
+    
+    Logger.d('SplashController', 
+      'Navigation check: isLoggedIn=$isLoggedIn, isIntroSeen=$isIntroSeen, isSetupComplete=$isSetupComplete');
 
+    // Anonymous-First Flow:
+    // 1. First launch (no tokens) → Intro slides → Setup → Create anonymous → Shell
+    // 2. Returning user (has tokens) → Shell directly
+    // 3. Setup not complete → Setup screen
+    
+    if (!isIntroSeen) {
+      // First launch - show intro slides
+      Logger.d('SplashController', 'First launch - navigating to intro');
+      Get.offAllNamed(Routes.intro);
+      return;
+    }
+    
+    if (!isSetupComplete) {
+      // Intro seen but setup not complete
+      Logger.d('SplashController', 'Setup incomplete - navigating to setup');
+      Get.offAllNamed(Routes.setup);
+      return;
+    }
+    
     if (isLoggedIn) {
+      // Has valid tokens - go to main app
+      Logger.d('SplashController', 'Logged in - navigating to shell');
+      Get.offAllNamed(Routes.shell);
+    } else {
+      // Setup complete but no tokens (edge case - token expired)
+      // Create new anonymous user and go to shell
+      Logger.d('SplashController', 'No tokens but setup complete - creating anonymous user');
+      _createAnonymousAndNavigate();
+    }
+  }
+  
+  Future<void> _createAnonymousAndNavigate() async {
+    try {
       final authService = Get.find<AuthSessionService>();
-      Logger.d('SplashController', 'needsOnboarding: ${authService.needsOnboarding}');
-
-      if (authService.needsOnboarding) {
-        Logger.d('SplashController', 'Navigating to onboarding');
-        Get.offAllNamed(Routes.onboarding);
+      final success = await authService.createAnonymousUser();
+      
+      if (success) {
+        Get.offAllNamed(Routes.shell);
       } else {
-        Logger.d('SplashController', 'Navigating to shell');
+        // Fallback - still try to go to shell (might work offline)
         Get.offAllNamed(Routes.shell);
       }
-    } else {
-      Logger.d('SplashController', 'Navigating to auth');
-      Get.offAllNamed(Routes.auth);
+    } catch (e) {
+      Logger.e('SplashController', 'Failed to create anonymous user', e);
+      Get.offAllNamed(Routes.shell);
     }
   }
 }

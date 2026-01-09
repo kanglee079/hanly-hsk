@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:get/get.dart';
 import '../data/models/auth_model.dart';
 import '../data/models/user_model.dart';
@@ -8,7 +9,7 @@ import '../routes/app_routes.dart';
 import 'storage_service.dart';
 import 'realtime/realtime_sync_service.dart';
 
-/// Auth session service - Email + Password + 2FA
+/// Auth session service - Anonymous-First + Email + Password + 2FA
 class AuthSessionService extends GetxService {
   final StorageService _storage = Get.find<StorageService>();
   late final AuthRepo _authRepo;
@@ -17,9 +18,15 @@ class AuthSessionService extends GetxService {
   final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
   final RxBool isLoading = false.obs;
   
+  /// Is current user anonymous (not linked email)
+  final RxBool isAnonymous = true.obs;
+  
   /// Pending 2FA userId (when login returns requires2FA: true)
   final RxString pending2FAUserId = ''.obs;
   final RxString pending2FAEmail = ''.obs;
+  
+  /// Pending link account info
+  final RxString pendingLinkId = ''.obs;
 
   @override
   void onInit() {
@@ -27,6 +34,7 @@ class AuthSessionService extends GetxService {
     _authRepo = Get.find<AuthRepo>();
     _meRepo = Get.find<MeRepo>();
     currentUser.value = _storage.user;
+    isAnonymous.value = _storage.isAnonymous;
   }
 
   /// Get access token
@@ -35,11 +43,165 @@ class AuthSessionService extends GetxService {
   /// Get refresh token
   String? get refreshToken => _storage.refreshToken;
 
-  /// Check if logged in
+  /// Check if logged in (has valid tokens)
   bool get isLoggedIn => _storage.isLoggedIn;
+  
+  /// Check if setup completed (name, level, goals)
+  bool get isSetupComplete => _storage.isSetupComplete;
+  
+  /// Check if intro seen
+  bool get isIntroSeen => _storage.isIntroSeen;
   
   /// Check if has pending 2FA
   bool get hasPending2FA => pending2FAUserId.value.isNotEmpty;
+  
+  /// Get or create device ID (persisted in storage)
+  String getDeviceId() {
+    String? deviceId = _storage.deviceId;
+    
+    if (deviceId == null || deviceId.isEmpty) {
+      // Generate a simple unique ID using timestamp and random
+      deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
+      _storage.deviceId = deviceId;
+    }
+    
+    return deviceId;
+  }
+  
+  /// Get device info for anonymous user creation
+  Map<String, dynamic> getDeviceInfo() {
+    String platform = 'unknown';
+    
+    if (Platform.isIOS) {
+      platform = 'ios';
+    } else if (Platform.isAndroid) {
+      platform = 'android';
+    } else if (Platform.isMacOS) {
+      platform = 'macos';
+    }
+    
+    return {
+      'platform': platform,
+      'osVersion': Platform.operatingSystemVersion,
+      'appVersion': '2.0.0',
+      'model': platform,
+    };
+  }
+
+  /// Create anonymous user on first launch
+  Future<bool> createAnonymousUser() async {
+    try {
+      isLoading.value = true;
+      
+      final deviceId = getDeviceId();
+      final deviceInfo = getDeviceInfo();
+      
+      final response = await _authRepo.createAnonymousUser(
+        deviceId: deviceId,
+        deviceInfo: deviceInfo,
+      );
+      
+      if (response.success) {
+        _storage.saveTokens(
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+        );
+        _storage.isAnonymous = true;
+        isAnonymous.value = true;
+        
+        Logger.d('AuthSessionService', 'Anonymous user created: ${response.userId}');
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      Logger.e('AuthSessionService', 'createAnonymousUser error', e);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+  
+  /// Get auth status from server
+  Future<AuthStatusResponseModel?> getAuthStatus() async {
+    try {
+      final response = await _authRepo.getAuthStatus();
+      isAnonymous.value = response.isAnonymous;
+      _storage.isAnonymous = response.isAnonymous;
+      return response;
+    } catch (e) {
+      Logger.e('AuthSessionService', 'getAuthStatus error', e);
+      return null;
+    }
+  }
+  
+  /// Request account link (send verification email)
+  Future<LinkAccountResponseModel?> requestLinkAccount(String email) async {
+    try {
+      isLoading.value = true;
+      
+      final response = await _authRepo.linkAccount(email: email);
+      
+      if (response.success) {
+        pendingLinkId.value = response.linkId;
+        Logger.d('AuthSessionService', 'Link request sent to $email');
+      }
+      
+      return response;
+    } catch (e) {
+      Logger.e('AuthSessionService', 'requestLinkAccount error', e);
+      rethrow;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+  
+  /// Verify link account token
+  Future<VerifyLinkAccountResponseModel?> verifyLinkAccount({
+    required String linkId,
+    required String token,
+  }) async {
+    try {
+      isLoading.value = true;
+      
+      final response = await _authRepo.verifyLinkAccount(
+        linkId: linkId,
+        token: token,
+      );
+      
+      if (response.success) {
+        _storage.saveTokens(
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+        );
+        _storage.isAnonymous = false;
+        isAnonymous.value = false;
+        pendingLinkId.value = '';
+        
+        // Fetch updated user
+        await fetchCurrentUser();
+        
+        Logger.d('AuthSessionService', 'Account linked successfully: ${response.email}');
+      }
+      
+      return response;
+    } catch (e) {
+      Logger.e('AuthSessionService', 'verifyLinkAccount error', e);
+      rethrow;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+  
+  /// Mark intro as seen
+  void markIntroSeen() {
+    _storage.isIntroSeen = true;
+  }
+  
+  /// Mark setup as complete
+  void markSetupComplete() {
+    _storage.isSetupComplete = true;
+  }
 
   /// Set tokens
   void setTokens(String accessToken, String refreshToken) {
@@ -376,7 +538,8 @@ class AuthSessionService extends GetxService {
     }
   }
 
-  /// Logout
+  /// Logout - clears session but keeps device ID
+  /// User will become anonymous again
   Future<void> logout() async {
     try {
       await _authRepo.logout();
@@ -384,7 +547,9 @@ class AuthSessionService extends GetxService {
       Logger.w('AuthSessionService', 'logout API error: $e');
     } finally {
       clearSession();
-      Get.offAllNamed(Routes.auth);
+      // Re-create anonymous user
+      await createAnonymousUser();
+      Get.offAllNamed(Routes.shell);
     }
   }
 
@@ -394,7 +559,8 @@ class AuthSessionService extends GetxService {
       isLoading.value = true;
       await _meRepo.deleteAccount();
       clearSession();
-      Get.offAllNamed(Routes.auth);
+      // Navigate to intro for fresh start
+      Get.offAllNamed(Routes.intro);
       return true;
     } catch (e) {
       Logger.e('AuthSessionService', 'deleteAccount error', e);

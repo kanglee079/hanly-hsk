@@ -5,11 +5,75 @@ import '../network/api_endpoints.dart';
 import 'package:get/get.dart' hide Response;
 import '../../services/storage_service.dart';
 
-/// Auth repository - Email + Password + 2FA
+/// Auth repository - Anonymous-First + Email + Password + 2FA
 class AuthRepo {
   final ApiClient _api;
 
   AuthRepo(this._api);
+
+  /// Create or get anonymous user
+  /// POST /auth/anonymous { deviceId, deviceInfo }
+  Future<AnonymousUserResponseModel> createAnonymousUser({
+    required String deviceId,
+    required Map<String, dynamic> deviceInfo,
+  }) async {
+    final response = await _api.post(
+      ApiEndpoints.authAnonymous,
+      data: {
+        'deviceId': deviceId,
+        'deviceInfo': deviceInfo,
+      },
+      options: Options(
+        extra: {'__skipAuth': true},
+      ),
+    );
+    
+    _checkResponse(response);
+    return AnonymousUserResponseModel.fromJson(response.data);
+  }
+
+  /// Get auth status
+  /// GET /auth/status
+  Future<AuthStatusResponseModel> getAuthStatus() async {
+    final response = await _api.get(ApiEndpoints.authStatus);
+    _checkResponse(response);
+    return AuthStatusResponseModel.fromJson(response.data);
+  }
+
+  /// Request link account (send verification email)
+  /// POST /auth/link-account { email }
+  Future<LinkAccountResponseModel> linkAccount({
+    required String email,
+  }) async {
+    final response = await _api.post(
+      ApiEndpoints.authLinkAccount,
+      data: {'email': email},
+    );
+    
+    _checkResponse(response);
+    return LinkAccountResponseModel.fromJson(response.data);
+  }
+
+  /// Verify link account token
+  /// POST /auth/verify-link-account { linkId, token }
+  Future<VerifyLinkAccountResponseModel> verifyLinkAccount({
+    required String linkId,
+    required String token,
+  }) async {
+    final response = await _api.post(
+      ApiEndpoints.authVerifyLinkAccount,
+      data: {
+        'linkId': linkId,
+        'token': token,
+      },
+      options: Options(
+        extra: {'__skipAuth': true},
+      ),
+    );
+    
+    _checkResponse(response);
+    return VerifyLinkAccountResponseModel.fromJson(response.data);
+  }
 
   /// Register with email + password
   /// POST /auth/register { email, password, confirmPassword }

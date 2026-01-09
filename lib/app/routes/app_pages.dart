@@ -6,10 +6,18 @@ import 'app_routes.dart';
 // Modules
 import '../modules/splash/splash_binding.dart';
 import '../modules/splash/splash_screen.dart';
+import '../modules/intro/intro_binding.dart';
+import '../modules/intro/intro_screen.dart';
+import '../modules/setup/setup_binding.dart';
+import '../modules/setup/setup_screen.dart';
 import '../modules/auth/auth_binding.dart';
 import '../modules/auth/login_screen.dart';
 import '../modules/auth/register_screen.dart';
 import '../modules/auth/verify_2fa_screen.dart';
+import '../modules/link_account/link_account_binding.dart';
+import '../modules/link_account/link_account_screen.dart';
+import '../modules/donation/donation_binding.dart';
+import '../modules/donation/donation_screen.dart';
 import '../modules/onboarding/onboarding_binding.dart';
 import '../modules/onboarding/onboarding_screen.dart';
 import '../modules/shell/shell_binding.dart';
@@ -24,8 +32,6 @@ import '../modules/decks/decks_binding.dart';
 import '../modules/decks/decks_screen.dart';
 import '../modules/decks/deck_detail_screen.dart';
 import '../modules/settings/settings_screen.dart';
-import '../modules/premium/premium_binding.dart';
-import '../modules/premium/premium_screen.dart';
 import '../modules/game30/game30_binding.dart';
 import '../modules/game30/game30_screen.dart';
 import '../modules/game30/game30_home_binding.dart';
@@ -70,9 +76,26 @@ class AppPages {
       binding: SplashBinding(),
     ),
 
-    // Auth - Email + Password + 2FA
+    // Anonymous-First Flow
+    GetPage(
+      name: Routes.intro,
+      page: () => const IntroScreen(),
+      binding: IntroBinding(),
+    ),
+    GetPage(
+      name: Routes.setup,
+      page: () => const SetupScreen(),
+      binding: SetupBinding(),
+    ),
+
+    // Auth - Login (for linking account or login existing)
     GetPage(
       name: Routes.auth,
+      page: () => const LoginScreen(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: Routes.login,
       page: () => const LoginScreen(),
       binding: AuthBinding(),
     ),
@@ -85,7 +108,7 @@ class AppPages {
       page: () => const Verify2FAScreen(),
     ),
 
-    // Onboarding
+    // Onboarding (deprecated - use setup)
     GetPage(
       name: Routes.onboarding,
       page: () => const OnboardingScreen(),
@@ -137,11 +160,25 @@ class AppPages {
       page: () => const SettingsScreen(),
     ),
 
-    // Premium
+    // Link Account
+    GetPage(
+      name: Routes.linkAccount,
+      page: () => const LinkAccountScreen(),
+      binding: LinkAccountBinding(),
+    ),
+
+    // Donation (replaced Premium)
+    GetPage(
+      name: Routes.donation,
+      page: () => const DonationScreen(),
+      binding: DonationBinding(),
+    ),
+
+    // Premium (deprecated - redirects to donation)
     GetPage(
       name: Routes.premium,
-      page: () => const PremiumScreen(),
-      binding: PremiumBinding(),
+      page: () => const DonationScreen(),
+      binding: DonationBinding(),
     ),
 
     // 30s Game - Home with leaderboard

@@ -29,6 +29,10 @@ class MeController extends GetxController {
       user?.displayName ?? user?.profile?.displayName ?? '';
   String get email => user?.email ?? '';
   String? get avatarUrl => user?.avatarUrl;
+  
+  // Anonymous user detection
+  bool get isAnonymous => _authService.isAnonymous.value;
+  String? get userEmail => isAnonymous ? null : email;
 
   // Stats data
   late final Rxn<TodayModel> todayData = _todayStore.today.data;

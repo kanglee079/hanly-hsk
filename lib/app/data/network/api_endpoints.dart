@@ -6,7 +6,11 @@ class ApiEndpoints {
   // Health
   static const String health = '/health';
 
-  // Auth (Email + Password + 2FA)
+  // Auth (Anonymous-First + Email/Password + 2FA)
+  static const String authAnonymous = '/auth/anonymous';
+  static const String authStatus = '/auth/status';
+  static const String authLinkAccount = '/auth/link-account';
+  static const String authVerifyLinkAccount = '/auth/verify-link-account';
   static const String authRegister = '/auth/register';
   static const String authLogin = '/auth/login';
   static const String authVerify2FA = '/auth/verify-2fa';
@@ -102,9 +106,19 @@ class ApiEndpoints {
   static const String offlineTopics = '/offline/topics';
   static const String offlineDownloads = '/offline/downloads';
 
-  // Premium & Subscription
+  // Donations (replaced Premium)
+  static const String donationOptions = '/donations/options';
+  static const String donationWallOfFame = '/donations/wall-of-fame';
+  static const String donationCreate = '/donations/create';
+  static const String donationHistory = '/donations/history';
+  static String donationVerify(String id) => '/donations/$id/verify';
+
+  // Deprecated - Premium (removed)
+  @Deprecated('Premium removed, use donations instead')
   static const String subscription = '/me/subscription';
+  @Deprecated('Premium removed, use donations instead')
   static const String premiumPlans = '/premium/plans';
+  @Deprecated('Premium removed, use donations instead')
   static const String premiumSubscribe = '/premium/subscribe';
 
   // Level Progress

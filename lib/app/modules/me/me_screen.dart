@@ -115,6 +115,11 @@ class MeScreen extends GetView<MeController> {
 
                       const SizedBox(height: 20),
 
+                      // Account section
+                      _buildAccountSection(isDark),
+
+                      const SizedBox(height: 20),
+
                       // Preferences
                       Showcase(
                         key: _settingsKey,
@@ -650,50 +655,43 @@ class MeScreen extends GetView<MeController> {
   }
 
   Widget _buildQuickActionsSection(bool isDark) {
-    return Obx(() {
-      final isPremium = controller.isPremium;
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            S.quickActions,
-            style: AppTypography.titleMedium.copyWith(
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          S.quickActions,
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              // Adjust Learning Settings - always visible
-              Expanded(
-                flex: isPremium ? 1 : 1,
-                child: _buildQuickActionButton(
-                  icon: Icons.tune,
-                  label: S.adjustGoal,
-                  onTap: controller.adjustLearningSettings,
-                  isDark: isDark,
-                ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            // Adjust Learning Settings
+            Expanded(
+              child: _buildQuickActionButton(
+                icon: Icons.tune,
+                label: S.adjustGoal,
+                onTap: controller.adjustLearningSettings,
+                isDark: isDark,
               ),
-              // Premium upgrade - only show if not premium
-              if (!isPremium) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildQuickActionButton(
-                    icon: Icons.diamond_outlined,
-                    label: S.upgrade,
-                    onTap: controller.goToPremium,
-                    isDark: isDark,
-                    isPrimary: true,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      );
-    });
+            ),
+            const SizedBox(width: 12),
+            // Donate button (replaced Premium)
+            Expanded(
+              child: _buildQuickActionButton(
+                icon: Icons.favorite_rounded,
+                label: 'Ủng hộ',
+                onTap: () => Get.toNamed(Routes.donation),
+                isDark: isDark,
+                isPrimary: true,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildQuickActionButton({
@@ -853,65 +851,285 @@ class MeScreen extends GetView<MeController> {
     );
   }
 
-  Widget _buildDangerSection(bool isDark) {
-    return HMCard(
-      padding: EdgeInsets.zero,
-      child: Column(
+  /// Account section - shows link account or email if logged in
+  Widget _buildAccountSection(bool isDark) {
+    return Obx(() {
+      final isAnonymous = controller.isAnonymous;
+      final email = controller.userEmail;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logout
-          InkWell(
-            onTap: controller.logout,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  const Icon(Icons.logout, size: 22, color: AppColors.error),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      S.signOut,
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          Text(
+            'Tài khoản',
+            style: AppTypography.titleMedium.copyWith(
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          _buildDivider(isDark),
-          // Delete account
-          InkWell(
-            onTap: controller.deleteAccount,
-            borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.delete_outline,
-                    size: 22,
-                    color: AppColors.error,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      S.deleteAccount,
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.error,
+          const SizedBox(height: 12),
+          HMCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                if (isAnonymous) ...[
+                  // Link account option for anonymous users
+                  InkWell(
+                    onTap: () => Get.toNamed(Routes.linkAccount),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withAlpha(15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.link_rounded,
+                              size: 22,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Liên kết tài khoản',
+                                  style: AppTypography.bodyLarge.copyWith(
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  'Backup & đồng bộ dữ liệu',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 22,
+                            color: isDark
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiary,
+                          ),
+                        ],
                       ),
                     ),
                   ),
+                  _buildDivider(isDark),
+                  // Login to existing account
+                  InkWell(
+                    onTap: () => Get.toNamed(Routes.login),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withAlpha(15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.login_rounded,
+                              size: 22,
+                              color: AppColors.success,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Đăng nhập tài khoản',
+                                  style: AppTypography.bodyLarge.copyWith(
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  'Đã có tài khoản? Đăng nhập',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 22,
+                            color: isDark
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // Logged in user - show email
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withAlpha(15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.verified_user_rounded,
+                            size: 22,
+                            color: AppColors.success,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                email ?? 'Đã liên kết',
+                                style: AppTypography.bodyLarge.copyWith(
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                'Dữ liệu được đồng bộ',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withAlpha(15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                              SizedBox(width: 4),
+                              Text(
+                                'Đã xác thực',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ],
-      ),
-    );
+      );
+    });
+  }
+
+  Widget _buildDangerSection(bool isDark) {
+    return Obx(() {
+      final isAnonymous = controller.isAnonymous;
+
+      return HMCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            // Logout - only show if logged in (not anonymous)
+            if (!isAnonymous) ...[
+              InkWell(
+                onTap: controller.logout,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.logout, size: 22, color: AppColors.warning),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          S.signOut,
+                          style: AppTypography.bodyLarge.copyWith(
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              _buildDivider(isDark),
+            ],
+            // Delete account
+            InkWell(
+              onTap: controller.deleteAccount,
+              borderRadius: BorderRadius.vertical(
+                top: isAnonymous ? const Radius.circular(16) : Radius.zero,
+                bottom: const Radius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.delete_outline,
+                      size: 22,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        S.deleteAccount,
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildDivider(bool isDark) {
