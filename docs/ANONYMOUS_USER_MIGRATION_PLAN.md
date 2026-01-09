@@ -1,6 +1,6 @@
 # 🔄 Kế hoạch chuyển đổi: Anonymous-First User Experience
 
-> **Mục tiêu**: Cho phép người dùng sử dụng app ngay lập tức mà không cần đăng ký, chỉ yêu cầu tài khoản khi cần đồng bộ dữ liệu.
+> **Mục tiêu**: Cho phép người dùng sử dụng app ngay lập tức với ĐẦY ĐỦ tính năng, không cần đăng ký. Tài khoản chỉ cần khi muốn đồng bộ/chuyển thiết bị.
 
 ---
 
@@ -13,8 +13,79 @@
 
 ### Sau (Mới)
 ```
-[Tải app] → [Onboarding] → [Sử dụng app ngay] → [Optional: Liên kết tài khoản khi cần]
+[Tải app] → [Splash] → [Intro slides] → [Thiết lập học tập] → [Vào học ngay!]
+                                                                      │
+                                              [Tùy chọn: Liên kết tài khoản trong "Tôi"]
 ```
+
+---
+
+## 🚀 FLOW CHI TIẾT CHO NGƯỜI DÙNG MỚI
+
+### Bước 1: Splash Screen (2-3 giây)
+- Logo HanLy với animation đẹp
+- Loading indicator
+- Kiểm tra: first launch hay returning user
+
+### Bước 2: Intro Slides (3-4 slides, swipe)
+```
+┌─────────────────────────────────────────┐
+│  Slide 1: "Chào mừng đến với HanLy!"   │
+│  - Học tiếng Trung hiệu quả            │
+│  - Ảnh minh họa đẹp                    │
+├─────────────────────────────────────────┤
+│  Slide 2: "Phương pháp SRS khoa học"   │
+│  - Ôn tập đúng lúc, nhớ lâu hơn        │
+│  - Animation minh họa                  │
+├─────────────────────────────────────────┤
+│  Slide 3: "7+ chế độ học đa dạng"      │
+│  - Flashcard, Listening, Speaking...   │
+│  - Preview các tính năng               │
+├─────────────────────────────────────────┤
+│  Slide 4: "Sẵn sàng chưa?"             │
+│  - [Bắt đầu ngay] button               │
+└─────────────────────────────────────────┘
+```
+
+### Bước 3: Thiết lập học tập (Setup Profile)
+```
+┌─────────────────────────────────────────┐
+│  "Tên bạn là gì?"                      │
+│  [TextField: Nhập tên hiển thị]        │
+│                                         │
+│  [Tiếp tục →]                          │
+├─────────────────────────────────────────┤
+│  "Trình độ hiện tại của bạn?"          │
+│  ○ Mới bắt đầu (HSK 1)                 │
+│  ○ Cơ bản (HSK 2-3)                    │
+│  ○ Trung cấp (HSK 4)                   │
+│  ○ Nâng cao (HSK 5-6)                  │
+│                                         │
+│  [Tiếp tục →]                          │
+├─────────────────────────────────────────┤
+│  "Mục tiêu học của bạn?"               │
+│  □ Du lịch                             │
+│  □ Công việc                           │
+│  □ Thi HSK                             │
+│  □ Giao tiếp hàng ngày                 │
+│  □ Xem phim/đọc sách                   │
+│                                         │
+│  [Tiếp tục →]                          │
+├─────────────────────────────────────────┤
+│  "Bạn muốn học bao lâu mỗi ngày?"      │
+│  ○ 5 phút (Nhẹ nhàng)                  │
+│  ○ 10 phút (Cân bằng)                  │
+│  ○ 20 phút (Nghiêm túc)                │
+│  ○ 30+ phút (Chuyên sâu)               │
+│                                         │
+│  [Bắt đầu học! 🚀]                     │
+└─────────────────────────────────────────┘
+```
+
+### Bước 4: Vào Home (Today Screen)
+- Tự động tạo Anonymous User ở background
+- Hiển thị lộ trình học dựa trên setup
+- User bắt đầu học NGAY với đầy đủ tính năng
 
 ---
 
@@ -206,18 +277,32 @@ App gọi để biết user đang anonymous hay registered.
 - Token của anonymous user phải được chấp nhận như user thường
 - Middleware check `isAnonymous` cho các feature restricted
 
-#### 1.2.2 Restricted Features cho Anonymous User
+#### 1.2.2 Feature Access: FULL cho tất cả users
 
-| Feature | Anonymous | Registered |
-|---------|-----------|------------|
-| Học từ vựng | ✅ | ✅ |
-| SRS Review | ✅ | ✅ |
-| Game 30s | ✅ (không lưu rank) | ✅ |
-| Favorites | ✅ (local) | ✅ (sync) |
-| Decks | ✅ (local) | ✅ (sync) |
-| Leaderboard | ❌ (chỉ xem) | ✅ (tham gia) |
-| Backup/Restore | ❌ | ✅ |
-| Multi-device | ❌ | ✅ |
+> ⚠️ **QUAN TRỌNG**: Anonymous users được dùng ĐẦY ĐỦ tính năng như Registered users!
+
+| Feature | Anonymous | Registered | Ghi chú |
+|---------|:---------:|:----------:|---------|
+| Học từ vựng | ✅ | ✅ | Full access |
+| SRS Review | ✅ | ✅ | Full access |
+| Game 30s | ✅ | ✅ | Full access |
+| Favorites | ✅ | ✅ | Local, sync khi link |
+| Decks | ✅ | ✅ | Local, sync khi link |
+| Leaderboard | ✅ | ✅ | Tên = "Người học #123" nếu chưa đăng ký |
+| Flashcard | ✅ | ✅ | Full access |
+| Listening | ✅ | ✅ | Full access |
+| Pronunciation | ✅ | ✅ | Full access |
+| HSK Exam | ✅ | ✅ | Full access |
+| Thống kê | ✅ | ✅ | Full access |
+| **Backup/Restore** | ❌ | ✅ | Cần tài khoản |
+| **Multi-device sync** | ❌ | ✅ | Cần tài khoản |
+| **Đổi thiết bị** | ❌ | ✅ | Cần tài khoản |
+
+**Lợi ích của việc liên kết tài khoản:**
+1. 📱 Đồng bộ dữ liệu giữa các thiết bị
+2. ☁️ Backup lên cloud, không mất khi đổi điện thoại
+3. 🏆 Tên hiển thị đẹp trên Leaderboard
+4. 📧 Nhận thông báo về streak, ưu đãi
 
 #### 1.2.3 `GET /leaderboard` - Thêm filter
 ```json
@@ -338,7 +423,7 @@ Lịch sử donate của user (nếu đã đăng ký).
 
 ## 🎨 PHẦN 2: YÊU CẦU FRONTEND
 
-### 2.1 Luồng khởi động mới
+### 2.1 Luồng khởi động mới (Chi tiết)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -347,29 +432,44 @@ Lịch sử donate của user (nếu đã đăng ký).
                               │
                               ▼
                     ┌─────────────────┐
-                    │  Check Local    │
-                    │  User Data      │
+                    │  SPLASH SCREEN  │
+                    │  (2-3 giây)     │
+                    └─────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────┐
+                    │ Check: Đã setup │
+                    │   chưa?         │
                     └─────────────────┘
                               │
               ┌───────────────┴───────────────┐
               │                               │
               ▼                               ▼
-    ┌─────────────────┐             ┌─────────────────┐
-    │ First Launch    │             │ Returning User  │
-    │ (No local data) │             │ (Has local data)│
-    └─────────────────┘             └─────────────────┘
+    ┌─────────────────────────┐     ┌─────────────────┐
+    │  FIRST LAUNCH           │     │ RETURNING USER  │
+    │  (chưa có local data)   │     │ (đã setup)      │
+    └─────────────────────────┘     └─────────────────┘
               │                               │
               ▼                               │
-    ┌─────────────────┐                       │
-    │ Create Anonymous│                       │
-    │ User (API call) │                       │
-    └─────────────────┘                       │
+    ┌─────────────────────────┐               │
+    │  INTRO SLIDES           │               │
+    │  (3-4 slides giới thiệu)│               │
+    └─────────────────────────┘               │
               │                               │
               ▼                               │
-    ┌─────────────────┐                       │
-    │   Onboarding    │                       │
-    │  (Goal, Level)  │                       │
-    └─────────────────┘                       │
+    ┌─────────────────────────┐               │
+    │  SETUP PROFILE          │               │
+    │  - Nhập tên             │               │
+    │  - Chọn level HSK       │               │
+    │  - Chọn mục tiêu học    │               │
+    │  - Chọn thời gian/ngày  │               │
+    └─────────────────────────┘               │
+              │                               │
+              ▼                               │
+    ┌─────────────────────────┐               │
+    │  Create Anonymous User  │               │
+    │  (background API call)  │               │
+    └─────────────────────────┘               │
               │                               │
               └───────────────┬───────────────┘
                               │
@@ -377,10 +477,209 @@ Lịch sử donate của user (nếu đã đăng ký).
                     ┌─────────────────┐
                     │   HOME SCREEN   │
                     │  (Today Tab)    │
+                    │                 │
+                    │  User học ngay! │
                     └─────────────────┘
 ```
 
-### 2.2 Files cần thay đổi
+### 2.2 Màn hình mới cần tạo
+
+#### 2.2.0 Intro Slides Screen (MỚI)
+
+**File:** `lib/app/modules/intro/intro_screen.dart`
+
+```dart
+class IntroScreen extends StatefulWidget {
+  @override
+  _IntroScreenState createState() => _IntroScreenState();
+}
+
+class _IntroScreenState extends State<IntroScreen> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  final List<IntroSlide> _slides = [
+    IntroSlide(
+      title: 'Chào mừng đến với HanLy!',
+      description: 'Học tiếng Trung dễ dàng và hiệu quả',
+      image: 'assets/images/intro_1.png',
+      color: AppColors.primary,
+    ),
+    IntroSlide(
+      title: 'Phương pháp SRS khoa học',
+      description: 'Ôn tập đúng lúc, nhớ lâu hơn gấp 5 lần',
+      image: 'assets/images/intro_2.png',
+      color: AppColors.success,
+    ),
+    IntroSlide(
+      title: '7+ chế độ học đa dạng',
+      description: 'Flashcard, Nghe, Nói, Ghép câu, Thi thử...',
+      image: 'assets/images/intro_3.png',
+      color: AppColors.warning,
+    ),
+    IntroSlide(
+      title: 'Sẵn sàng chưa?',
+      description: 'Hãy bắt đầu hành trình chinh phục tiếng Trung!',
+      image: 'assets/images/intro_4.png',
+      color: AppColors.primary,
+      showStartButton: true,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: _slides.length,
+            onPageChanged: (index) => setState(() => _currentPage = index),
+            itemBuilder: (context, index) => _buildSlide(_slides[index]),
+          ),
+          // Page indicator dots
+          Positioned(
+            bottom: 100,
+            left: 0,
+            right: 0,
+            child: _buildPageIndicator(),
+          ),
+          // Skip button (trên góc phải)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            right: 16,
+            child: TextButton(
+              onPressed: () => Get.offNamed(Routes.setup),
+              child: Text('Bỏ qua'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+#### 2.2.0b Setup Profile Screen (MỚI)
+
+**File:** `lib/app/modules/setup/setup_screen.dart`
+
+```dart
+class SetupScreen extends GetView<SetupController> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: PageView(
+        controller: controller.pageController,
+        physics: NeverScrollableScrollPhysics(), // Chỉ next khi bấm nút
+        children: [
+          _NameStep(),      // Bước 1: Nhập tên
+          _LevelStep(),     // Bước 2: Chọn level HSK
+          _GoalStep(),      // Bước 3: Chọn mục tiêu
+          _DurationStep(),  // Bước 4: Thời gian học/ngày
+        ],
+      ),
+    );
+  }
+}
+
+// Bước 1: Nhập tên
+class _NameStep extends GetView<SetupController> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: AppSpacing.screenPadding,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Tên bạn là gì?', style: AppTypography.displaySmall),
+          SizedBox(height: 8),
+          Text('Chúng tôi sẽ gọi bạn bằng tên này', 
+               style: AppTypography.bodyMedium),
+          SizedBox(height: 32),
+          HMTextField(
+            controller: controller.nameController,
+            hintText: 'Nhập tên của bạn',
+            autofocus: true,
+          ),
+          Spacer(),
+          HMButton(
+            text: 'Tiếp tục',
+            onPressed: controller.nextStep,
+            isEnabled: controller.nameValid,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Bước 2: Chọn level
+class _LevelStep extends GetView<SetupController> {
+  final levels = [
+    LevelOption(id: 'hsk1', title: 'Mới bắt đầu', subtitle: 'HSK 1', icon: '🌱'),
+    LevelOption(id: 'hsk2-3', title: 'Cơ bản', subtitle: 'HSK 2-3', icon: '📗'),
+    LevelOption(id: 'hsk4', title: 'Trung cấp', subtitle: 'HSK 4', icon: '📘'),
+    LevelOption(id: 'hsk5-6', title: 'Nâng cao', subtitle: 'HSK 5-6', icon: '📕'),
+  ];
+  
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text('Trình độ hiện tại của bạn?', style: AppTypography.displaySmall),
+        Expanded(
+          child: ListView.builder(
+            itemCount: levels.length,
+            itemBuilder: (context, index) => _LevelCard(
+              level: levels[index],
+              isSelected: controller.selectedLevel == levels[index].id,
+              onTap: () => controller.selectLevel(levels[index].id),
+            ),
+          ),
+        ),
+        HMButton(text: 'Tiếp tục', onPressed: controller.nextStep),
+      ],
+    );
+  }
+}
+
+// Bước 3: Chọn mục tiêu (multi-select)
+class _GoalStep extends GetView<SetupController> {
+  final goals = [
+    GoalOption(id: 'travel', title: 'Du lịch', icon: '✈️'),
+    GoalOption(id: 'work', title: 'Công việc', icon: '💼'),
+    GoalOption(id: 'exam', title: 'Thi HSK', icon: '📝'),
+    GoalOption(id: 'daily', title: 'Giao tiếp hàng ngày', icon: '💬'),
+    GoalOption(id: 'media', title: 'Xem phim/đọc sách', icon: '📺'),
+  ];
+  // ... similar implementation with multi-select
+}
+
+// Bước 4: Thời gian học mỗi ngày
+class _DurationStep extends GetView<SetupController> {
+  final durations = [
+    DurationOption(minutes: 5, title: '5 phút', subtitle: 'Nhẹ nhàng', icon: '🌿'),
+    DurationOption(minutes: 10, title: '10 phút', subtitle: 'Cân bằng', icon: '⚖️'),
+    DurationOption(minutes: 20, title: '20 phút', subtitle: 'Nghiêm túc', icon: '🎯'),
+    DurationOption(minutes: 30, title: '30+ phút', subtitle: 'Chuyên sâu', icon: '🔥'),
+  ];
+  
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text('Bạn muốn học bao lâu mỗi ngày?'),
+        // ... duration options
+        HMButton(
+          text: 'Bắt đầu học! 🚀',
+          onPressed: controller.finishSetup, // Tạo anonymous user & navigate
+        ),
+      ],
+    );
+  }
+}
+```
 
 #### 2.2.1 Auth Service (`lib/app/services/auth_session_service.dart`)
 
@@ -462,29 +761,125 @@ Future<void> _initializeApp() async {
 | `auth_controller.dart` | Refactor thành `LinkAccountController` |
 | `verify_screen.dart` | Giữ lại, dùng cho verify link |
 
-#### 2.2.4 Thêm Account Linking UI
+#### 2.2.4 Màn hình "Tôi" (Me Screen) - Account Section
 
-**Trong Me Screen hoặc Settings:**
+**Layout mới cho Me Screen:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      MÀN HÌNH "TÔI"                         │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  👤 Avatar    [Tên người dùng]                      │   │
+│  │               Level: HSK 2 • 156 từ đã học          │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ═══════════════════════════════════════════════════════   │
+│                                                             │
+│  📊 THỐNG KÊ                                               │
+│  ├─ 🔥 Streak: 7 ngày                                      │
+│  ├─ ⭐ XP: 2,340                                           │
+│  └─ 📈 Tiến độ: 12%                                        │
+│                                                             │
+│  ═══════════════════════════════════════════════════════   │
+│                                                             │
+│  👤 TÀI KHOẢN           (Thay đổi dựa trên trạng thái)     │
+│  │                                                          │
+│  │  ┌─── NẾU ANONYMOUS ───────────────────────────────┐    │
+│  │  │  ☁️ Liên kết tài khoản                          │    │
+│  │  │     Backup & đồng bộ dữ liệu                    │    │
+│  │  │                                        [→]       │    │
+│  │  ├─────────────────────────────────────────────────┤    │
+│  │  │  🔑 Đăng nhập tài khoản có sẵn                  │    │
+│  │  │     Đã có tài khoản? Đăng nhập tại đây          │    │
+│  │  │                                        [→]       │    │
+│  │  └─────────────────────────────────────────────────┘    │
+│  │                                                          │
+│  │  ┌─── NẾU ĐÃ ĐĂNG NHẬP ────────────────────────────┐    │
+│  │  │  📧 user@email.com                    [Đã liên kết]  │
+│  │  ├─────────────────────────────────────────────────┤    │
+│  │  │  🚪 Đăng xuất                                   │    │
+│  │  │     Dữ liệu vẫn được giữ trên thiết bị này      │    │
+│  │  └─────────────────────────────────────────────────┘    │
+│  │                                                          │
+│                                                             │
+│  ═══════════════════════════════════════════════════════   │
+│                                                             │
+│  ⚙️ CÀI ĐẶT                                                │
+│  ├─ 🎯 Mục tiêu học tập                                    │
+│  ├─ 🔔 Thông báo                                           │
+│  ├─ 🌙 Giao diện tối                                       │
+│  └─ 📖 Giới thiệu về HanLy                                 │
+│                                                             │
+│  ═══════════════════════════════════════════════════════   │
+│                                                             │
+│  ❤️ ỦNG HỘ HANLY                                           │
+│  └─ Nếu bạn thấy app hữu ích, hãy ủng hộ nhé!      [→]    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Code implementation:**
 ```dart
-// Hiển thị nếu user anonymous
-if (authService.isAnonymous) {
-  _buildLinkAccountCard();
-}
-
-Widget _buildLinkAccountCard() {
-  return HMCard(
-    child: Column(
-      children: [
-        Icon(Icons.cloud_upload, size: 48),
-        Text('Bảo vệ dữ liệu học tập'),
-        Text('Liên kết tài khoản để backup và đồng bộ trên nhiều thiết bị'),
-        HMButton(
-          text: 'Liên kết ngay',
-          onPressed: () => Get.toNamed(Routes.linkAccount),
-        ),
-      ],
-    ),
-  );
+class MeScreen extends GetView<MeController> {
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final isAnonymous = controller.isAnonymous;
+      
+      return ListView(
+        children: [
+          _buildProfileHeader(),
+          _buildStatsSection(),
+          _buildAccountSection(isAnonymous),  // Dynamic based on auth state
+          _buildSettingsSection(),
+          _buildDonationSection(),
+        ],
+      );
+    });
+  }
+  
+  Widget _buildAccountSection(bool isAnonymous) {
+    if (isAnonymous) {
+      return Column(
+        children: [
+          // Liên kết tài khoản
+          _AccountTile(
+            icon: Icons.cloud_upload_rounded,
+            title: 'Liên kết tài khoản',
+            subtitle: 'Backup & đồng bộ dữ liệu học tập',
+            onTap: () => Get.toNamed(Routes.linkAccount),
+          ),
+          // Đăng nhập tài khoản có sẵn
+          _AccountTile(
+            icon: Icons.login_rounded,
+            title: 'Đăng nhập tài khoản có sẵn',
+            subtitle: 'Đã có tài khoản? Đăng nhập tại đây',
+            onTap: () => Get.toNamed(Routes.login),
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          // Email đã liên kết
+          _AccountTile(
+            icon: Icons.email_rounded,
+            title: controller.userEmail,
+            subtitle: 'Đã liên kết tài khoản',
+            trailing: Icon(Icons.check_circle, color: AppColors.success),
+          ),
+          // Đăng xuất
+          _AccountTile(
+            icon: Icons.logout_rounded,
+            title: 'Đăng xuất',
+            subtitle: 'Dữ liệu vẫn được giữ trên thiết bị này',
+            onTap: () => _showLogoutConfirm(),
+          ),
+        ],
+      );
+    }
+  }
 }
 ```
 
@@ -519,30 +914,56 @@ class DonationScreen extends GetView<DonationController> {
 }
 ```
 
-### 2.4 UI Prompts cho Anonymous User
+### 2.4 UI Prompts nhẹ nhàng (Không bắt buộc)
 
-#### 2.4.1 Khi truy cập Leaderboard
+> ⚠️ **Nguyên tắc**: KHÔNG block tính năng. Prompts chỉ để suggest, không ép buộc.
+
+#### 2.4.1 Prompt khi đạt milestone (Celebration style)
 ```dart
-if (authService.isAnonymous) {
-  _showLinkAccountPrompt(
-    title: 'Tham gia bảng xếp hạng',
-    message: 'Liên kết tài khoản để cạnh tranh với bạn bè!',
+// Khi streak đạt 7, 30, 100 ngày
+void _showMilestonePrompt(int streakDays) {
+  Get.dialog(
+    CelebrationDialog(
+      title: 'Tuyệt vời! $streakDays ngày liên tiếp! 🔥',
+      message: 'Bạn đang học rất tốt!',
+      primaryAction: DialogAction(
+        text: 'Tiếp tục học',
+        onTap: () => Get.back(),
+      ),
+      secondaryAction: authService.isAnonymous ? DialogAction(
+        text: 'Bảo vệ tiến độ',
+        subtitle: 'Liên kết tài khoản để không mất dữ liệu',
+        onTap: () => Get.toNamed(Routes.linkAccount),
+      ) : null,
+    ),
   );
 }
 ```
 
-#### 2.4.2 Khi streak đạt milestone (7, 30, 100 ngày)
+#### 2.4.2 Banner nhỏ trong Me Screen (Non-intrusive)
 ```dart
-_showLinkAccountPrompt(
-  title: 'Tuyệt vời! $streakDays ngày liên tiếp! 🔥',
-  message: 'Đừng để mất công sức. Liên kết tài khoản để bảo vệ tiến độ.',
-);
+// Chỉ hiển thị 1 lần/ngày, có nút X để đóng
+if (authService.isAnonymous && !_dismissedToday) {
+  _buildSoftReminder(
+    icon: Icons.cloud_outlined,
+    text: 'Liên kết tài khoản để backup dữ liệu',
+    onTap: () => Get.toNamed(Routes.linkAccount),
+    onDismiss: () => _dismissReminder(),
+  );
+}
 ```
 
-#### 2.4.3 Reminder nhẹ nhàng (không spam)
-- Sau 7 ngày sử dụng
-- Sau khi học 100 từ
-- Mỗi 30 ngày nếu chưa link
+#### 2.4.3 Khi nào KHÔNG hiển thị prompt
+- ❌ Không popup khi đang trong session học
+- ❌ Không hiện quá 1 lần/ngày
+- ❌ Không block bất kỳ tính năng nào
+- ❌ Không spam notification
+
+#### 2.4.4 Khi nào nên hiển thị
+- ✅ Khi đạt milestone (7, 30, 100 ngày streak)
+- ✅ Khi học xong 100 từ đầu tiên
+- ✅ Trong Me screen (banner nhỏ)
+- ✅ Khi user chủ động vào Settings > Tài khoản
 
 ---
 
