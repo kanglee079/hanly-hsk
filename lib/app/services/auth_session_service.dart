@@ -89,8 +89,9 @@ class AuthSessionService extends GetxService {
     };
   }
 
-  /// Create anonymous user on first launch
-  /// If device already has an account (DUPLICATE_ERROR), try to recover session
+  /// Create or login anonymous user
+  /// - If device already has an account → auto login to that account
+  /// - If new device → create new anonymous account
   Future<bool> createAnonymousUser() async {
     try {
       isLoading.value = true;
@@ -108,10 +109,10 @@ class AuthSessionService extends GetxService {
           accessToken: response.accessToken,
           refreshToken: response.refreshToken,
         );
-        _storage.isAnonymous = true;
-        isAnonymous.value = true;
+        _storage.isAnonymous = response.isAnonymous;
+        isAnonymous.value = response.isAnonymous;
         
-        Logger.d('AuthSessionService', 'Anonymous user created: ${response.userId}');
+        Logger.d('AuthSessionService', 'Anonymous user created/logged in: ${response.userId}');
         return true;
       }
       
@@ -119,8 +120,8 @@ class AuthSessionService extends GetxService {
     } catch (e) {
       // Check if this is a DUPLICATE_ERROR - device already has an account
       if (_isDuplicateError(e)) {
-        Logger.d('AuthSessionService', 'Device already has account, trying to recover session');
-        return await _recoverExistingSession();
+        Logger.d('AuthSessionService', 'Device already registered, auto-login to existing account');
+        return await _loginWithExistingDevice();
       }
       
       Logger.e('AuthSessionService', 'createAnonymousUser error', e);
@@ -152,22 +153,21 @@ class AuthSessionService extends GetxService {
     return false;
   }
   
-  /// Try to recover an existing session for this device
-  /// This is called when the device already has an account but no tokens
-  Future<bool> _recoverExistingSession() async {
+  /// Login with existing device ID (auto-login to previous account)
+  /// Called when device already has an account registered
+  Future<bool> _loginWithExistingDevice() async {
     try {
-      // First, check if we already have valid tokens
+      // First priority: Check if we have valid tokens stored
       final existingToken = _storage.accessToken;
       if (existingToken != null && existingToken.isNotEmpty) {
-        // Try to validate the existing token
         final status = await getAuthStatus();
         if (status != null) {
-          Logger.d('AuthSessionService', 'Recovered session using existing tokens');
+          Logger.d('AuthSessionService', 'Auto-login using existing tokens');
           return true;
         }
       }
       
-      // Try to refresh using stored refresh token
+      // Second: Try refresh token
       final refreshToken = _storage.refreshToken;
       if (refreshToken != null && refreshToken.isNotEmpty) {
         try {
@@ -176,17 +176,16 @@ class AuthSessionService extends GetxService {
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
           );
-          _storage.isAnonymous = true;
-          isAnonymous.value = true;
-          Logger.d('AuthSessionService', 'Recovered session using refresh token');
+          _storage.isAnonymous = tokens.isAnonymous ?? true;
+          isAnonymous.value = tokens.isAnonymous ?? true;
+          Logger.d('AuthSessionService', 'Auto-login via refresh token');
           return true;
         } catch (e) {
-          Logger.e('AuthSessionService', 'Failed to refresh existing session', e);
+          Logger.w('AuthSessionService', 'Refresh token expired or invalid');
         }
       }
       
-      // If we can't recover, we need to login with device ID
-      // Try calling login-device endpoint if available
+      // Third: Call device-login endpoint
       try {
         final deviceId = getDeviceId();
         final deviceInfo = getDeviceInfo();
@@ -200,21 +199,32 @@ class AuthSessionService extends GetxService {
             accessToken: response.accessToken,
             refreshToken: response.refreshToken,
           );
-          _storage.isAnonymous = true;
-          isAnonymous.value = true;
-          Logger.d('AuthSessionService', 'Recovered session via device login');
+          _storage.isAnonymous = response.isAnonymous;
+          isAnonymous.value = response.isAnonymous;
+          Logger.d('AuthSessionService', 'Auto-login via device-login endpoint');
           return true;
         }
       } catch (e) {
-        Logger.e('AuthSessionService', 'Device login failed', e);
+        Logger.e('AuthSessionService', 'Device login endpoint failed', e);
       }
       
-      // Last resort: Generate new device ID and create fresh account
-      Logger.w('AuthSessionService', 'Could not recover session, creating new device identity');
-      _storage.deviceId = null; // Clear old device ID
+      // If all recovery fails, clear old device and create fresh account
+      Logger.w('AuthSessionService', 'Cannot recover account, resetting device identity');
+      return await _resetAndCreateNewAccount();
+    } catch (e) {
+      Logger.e('AuthSessionService', 'Auto-login failed', e);
+      return false;
+    }
+  }
+  
+  /// Reset device ID and create a completely new account
+  /// Used as last resort when recovery fails
+  Future<bool> _resetAndCreateNewAccount() async {
+    try {
+      // Clear old device ID to generate new one
+      _storage.deviceId = null;
       
-      // Retry with new device ID
-      final newDeviceId = getDeviceId(); // This will generate a new one
+      final newDeviceId = getDeviceId();
       final deviceInfo = getDeviceInfo();
       
       final response = await _authRepo.createAnonymousUser(
@@ -229,13 +239,13 @@ class AuthSessionService extends GetxService {
         );
         _storage.isAnonymous = true;
         isAnonymous.value = true;
-        Logger.d('AuthSessionService', 'Created new anonymous user with new device ID');
+        Logger.d('AuthSessionService', 'Created fresh account with new device ID');
         return true;
       }
       
       return false;
     } catch (e) {
-      Logger.e('AuthSessionService', 'Failed to recover existing session', e);
+      Logger.e('AuthSessionService', 'Failed to create new account', e);
       return false;
     }
   }

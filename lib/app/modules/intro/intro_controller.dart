@@ -56,6 +56,12 @@ class IntroController extends GetxController {
     _authService.markIntroSeen();
     Get.offAllNamed(Routes.setup);
   }
+  
+  /// Navigate to login screen for users who already have an account
+  void goToLogin() {
+    _authService.markIntroSeen();
+    Get.toNamed(Routes.login);
+  }
 
   @override
   void onClose() {

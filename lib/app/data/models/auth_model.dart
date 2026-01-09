@@ -163,12 +163,14 @@ class AuthTokensModel {
   final String refreshToken;
   final int? expiresIn;
   final UserModel? user;
+  final bool? isAnonymous;
 
   AuthTokensModel({
     required this.accessToken,
     required this.refreshToken,
     this.expiresIn,
     this.user,
+    this.isAnonymous,
   });
 
   /// Parse from backend response
@@ -184,6 +186,7 @@ class AuthTokensModel {
       user: data['user'] != null
           ? UserModel.fromJson(data['user'] as Map<String, dynamic>)
           : null,
+      isAnonymous: data['isAnonymous'] as bool?,
     );
   }
 

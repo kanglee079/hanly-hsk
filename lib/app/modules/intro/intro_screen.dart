@@ -63,6 +63,9 @@ class IntroScreen extends GetView<IntroController> {
                   const SizedBox(height: 32),
                   // Continue button
                   Obx(() => _buildButton()),
+                  const SizedBox(height: 16),
+                  // Login link for existing users
+                  Obx(() => _buildLoginLink()),
                 ],
               ),
             ),
@@ -208,6 +211,26 @@ class IntroScreen extends GetView<IntroController> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+  
+  /// Login link for users who already have an account
+  Widget _buildLoginLink() {
+    // Only show on last slide
+    if (controller.currentPage.value != controller.slides.length - 1) {
+      return const SizedBox.shrink();
+    }
+    
+    return TextButton(
+      onPressed: controller.goToLogin,
+      child: Text(
+        'Đã có tài khoản? Đăng nhập',
+        style: AppTypography.bodyMedium.copyWith(
+          color: Colors.white.withAlpha(200),
+          decoration: TextDecoration.underline,
+          decorationColor: Colors.white.withAlpha(150),
         ),
       ),
     );
