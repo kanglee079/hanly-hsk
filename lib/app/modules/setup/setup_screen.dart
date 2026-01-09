@@ -104,6 +104,7 @@ class SetupScreen extends GetView<SetupController> {
               HMButton(
                 text: isLast ? 'Bắt đầu!' : 'Tiếp tục',
                 onPressed: canProceed ? controller.nextStep : null,
+                fullWidth: false,
                 icon: Icon(
                   isLast ? Icons.rocket_launch_rounded : Icons.arrow_forward_rounded,
                   size: 18,
