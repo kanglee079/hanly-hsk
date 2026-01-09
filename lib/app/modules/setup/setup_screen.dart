@@ -82,6 +82,7 @@ class SetupScreen extends GetView<SetupController> {
         padding: const EdgeInsets.all(24),
         child: Row(
           children: [
+            // Back button (only show if not first step)
             if (!isFirst)
               TextButton.icon(
                 onPressed: controller.previousStep,
@@ -90,21 +91,24 @@ class SetupScreen extends GetView<SetupController> {
                 style: TextButton.styleFrom(
                   foregroundColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
                 ),
-              ),
+              )
+            else
+              const SizedBox(width: 100), // Placeholder for alignment
+            
             const Spacer(),
-            SizedBox(
-              width: 160,
-              child: isLoading
-                  ? const Center(child: HMLoadingIndicator.small())
-                  : HMButton(
-                      text: isLast ? 'Bắt đầu học!' : 'Tiếp tục',
-                      onPressed: canProceed ? controller.nextStep : null,
-                      icon: Icon(
-                        isLast ? Icons.rocket_launch_rounded : Icons.arrow_forward_rounded,
-                        size: 20,
-                      ),
-                    ),
-            ),
+            
+            // Continue button
+            if (isLoading)
+              const HMLoadingIndicator.small()
+            else
+              HMButton(
+                text: isLast ? 'Bắt đầu!' : 'Tiếp tục',
+                onPressed: canProceed ? controller.nextStep : null,
+                icon: Icon(
+                  isLast ? Icons.rocket_launch_rounded : Icons.arrow_forward_rounded,
+                  size: 18,
+                ),
+              ),
           ],
         ),
       );

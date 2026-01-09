@@ -108,19 +108,32 @@ class HMButton extends StatelessWidget {
     );
 
     if (icon == null) {
-      return Text(text, style: textStyle);
+      return Text(
+        text, 
+        style: textStyle,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      );
     }
 
-    final children = [
-      icon!,
-      const SizedBox(width: 8),
-      Text(text, style: textStyle),
-    ];
+    final iconWidget = icon!;
+    final textWidget = Flexible(
+      child: Text(
+        text, 
+        style: textStyle,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+    );
+
+    final children = iconRight
+        ? [textWidget, const SizedBox(width: 8), iconWidget]
+        : [iconWidget, const SizedBox(width: 8), textWidget];
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
-      children: iconRight ? children.reversed.toList() : children,
+      children: children,
     );
   }
 
