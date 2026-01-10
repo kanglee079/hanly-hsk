@@ -424,14 +424,14 @@ class MeController extends GetxController {
                           ),
                           const SizedBox(height: 12),
                           Row(
-                            children: [5, 10, 20, 30].map((words) {
+                            children: [3, 5, 10, 20].map((words) {
                               final isSelected = selectedWords.value == words;
                               return Expanded(
                                 child: GestureDetector(
                                   onTap: () => selectedWords.value = words,
                                   child: Container(
                                     margin: EdgeInsets.only(
-                                      right: words != 30 ? 8 : 0,
+                                      right: words != 20 ? 8 : 0,
                                     ),
                                     height: 56,
                                     decoration: BoxDecoration(
@@ -1110,51 +1110,25 @@ class MeController extends GetxController {
 
   // ===== HELPER METHODS =====
 
-  /// Convert words to minutes (words is primary)
-  int _wordsToMinutes(int words) {
-    switch (words) {
-      case 5:
-        return 5;
-      case 10:
-        return 15;
-      case 20:
-        return 30;
-      case 30:
-        return 45;
-      default:
-        return 15;
-    }
-  }
+  /// Convert words to minutes (1 word = 1 minute)
+  int _wordsToMinutes(int words) => words;
 
-  /// Convert minutes to words (for backward compatibility)
-  int _minutesToWords(int minutes) {
-    switch (minutes) {
-      case 5:
-        return 5;
-      case 15:
-        return 10;
-      case 30:
-        return 20;
-      case 45:
-        return 30;
-      default:
-        return 10;
-    }
-  }
+  /// Convert minutes to words (1 minute = 1 word)
+  int _minutesToWords(int minutes) => minutes;
 
-  /// Get description for word count
+  /// Get description for word count (1 word = 1 minute)
   String _getWordsDescription(int words) {
     switch (words) {
+      case 3:
+        return 'Nhẹ nhàng • ~3 phút mỗi ngày';
       case 5:
-        return 'Nhẹ nhàng • Khoảng 5 phút mỗi ngày';
+        return 'Cơ bản • ~5 phút mỗi ngày';
       case 10:
-        return 'Vừa sức • Khoảng 15 phút mỗi ngày';
+        return 'Cân bằng • ~10 phút mỗi ngày';
       case 20:
-        return 'Tích cực • Khoảng 30 phút mỗi ngày';
-      case 30:
-        return 'Chuyên sâu • Khoảng 45 phút mỗi ngày';
+        return 'Nghiêm túc • ~20 phút mỗi ngày';
       default:
-        return '';
+        return '~$words phút mỗi ngày';
     }
   }
 }

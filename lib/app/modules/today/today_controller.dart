@@ -166,36 +166,22 @@ class TodayController extends GetxController {
 
   // ===== GOAL HELPER =====
 
-  /// Get daily goal in minutes from storage (user's choice during setup)
-  int get dailyGoalMinutes {
-    // First check storage (set during setup)
-    final storedMinutes = _storage.userDailyMinutes;
-    if (storedMinutes > 0) return storedMinutes;
-    
-    // Fallback to calculated from word limit
-    final words = dailyNewLimit;
-    if (words >= 30) return 30;
-    if (words >= 20) return 20;
-    if (words >= 10) return 10;
-    return 5;
-  }
-
-  /// Get daily new word limit from User Profile, with storage fallback
+  /// Get daily new word limit - PRIMARY source of truth
+  /// User chọn số từ/ngày, 1 từ = 1 phút
   int get dailyNewLimit {
-    // Check API data first
+    // 1. Check API data first (from user profile)
     final apiLimit = _authService.currentUser.value?.profile?.dailyNewLimit;
     if (apiLimit != null && apiLimit > 0) return apiLimit;
     
-    // Fallback to storage (set during setup)
-    final storedMinutes = _storage.userDailyMinutes;
-    // Map minutes to words: 5min→5w, 10min→10w, 20min→20w, 30min→30w
-    if (storedMinutes >= 30) return 30;
-    if (storedMinutes >= 20) return 20;
-    if (storedMinutes >= 10) return 10;
-    if (storedMinutes >= 5) return 5;
+    // 2. Fallback to local storage (set during setup)
+    final storedLimit = _storage.userDailyNewLimit;
+    if (storedLimit > 0) return storedLimit;
     
     return 10; // Default
   }
+
+  /// Get daily goal in minutes (1 word = 1 minute)
+  int get dailyGoalMinutes => dailyNewLimit;
 
   // ===== LEARNED TODAY HELPERS =====
 

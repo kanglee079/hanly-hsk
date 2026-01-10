@@ -28,6 +28,7 @@ class StorageService {
   static const String _keyUserLevel = 'user_level';
   static const String _keyUserGoals = 'user_goals';
   static const String _keyUserDailyMinutes = 'user_daily_minutes';
+  static const String _keyUserDailyNewLimit = 'user_daily_new_limit';
 
   final GetStorage _box;
 
@@ -135,9 +136,18 @@ class StorageService {
   }
   set userGoals(List<String> value) => _box.write(_keyUserGoals, value);
   
-  // User daily minutes target (local)
-  int get userDailyMinutes => _box.read<int>(_keyUserDailyMinutes) ?? 10;
+  // User daily minutes target (local) - DEPRECATED, use userDailyNewLimit
+  int get userDailyMinutes => _box.read<int>(_keyUserDailyMinutes) ?? userDailyNewLimit;
   set userDailyMinutes(int value) => _box.write(_keyUserDailyMinutes, value);
+  
+  // User daily new word limit (local) - PRIMARY source
+  // 1 word = 1 minute, so dailyMinutes = dailyNewLimit
+  int get userDailyNewLimit => _box.read<int>(_keyUserDailyNewLimit) ?? 10;
+  set userDailyNewLimit(int value) {
+    _box.write(_keyUserDailyNewLimit, value);
+    // Sync to minutes for backward compatibility (1 word = 1 minute)
+    _box.write(_keyUserDailyMinutes, value);
+  }
 
   // Theme mode: 'light', 'dark', 'system'
   String get themeMode => _box.read<String>(_keyThemeMode) ?? 'system';

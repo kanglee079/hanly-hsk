@@ -385,7 +385,7 @@ class _DurationStep extends StatelessWidget {
         children: [
           const SizedBox(height: 40),
           Text(
-            'Thời gian mỗi ngày?',
+            'Số từ mỗi ngày?',
             style: AppTypography.displaySmall.copyWith(
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
               fontWeight: FontWeight.bold,
@@ -393,20 +393,20 @@ class _DurationStep extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Bạn muốn học bao lâu mỗi ngày',
+            'Bạn muốn học bao nhiêu từ mới mỗi ngày',
             style: AppTypography.bodyLarge.copyWith(
               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 24),
-          ...controller.durations.map((duration) => Obx(() {
-            final isSelected = controller.selectedDuration.value == duration.minutes;
+          ...controller.wordLimitOptions.map((option) => Obx(() {
+            final isSelected = controller.selectedWordLimit.value == option.words;
             return _buildDurationCard(
-              icon: duration.icon,
-              title: duration.title,
-              subtitle: duration.subtitle,
+              icon: option.icon,
+              title: option.title,
+              subtitle: option.subtitle,
               isSelected: isSelected,
-              onTap: () => controller.selectDuration(duration.minutes),
+              onTap: () => controller.selectWordLimit(option.words),
               isDark: isDark,
             );
           })),

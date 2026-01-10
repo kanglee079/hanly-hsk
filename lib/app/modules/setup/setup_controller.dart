@@ -38,13 +38,13 @@ class SetupController extends GetxController {
     GoalOption(id: 'media', title: 'Xem phim/đọc sách', icon: '📺'),
   ];
 
-  // Step 4: Daily duration
-  final selectedDuration = 10.obs;
-  final durations = [
-    DurationOption(minutes: 5, title: '5 phút', subtitle: 'Nhẹ nhàng', icon: '🌿'),
-    DurationOption(minutes: 10, title: '10 phút', subtitle: 'Cân bằng', icon: '⚖️'),
-    DurationOption(minutes: 20, title: '20 phút', subtitle: 'Nghiêm túc', icon: '🎯'),
-    DurationOption(minutes: 30, title: '30+ phút', subtitle: 'Chuyên sâu', icon: '🔥'),
+  // Step 4: Daily word limit (1 word = 1 minute)
+  final selectedWordLimit = 10.obs;
+  final wordLimitOptions = [
+    WordLimitOption(words: 3, title: '3 từ/ngày', subtitle: 'Nhẹ nhàng (~3 phút)', icon: '🌿'),
+    WordLimitOption(words: 5, title: '5 từ/ngày', subtitle: 'Cơ bản (~5 phút)', icon: '📗'),
+    WordLimitOption(words: 10, title: '10 từ/ngày', subtitle: 'Cân bằng (~10 phút)', icon: '⚖️'),
+    WordLimitOption(words: 20, title: '20 từ/ngày', subtitle: 'Nghiêm túc (~20 phút)', icon: '🎯'),
   ];
 
   @override
@@ -84,8 +84,8 @@ class SetupController extends GetxController {
     }
   }
 
-  void selectDuration(int minutes) {
-    selectedDuration.value = minutes;
+  void selectWordLimit(int words) {
+    selectedWordLimit.value = words;
   }
 
   void nextStep() {
@@ -122,7 +122,7 @@ class SetupController extends GetxController {
       _storage.userDisplayName = nameController.text.trim();
       _storage.userLevel = selectedLevel.value;
       _storage.userGoals = selectedGoals.toList();
-      _storage.userDailyMinutes = selectedDuration.value;
+      _storage.userDailyNewLimit = selectedWordLimit.value; // Words per day (1 word = 1 minute)
       
       // Create anonymous user
       final success = await _authService.createAnonymousUser();
@@ -137,13 +137,14 @@ class SetupController extends GetxController {
       }
       
       // Submit onboarding to server
+      // dailyMinutesTarget = selectedWordLimit (1 word = 1 minute)
       await _authService.submitOnboarding(
         displayName: nameController.text.trim(),
         goalType: selectedGoals.contains('exam') ? 'hsk_exam' : 
                  selectedGoals.contains('daily') ? 'conversation' : 'both',
         currentLevel: selectedLevel.value,
-        dailyMinutesTarget: selectedDuration.value,
-        dailyNewLimit: _getDailyNewLimit(),
+        dailyMinutesTarget: selectedWordLimit.value, // 1 word = 1 minute
+        dailyNewLimit: selectedWordLimit.value,
         focusWeights: {'listening': 0.33, 'hanzi': 0.34, 'meaning': 0.33},
       );
       
@@ -162,21 +163,6 @@ class SetupController extends GetxController {
       );
     } finally {
       isLoading.value = false;
-    }
-  }
-
-  int _getDailyNewLimit() {
-    switch (selectedDuration.value) {
-      case 5:
-        return 5;
-      case 10:
-        return 10;
-      case 20:
-        return 20;
-      case 30:
-        return 30;
-      default:
-        return 10;
     }
   }
 
@@ -214,14 +200,14 @@ class GoalOption {
   });
 }
 
-class DurationOption {
-  final int minutes;
+class WordLimitOption {
+  final int words;
   final String title;
   final String subtitle;
   final String icon;
 
-  DurationOption({
-    required this.minutes,
+  WordLimitOption({
+    required this.words,
     required this.title,
     required this.subtitle,
     required this.icon,
