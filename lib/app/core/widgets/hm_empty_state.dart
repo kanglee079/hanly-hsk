@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
@@ -7,15 +6,7 @@ import 'hm_button.dart';
 
 /// Empty state placeholder
 class HMEmptyState extends StatelessWidget {
-  /// Material icon (used if iconWidget is null)
-  final IconData? icon;
-  
-  /// SVG path (used if iconWidget is null and svgPath is provided)
-  final String? svgPath;
-  
-  /// Custom icon widget (takes precedence over icon and svgPath)
-  final Widget? iconWidget;
-  
+  final IconData icon;
   final String title;
   final String? description;
   final String? actionLabel;
@@ -23,15 +14,12 @@ class HMEmptyState extends StatelessWidget {
 
   const HMEmptyState({
     super.key,
-    this.icon,
-    this.svgPath,
-    this.iconWidget,
+    required this.icon,
     required this.title,
     this.description,
     this.actionLabel,
     this.onAction,
-  }) : assert(icon != null || svgPath != null || iconWidget != null,
-            'Either icon, svgPath, or iconWidget must be provided');
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +40,13 @@ class HMEmptyState extends StatelessWidget {
                     : AppColors.surfaceVariant,
                 shape: BoxShape.circle,
               ),
-              child: _buildIconContent(isDark),
+              child: Icon(
+                icon,
+                size: 36,
+                color: isDark
+                    ? AppColors.textTertiaryDark
+                    : AppColors.textTertiary,
+              ),
             ),
             const SizedBox(height: 24),
             Text(
@@ -89,29 +83,4 @@ class HMEmptyState extends StatelessWidget {
       ),
     );
   }
-  
-  Widget _buildIconContent(bool isDark) {
-    final iconColor = isDark ? AppColors.textTertiaryDark : AppColors.textTertiary;
-    
-    // Priority: iconWidget > svgPath > icon
-    if (iconWidget != null) {
-      return iconWidget!;
-    }
-    
-    if (svgPath != null) {
-      return SvgPicture.asset(
-        svgPath!,
-        width: 36,
-        height: 36,
-        colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
-      );
-    }
-    
-    return Icon(
-      icon,
-      size: 36,
-      color: iconColor,
-    );
-  }
 }
-

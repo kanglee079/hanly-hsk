@@ -1,11 +1,10 @@
 import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/strings_vi.dart';
-import '../../core/constants/app_icons.dart';
 import '../../core/widgets/hm_tutorial_overlay.dart';
 import '../today/today_screen.dart';
 import '../learn/learn_screen.dart';
@@ -205,23 +204,28 @@ class _PillBottomNav extends StatelessWidget {
 
   static const _items = [
     _NavItemData(
-      svgPath: AppIcons.navToday,
+      icon: CupertinoIcons.calendar,
+      activeIcon: CupertinoIcons.calendar_today,
       label: S.tabToday,
     ),
     _NavItemData(
-      svgPath: AppIcons.navLearn,
+      icon: CupertinoIcons.book,
+      activeIcon: CupertinoIcons.book_fill,
       label: S.tabLearn,
     ),
     _NavItemData(
-      svgPath: AppIcons.school,
+      icon: CupertinoIcons.pencil_outline,
+      activeIcon: CupertinoIcons.pencil,
       label: S.tabExam,
     ),
     _NavItemData(
-      svgPath: AppIcons.navExplore,
+      icon: CupertinoIcons.compass,
+      activeIcon: CupertinoIcons.compass_fill,
       label: S.tabExplore,
     ),
     _NavItemData(
-      svgPath: AppIcons.navMe,
+      icon: CupertinoIcons.person,
+      activeIcon: CupertinoIcons.person_fill,
       label: S.tabMe,
     ),
   ];
@@ -286,11 +290,13 @@ class _PillBottomNav extends StatelessWidget {
 }
 
 class _NavItemData {
-  final String svgPath;
+  final IconData icon;
+  final IconData activeIcon;
   final String label;
 
   const _NavItemData({
-    required this.svgPath,
+    required this.icon,
+    required this.activeIcon,
     required this.label,
   });
 }
@@ -335,7 +341,7 @@ class _NavItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // SVG Icon with scale animation
+            // Icon with scale animation
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.92, end: isSelected ? 1.0 : 0.92),
               duration: const Duration(milliseconds: 200),
@@ -343,14 +349,10 @@ class _NavItem extends StatelessWidget {
               builder: (context, scale, child) {
                 return Transform.scale(
                   scale: scale,
-                  child: SvgPicture.asset(
-                    data.svgPath,
-                    width: 26,
-                    height: 26,
-                    colorFilter: ColorFilter.mode(
-                      isSelected ? activeColor : inactiveColor,
-                      BlendMode.srcIn,
-                    ),
+                  child: Icon(
+                    isSelected ? data.activeIcon : data.icon,
+                    size: 26,
+                    color: isSelected ? activeColor : inactiveColor,
                   ),
                 );
               },

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
-import '../constants/app_icons.dart';
 
 /// Streak display configuration based on streak value
 class StreakConfig {
@@ -431,16 +429,12 @@ class _HMStreakWidgetState extends State<HMStreakWidget>
                       ),
                     // Arrow indicator
                     const SizedBox(width: 8),
-                    SvgPicture.asset(
-                      AppIcons.chevronRight,
-                      width: 20,
-                      height: 20,
-                      colorFilter: ColorFilter.mode(
-                        isDark
-                            ? AppColors.textTertiaryDark
-                            : AppColors.textTertiary,
-                        BlendMode.srcIn,
-                      ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: isDark
+                          ? AppColors.textTertiaryDark
+                          : AppColors.textTertiary,
                     ),
                   ],
                 ),
@@ -513,11 +507,10 @@ class _HMStreakWidgetState extends State<HMStreakWidget>
       builder: (context, child) {
         return Transform.scale(
           scale: 1.0 + (0.1 * _fireAnimation.value * (config.showFireAnimation ? 1 : 0)),
-          child: SvgPicture.asset(
-            AppIcons.streakFlame,
-            width: size,
-            height: size,
-            colorFilter: ColorFilter.mode(config.iconColor, BlendMode.srcIn),
+          child: Icon(
+            Icons.local_fire_department,
+            size: size,
+            color: config.iconColor,
           ),
         );
       },

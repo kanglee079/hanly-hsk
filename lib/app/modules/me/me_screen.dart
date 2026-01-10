@@ -1,12 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/constants/strings_vi.dart';
-import '../../core/constants/app_icons.dart';
 import '../../core/widgets/widgets.dart';
 import '../../routes/app_routes.dart';
 import '../../services/tutorial_service.dart';
@@ -211,16 +210,12 @@ class MeScreen extends GetView<MeController> {
                     : AppColors.surfaceVariant,
                 shape: BoxShape.circle,
               ),
-              child: SvgPicture.asset(
-                AppIcons.settings,
-                width: 18,
-                height: 18,
-                colorFilter: ColorFilter.mode(
-                  isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
-                  BlendMode.srcIn,
-                ),
+              child: Icon(
+                Icons.settings_outlined,
+                size: 18,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
             ),
           ),
@@ -276,14 +271,10 @@ class MeScreen extends GetView<MeController> {
                         width: 2,
                       ),
                     ),
-                    child: SvgPicture.asset(
-                      AppIcons.edit,
-                      width: 16,
-                      height: 16,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.white,
-                        BlendMode.srcIn,
-                      ),
+                    child: const Icon(
+                      Icons.edit,
+                      size: 16,
+                      color: AppColors.white,
                     ),
                   ),
                 ),
@@ -315,14 +306,10 @@ class MeScreen extends GetView<MeController> {
 
   Widget _buildAvatarPlaceholder() {
     return Center(
-      child: SvgPicture.asset(
-        AppIcons.user,
-        width: 48,
-        height: 48,
-        colorFilter: ColorFilter.mode(
-          AppColors.primary.withValues(alpha: 0.5),
-          BlendMode.srcIn,
-        ),
+      child: Icon(
+        Icons.person,
+        size: 48,
+        color: AppColors.primary.withValues(alpha: 0.5),
       ),
     );
   }
@@ -338,14 +325,10 @@ class MeScreen extends GetView<MeController> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgPicture.asset(
-            AppIcons.crown,
-            width: 16,
-            height: 16,
-            colorFilter: const ColorFilter.mode(
-              AppColors.primary,
-              BlendMode.srcIn,
-            ),
+          const Icon(
+            Icons.workspace_premium,
+            size: 16,
+            color: AppColors.primary,
           ),
           const SizedBox(width: 6),
           Text(
@@ -634,14 +617,10 @@ class MeScreen extends GetView<MeController> {
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: SvgPicture.asset(
-                            AppIcons.heartFilled,
-                            width: 28,
-                            height: 28,
-                            colorFilter: const ColorFilter.mode(
-                              AppColors.favorite,
-                              BlendMode.srcIn,
-                            ),
+                          child: const Icon(
+                            Icons.favorite_rounded,
+                            size: 28,
+                            color: AppColors.favorite,
                           ),
                         ),
                       ),

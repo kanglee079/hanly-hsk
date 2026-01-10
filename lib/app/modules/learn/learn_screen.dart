@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/constants/app_icons.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/models/study_modes_model.dart';
@@ -205,14 +203,12 @@ class LearnScreen extends GetView<LearnController> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              AppIcons.alertTriangle,
-              width: 64,
-              height: 64,
-              colorFilter: ColorFilter.mode(
-                isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
-                BlendMode.srcIn,
-              ),
+            Icon(
+              CupertinoIcons.exclamationmark_triangle,
+              size: 64,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -735,14 +731,10 @@ class LearnScreen extends GetView<LearnController> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              SvgPicture.asset(
-                                AppIcons.lock,
-                                width: 14,
-                                height: 14,
-                                colorFilter: ColorFilter.mode(
-                                  AppColors.primary.withValues(alpha: 0.7),
-                                  BlendMode.srcIn,
-                                ),
+                              Icon(
+                                CupertinoIcons.lock_fill,
+                                size: 14,
+                                color: AppColors.primary.withValues(alpha: 0.7),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -800,14 +792,10 @@ class LearnScreen extends GetView<LearnController> {
                         ],
                 ),
                 child: isLocked
-                    ? SvgPicture.asset(
-                        AppIcons.lock,
-                        width: 32,
-                        height: 32,
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.white,
-                          BlendMode.srcIn,
-                        ),
+                    ? const Icon(
+                        CupertinoIcons.lock_fill,
+                        size: 32,
+                        color: AppColors.white,
                       )
                     : const Icon(
                         Icons.auto_awesome,
@@ -979,16 +967,12 @@ class _DynamicModeCard extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  SvgPicture.asset(
-                    AppIcons.lock,
-                    width: 12,
-                    height: 12,
-                    colorFilter: ColorFilter.mode(
-                      isDark
-                          ? AppColors.textTertiaryDark
-                          : AppColors.textTertiary,
-                      BlendMode.srcIn,
-                    ),
+                  Icon(
+                    CupertinoIcons.lock_fill,
+                    size: 12,
+                    color: isDark
+                        ? AppColors.textTertiaryDark
+                        : AppColors.textTertiary,
                   ),
                   const SizedBox(width: 4),
                   Flexible(
