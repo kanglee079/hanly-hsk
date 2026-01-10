@@ -166,16 +166,17 @@ class TodayController extends GetxController {
 
   // ===== GOAL HELPER =====
 
-  /// Get daily new word limit - PRIMARY source of truth
+  /// Get daily new word limit - LOCAL STORAGE is PRIMARY for user-set preferences
   /// User chọn số từ/ngày, 1 từ = 1 phút
   int get dailyNewLimit {
-    // 1. Check API data first (from user profile)
-    final apiLimit = _authService.currentUser.value?.profile?.dailyNewLimit;
-    if (apiLimit != null && apiLimit > 0) return apiLimit;
-    
-    // 2. Fallback to local storage (set during setup)
+    // 1. LOCAL STORAGE FIRST - User's explicit choice during setup
+    // This ensures user's choice is respected even if backend sync fails
     final storedLimit = _storage.userDailyNewLimit;
     if (storedLimit > 0) return storedLimit;
+    
+    // 2. Fallback to API data (for users who set on another device)
+    final apiLimit = _authService.currentUser.value?.profile?.dailyNewLimit;
+    if (apiLimit != null && apiLimit > 0) return apiLimit;
     
     return 10; // Default
   }

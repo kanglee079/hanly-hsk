@@ -4,6 +4,7 @@ import '../../data/models/user_model.dart';
 import '../../data/models/today_model.dart';
 import '../../data/repositories/me_repo.dart';
 import '../../services/auth_session_service.dart';
+import '../../services/storage_service.dart';
 import '../../services/realtime/today_store.dart';
 import '../../core/widgets/hm_bottom_sheet.dart';
 import '../../core/widgets/hm_toast.dart';
@@ -19,6 +20,7 @@ import '../practice/practice_controller.dart' show PracticeMode;
 /// Me controller
 class MeController extends GetxController {
   final AuthSessionService _authService = Get.find<AuthSessionService>();
+  final StorageService _storage = Get.find<StorageService>();
   final MeRepo _meRepo = Get.find<MeRepo>();
   final TodayStore _todayStore = Get.find<TodayStore>();
 
@@ -53,14 +55,18 @@ class MeController extends GetxController {
   // Optimistic local override for daily goal (used immediately after update)
   final RxnInt _localDailyGoalOverride = RxnInt(null);
 
-  // Daily goal data - use local override if set, otherwise TodayStore/user profile
+  // Daily goal data - LOCAL STORAGE is primary for user preferences
   int get dailyGoalTarget {
     // Use local override if set (optimistic update)
     if (_localDailyGoalOverride.value != null) {
       return _localDailyGoalOverride.value!;
     }
-    // Use user profile as primary source (updated immediately after API call)
-    return user?.profile?.dailyNewLimit ?? todayData.value?.dailyNewLimit ?? 20;
+    // LOCAL STORAGE FIRST - User's explicit choice
+    final storedLimit = _storage.userDailyNewLimit;
+    if (storedLimit > 0) return storedLimit;
+    
+    // Fallback to API data
+    return user?.profile?.dailyNewLimit ?? todayData.value?.dailyNewLimit ?? 10;
   }
 
   int get dailyGoalCurrent => todayData.value?.newLearnedToday ?? 0;
@@ -222,10 +228,11 @@ class MeController extends GetxController {
     final RxString selectedGoalType = RxString(
       profile?.goalType?.apiValue ?? 'both',
     );
-    // Use dailyNewLimit (words) as primary, with fallback to derive from minutes
-    final currentWords =
-        profile?.dailyNewLimit ??
-        _minutesToWords(profile?.dailyMinutesTarget ?? 15);
+    // LOCAL STORAGE FIRST for user preferences, fallback to profile
+    final storedLimit = _storage.userDailyNewLimit;
+    final currentWords = storedLimit > 0 
+        ? storedLimit 
+        : (profile?.dailyNewLimit ?? 10);
     final RxInt selectedWords = RxInt(currentWords);
     final RxBool listeningEnabled = RxBool(
       (profile?.focusWeights?.listening ?? 0) > 0,
@@ -740,9 +747,13 @@ class MeController extends GetxController {
   }) async {
     isUpdatingGoal.value = true;
     try {
-      // Calculate dailyMinutes based on words (words is primary)
+      // Calculate dailyMinutes based on words (words is primary, 1 word = 1 minute)
       final dailyMinutes = _wordsToMinutes(dailyWords);
       final dailyNewLimit = dailyWords;
+      
+      // SAVE TO LOCAL STORAGE FIRST (primary source for user preferences)
+      _storage.userDailyNewLimit = dailyNewLimit;
+      _storage.userLevel = level;
 
       // Calculate focus weights
       final listening = listeningEnabled ? 1.0 : 0.0;
@@ -769,6 +780,7 @@ class MeController extends GetxController {
       ]);
       HMToast.success('Đã cập nhật cài đặt học tập');
     } catch (e) {
+      // Even if API fails, local storage is already saved
       HMToast.error(S.errorUnknown);
     } finally {
       isUpdatingGoal.value = false;
@@ -1112,9 +1124,6 @@ class MeController extends GetxController {
 
   /// Convert words to minutes (1 word = 1 minute)
   int _wordsToMinutes(int words) => words;
-
-  /// Convert minutes to words (1 minute = 1 word)
-  int _minutesToWords(int minutes) => minutes;
 
   /// Get description for word count (1 word = 1 minute)
   String _getWordsDescription(int words) {
