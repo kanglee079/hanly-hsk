@@ -8,6 +8,7 @@ class AnonymousUserResponseModel {
   final String accessToken;
   final String refreshToken;
   final bool isAnonymous;
+  final bool isNewUser; // true = new device, false = returning user
   final DateTime createdAt;
 
   AnonymousUserResponseModel({
@@ -16,6 +17,7 @@ class AnonymousUserResponseModel {
     required this.accessToken,
     required this.refreshToken,
     required this.isAnonymous,
+    required this.isNewUser,
     required this.createdAt,
   });
 
@@ -27,6 +29,7 @@ class AnonymousUserResponseModel {
       accessToken: data['accessToken'] as String,
       refreshToken: data['refreshToken'] as String,
       isAnonymous: data['isAnonymous'] as bool? ?? true,
+      isNewUser: data['isNewUser'] as bool? ?? true,
       createdAt: DateTime.parse(data['createdAt'] as String),
     );
   }

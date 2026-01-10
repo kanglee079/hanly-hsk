@@ -22,6 +22,9 @@ class AuthSessionService extends GetxService {
   /// Is current user anonymous (not linked email)
   final RxBool isAnonymous = true.obs;
   
+  /// Is this a new user (first time on this device) or returning user
+  final RxBool isNewUser = true.obs;
+  
   /// Pending 2FA userId (when login returns requires2FA: true)
   final RxString pending2FAUserId = ''.obs;
   final RxString pending2FAEmail = ''.obs;
@@ -90,8 +93,8 @@ class AuthSessionService extends GetxService {
   }
 
   /// Create or login anonymous user
-  /// - If device already has an account → auto login to that account
-  /// - If new device → create new anonymous account
+  /// - If device already has an account → auto login to that account (isNewUser: false)
+  /// - If new device → create new anonymous account (isNewUser: true)
   Future<bool> createAnonymousUser() async {
     try {
       isLoading.value = true;
@@ -111,16 +114,26 @@ class AuthSessionService extends GetxService {
         );
         _storage.isAnonymous = response.isAnonymous;
         isAnonymous.value = response.isAnonymous;
+        isNewUser.value = response.isNewUser;
         
-        Logger.d('AuthSessionService', 'Anonymous user created/logged in: ${response.userId}');
+        // If returning user, mark intro/setup as complete (they already did it before)
+        if (!response.isNewUser) {
+          Logger.d('AuthSessionService', 'Returning user detected - skipping intro/setup');
+          _storage.isIntroSeen = true;
+          _storage.isSetupComplete = true;
+          _storage.isOnboardingComplete = true;
+        }
+        
+        Logger.d('AuthSessionService', 
+          'Auth success: userId=${response.userId}, isNewUser=${response.isNewUser}, isAnonymous=${response.isAnonymous}');
         return true;
       }
       
       return false;
     } catch (e) {
-      // Check if this is a DUPLICATE_ERROR - device already has an account
+      // Check if this is a DUPLICATE_ERROR - shouldn't happen after BE fix, but keep as fallback
       if (_isDuplicateError(e)) {
-        Logger.d('AuthSessionService', 'Device already registered, auto-login to existing account');
+        Logger.d('AuthSessionService', 'Device already registered, trying fallback login');
         return await _loginWithExistingDevice();
       }
       
