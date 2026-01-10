@@ -7,7 +7,7 @@ import '../../core/widgets/widgets.dart';
 import '../../data/models/vocab_model.dart';
 import 'collection_detail_controller.dart';
 
-/// Collection detail screen - shows vocabs in a collection
+/// Collection detail screen with pagination
 class CollectionDetailScreen extends GetView<CollectionDetailController> {
   const CollectionDetailScreen({super.key});
 
@@ -20,11 +20,11 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
         title: controller.collection.value?.title ?? 'Collection',
       ),
       body: Obx(() {
-        if (controller.isLoading.value) {
+        if (controller.isLoading.value && controller.vocabs.isEmpty) {
           return _buildLoadingState();
         }
 
-        if (controller.errorMessage.value.isNotEmpty) {
+        if (controller.errorMessage.value.isNotEmpty && controller.vocabs.isEmpty) {
           return _buildErrorState(isDark);
         }
 
@@ -76,51 +76,63 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
   }
 
   Widget _buildContent(BuildContext context, bool isDark) {
-    return CustomScrollView(
-      slivers: [
+    return Column(
+      children: [
         // Header
-        SliverToBoxAdapter(
-          child: _buildHeader(isDark),
-        ),
+        _buildHeader(isDark),
 
         // Vocab list
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if (index >= controller.vocabs.length) {
-                  // Loading more indicator
-                  return Obx(() {
-                    if (controller.isLoadingMore.value) {
-                      return const Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Center(child: HMLoadingIndicator.small()),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  });
-                }
+        Expanded(
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return _buildLoadingState();
+            }
 
-                final vocab = controller.vocabs[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _VocabCard(
-                    vocab: vocab,
-                    isDark: isDark,
-                    onTap: () => controller.openVocabDetail(vocab),
-                  ),
-                );
-              },
-              childCount: controller.vocabs.length + 1,
-            ),
-          ),
+            if (controller.vocabs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.inbox_outlined,
+                      size: 64,
+                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Không có từ vựng',
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: controller.refreshData,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: controller.vocabs.length,
+                itemBuilder: (context, index) {
+                  final vocab = controller.vocabs[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _VocabCard(
+                      vocab: vocab,
+                      isDark: isDark,
+                      onTap: () => controller.openVocabDetail(vocab),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
         ),
 
-        // Bottom padding
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 32),
-        ),
+        // Pagination controls
+        Obx(() => _buildPaginationControls(isDark)),
       ],
     );
   }
@@ -176,7 +188,7 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
           const SizedBox(height: 16),
 
           // Stats row
-          Row(
+          Obx(() => Row(
             children: [
               _StatBadge(
                 icon: Icons.library_books_outlined,
@@ -185,30 +197,192 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
                 isDark: isDark,
               ),
               const SizedBox(width: 16),
-              Obx(() {
-                final pagination = controller.pagination.value;
-                if (pagination != null) {
-                  return _StatBadge(
-                    icon: Icons.format_list_numbered,
-                    value: '${pagination.page}/${pagination.totalPages}',
-                    label: 'trang',
-                    isDark: isDark,
-                  );
-                }
-                return const SizedBox.shrink();
-              }),
+              _StatBadge(
+                icon: Icons.format_list_numbered,
+                value: '${controller.currentPage.value}/${controller.totalPages}',
+                label: 'trang',
+                isDark: isDark,
+              ),
             ],
-          ),
+          )),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // Divider
           Divider(
             color: isDark ? AppColors.borderDark : AppColors.border,
           ),
 
           const SizedBox(height: 8),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationControls(bool isDark) {
+    if (controller.totalPages <= 1) {
+      return const SizedBox(height: 16);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surface,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.border,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // First & Previous buttons
+            Row(
+              children: [
+                // First page
+                _PaginationButton(
+                  icon: Icons.first_page_rounded,
+                  onPressed: controller.canGoPrevious ? controller.firstPage : null,
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 8),
+                // Previous
+                _PaginationButton(
+                  icon: Icons.chevron_left_rounded,
+                  label: 'Trước',
+                  onPressed: controller.canGoPrevious ? controller.previousPage : null,
+                  isDark: isDark,
+                ),
+              ],
+            ),
+
+            // Page indicator
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withAlpha(15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'Trang ${controller.currentPage.value} / ${controller.totalPages}',
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+
+            // Next & Last buttons
+            Row(
+              children: [
+                // Next
+                _PaginationButton(
+                  icon: Icons.chevron_right_rounded,
+                  label: 'Sau',
+                  isTrailing: true,
+                  onPressed: controller.canGoNext ? controller.nextPage : null,
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 8),
+                // Last page
+                _PaginationButton(
+                  icon: Icons.last_page_rounded,
+                  onPressed: controller.canGoNext ? controller.lastPage : null,
+                  isDark: isDark,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaginationButton extends StatelessWidget {
+  final IconData icon;
+  final String? label;
+  final bool isTrailing;
+  final VoidCallback? onPressed;
+  final bool isDark;
+
+  const _PaginationButton({
+    required this.icon,
+    this.label,
+    this.isTrailing = false,
+    this.onPressed,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDisabled = onPressed == null;
+
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: label != null ? 12 : 8,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: isDisabled
+              ? (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant)
+              : AppColors.primary,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isTrailing && label != null) ...[
+              Icon(
+                icon,
+                size: 18,
+                color: isDisabled
+                    ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
+                    : Colors.white,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label!,
+                style: AppTypography.labelMedium.copyWith(
+                  color: isDisabled
+                      ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
+                      : Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ] else if (isTrailing && label != null) ...[
+              Text(
+                label!,
+                style: AppTypography.labelMedium.copyWith(
+                  color: isDisabled
+                      ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
+                      : Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                icon,
+                size: 18,
+                color: isDisabled
+                    ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
+                    : Colors.white,
+              ),
+            ] else ...[
+              Icon(
+                icon,
+                size: 20,
+                color: isDisabled
+                    ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
+                    : Colors.white,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -385,4 +559,3 @@ class _VocabCard extends StatelessWidget {
     );
   }
 }
-
