@@ -586,8 +586,6 @@ class LearnScreen extends GetView<LearnController> {
 
   Widget _buildComprehensiveCard(bool isDark) {
     final mode = controller.comprehensiveMode;
-    final isLocked = mode != null && !mode.isAvailable;
-    final isPremium = mode?.isPremium ?? true;
 
     return Obx(() {
       final isLoading = controller.isLoadingWords.value;
@@ -603,13 +601,9 @@ class LearnScreen extends GetView<LearnController> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: isLocked
-                  ? (isDark
-                        ? [const Color(0xFF1E1B3A), const Color(0xFF1A1730)]
-                        : [const Color(0xFFF0F0F5), const Color(0xFFE8E8F0)])
-                  : (isDark
-                        ? [const Color(0xFF2D2B55), const Color(0xFF1E1B3A)]
-                        : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
+              colors: isDark
+                  ? [const Color(0xFF2D2B55), const Color(0xFF1E1B3A)]
+                  : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)],
             ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
@@ -623,63 +617,19 @@ class LearnScreen extends GetView<LearnController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            mode?.name ?? 'Ôn tập tổng hợp',
-                            style: AppTypography.titleMedium.copyWith(
-                              color: isLocked
-                                  ? (isDark
-                                        ? AppColors.textTertiaryDark
-                                        : AppColors.textTertiary)
-                                  : (isDark
-                                        ? AppColors.textPrimaryDark
-                                        : AppColors.textPrimary),
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isPremium) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                              ),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.star,
-                                  color: Colors.white,
-                                  size: 10,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  'PRO',
-                                  style: AppTypography.labelSmall.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      mode?.name ?? 'Ôn tập tổng hợp',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      mode?.nameEn ?? 'Comprehensive review',
+                      mode?.nameEn ?? 'Comprehensive Review',
                       style: AppTypography.bodyMedium.copyWith(
                         color: isDark
                             ? AppColors.textSecondaryDark
@@ -720,33 +670,12 @@ class LearnScreen extends GetView<LearnController> {
                             ),
                           ),
                         ),
-                        // Start button or locked message
+                        // Start button
                         if (isLoading)
                           const SizedBox(
                             width: 20,
                             height: 20,
                             child: HMLoadingIndicator.small(color: AppColors.primary),
-                          )
-                        else if (isLocked)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                CupertinoIcons.lock_fill,
-                                size: 14,
-                                color: AppColors.primary.withValues(alpha: 0.7),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Mở khóa',
-                                style: AppTypography.labelLarge.copyWith(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.7,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
                           )
                         else
                           Text(
@@ -767,41 +696,25 @@ class LearnScreen extends GetView<LearnController> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  gradient: isLocked
-                      ? LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Colors.grey.shade400, Colors.grey.shade500],
-                        )
-                      : const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF818CF8), Color(0xFF6366F1)],
-                        ),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF818CF8), Color(0xFF6366F1)],
+                  ),
                   borderRadius: BorderRadius.circular(18),
-                  boxShadow: isLocked
-                      ? null
-                      : [
-                          BoxShadow(
-                            color: const Color(
-                              0xFF6366F1,
-                            ).withValues(alpha: 0.4),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                child: isLocked
-                    ? const Icon(
-                        CupertinoIcons.lock_fill,
-                        size: 32,
-                        color: AppColors.white,
-                      )
-                    : const Icon(
-                        Icons.auto_awesome,
-                        color: AppColors.white,
-                        size: 32,
-                      ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: AppColors.white,
+                  size: 32,
+                ),
               ),
             ],
           ),
@@ -827,7 +740,6 @@ class _DynamicModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLocked = !mode.isAvailable;
     final colors = _getModeColors(mode.id);
 
     return GestureDetector(
@@ -836,9 +748,7 @@ class _DynamicModeCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isLocked
-              ? (isDark ? AppColors.surfaceVariantDark : Colors.grey.shade100)
-              : (isDark ? AppColors.surfaceDark : AppColors.white),
+          color: isDark ? AppColors.surfaceDark : AppColors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isDark ? AppColors.borderDark : AppColors.borderLight,
@@ -865,18 +775,16 @@ class _DynamicModeCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: isLocked
-                        ? Colors.grey.shade300
-                        : (isDark
-                              ? colors.iconColor.withValues(alpha: 0.15)
-                              : colors.bgColor),
+                    color: isDark
+                        ? colors.iconColor.withValues(alpha: 0.15)
+                        : colors.bgColor,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Center(
                     child: _buildModeIcon(
                       mode.id,
                       mode.icon,
-                      isLocked ? Colors.grey : colors.iconColor,
+                      colors.iconColor,
                     ),
                   ),
                 ),
@@ -909,13 +817,9 @@ class _DynamicModeCard extends StatelessWidget {
             Text(
               _getDisplayName(mode.id),
               style: AppTypography.titleMedium.copyWith(
-                color: isLocked
-                    ? (isDark
-                          ? AppColors.textTertiaryDark
-                          : AppColors.textTertiary)
-                    : (isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary),
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
               maxLines: 1,
@@ -933,10 +837,8 @@ class _DynamicModeCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            // Pending count or locked indicator
-            if (mode.id == 'srs_vocabulary' &&
-                mode.wordCount > 0 &&
-                !isLocked) ...[
+            // Show word count if available
+            if (mode.wordCount > 0) ...[
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -951,39 +853,13 @@ class _DynamicModeCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      '${mode.wordCount} từ đến hạn',
+                      '${mode.wordCount} từ',
                       style: AppTypography.labelSmall.copyWith(
                         color: AppColors.success,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ] else if (isLocked && mode.id != 'srs_vocabulary') ...[
-              // 🔧 FIX: Never show Premium lock for flashcard (srs_vocabulary)
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(
-                    CupertinoIcons.lock_fill,
-                    size: 12,
-                    color: isDark
-                        ? AppColors.textTertiaryDark
-                        : AppColors.textTertiary,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      'Premium',
-                      style: AppTypography.labelSmall.copyWith(
-                        color: isDark
-                            ? AppColors.textTertiaryDark
-                            : AppColors.textTertiary,
-                        fontWeight: FontWeight.w500,
-                      ),
                     ),
                   ),
                 ],

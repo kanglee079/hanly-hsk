@@ -116,6 +116,9 @@ class SentenceFormationController extends GetxController {
       if (validVocabs.length < minExercises) {
         HMToast.warning('Cần học thêm từ có ví dụ để luyện ghép câu!');
         vocabs.value = [];
+        isLoading.value = false;
+        // Go back after showing message
+        Future.delayed(const Duration(milliseconds: 1500), () => Get.back());
         return;
       }
 
@@ -127,6 +130,8 @@ class SentenceFormationController extends GetxController {
 
       if (exercises.length < minExercises) {
         HMToast.warning('Không đủ bài tập! Hãy học thêm từ vựng.');
+        isLoading.value = false;
+        Future.delayed(const Duration(milliseconds: 1500), () => Get.back());
         return;
       }
 

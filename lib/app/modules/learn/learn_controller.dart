@@ -187,9 +187,8 @@ class LearnController extends GetxController {
         icon: '⭐',
         estimatedMinutes: 15,
         wordCount: 25,
-        isPremium: true,
-        isAvailable: false,
-        unavailableReason: 'Cần Premium để sử dụng',
+        isPremium: false,
+        isAvailable: true,
       ),
     ];
   }
@@ -300,14 +299,6 @@ class LearnController extends GetxController {
       return;
     }
 
-    // Check if mode is available
-    final modeData = getModeById(mode.apiId);
-    // 🔧 FIX: Never block flashcard (srs_vocabulary) - it's always free
-    if (mode != LearnMode.srsVocabulary && modeData != null && !modeData.isAvailable) {
-      _showPremiumDialog(modeData.unavailableReason ?? ToastMessages.premiumFeatureLocked);
-      return;
-    }
-
     // Navigate to new Practice flow based on mode
     switch (mode) {
       case LearnMode.srsVocabulary:
@@ -375,12 +366,6 @@ class LearnController extends GetxController {
     } finally {
       isLoadingWords.value = false;
     }
-  }
-
-  void _showPremiumDialog(String message) {
-    HMToast.info(message, title: 'Premium');
-    // Optional: Navigate to premium screen
-    // Get.toNamed(Routes.premium);
   }
 
   /// Start quick review

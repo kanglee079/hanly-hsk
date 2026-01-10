@@ -295,10 +295,6 @@ class MeScreen extends GetView<MeController> {
             ),
           ),
 
-          const SizedBox(height: 8),
-
-          // Pro member badge
-          if (controller.isPremium) _buildProBadge(),
         ],
       ),
     );
@@ -310,36 +306,6 @@ class MeScreen extends GetView<MeController> {
         Icons.person,
         size: 48,
         color: AppColors.primary.withValues(alpha: 0.5),
-      ),
-    );
-  }
-
-  Widget _buildProBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.primarySurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.workspace_premium,
-            size: 16,
-            color: AppColors.primary,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            S.proMember,
-            style: AppTypography.labelSmall.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -23,7 +23,6 @@ import 'app/data/repositories/game_repo.dart';
 import 'app/data/repositories/pronunciation_repo.dart';
 import 'app/data/repositories/dashboard_repo.dart';
 import 'app/data/repositories/progress_repo.dart';
-import 'app/data/repositories/premium_repo.dart';
 import 'app/data/repositories/hsk_exam_repo.dart';
 import 'app/services/deep_link_service.dart';
 import 'app/services/realtime/realtime_sync_service.dart';
@@ -81,7 +80,6 @@ Future<void> _initDependencies() async {
   Get.put(PronunciationRepo(apiClient));
   Get.put(DashboardRepo(apiClient));
   Get.put(ProgressRepo(apiClient));
-  Get.put(PremiumRepo(apiClient));
   Get.put(HskExamRepo(apiClient));
 
   // Services

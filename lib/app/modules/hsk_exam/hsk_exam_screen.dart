@@ -383,7 +383,6 @@ class HskExamScreen extends GetView<HskExamController> {
                   level: test.level,
                   questions: test.totalQuestions,
                   duration: test.totalDuration,
-                  isPremium: test.isPremium,
                   bestScore: test.bestScore,
                   isDark: isDark,
                 ),
@@ -429,16 +428,11 @@ class HskExamScreen extends GetView<HskExamController> {
     required String level,
     required int questions,
     required int duration,
-    required bool isPremium,
     required int? bestScore,
     required bool isDark,
   }) {
-    final isLocked = isPremium && !controller.isPremium;
-
     return HMCard(
-      onTap: isLocked
-          ? controller.showPremiumUpgrade
-          : () => controller.startMockTest(testId),
+      onTap: () => controller.startMockTest(testId),
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
@@ -474,44 +468,16 @@ class HskExamScreen extends GetView<HskExamController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: AppTypography.titleSmall.copyWith(
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (isPremium)
-                      Container(
-                        margin: const EdgeInsets.only(left: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          'PRO',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                  ],
+                Text(
+                  title,
+                  style: AppTypography.titleSmall.copyWith(
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -530,13 +496,11 @@ class HskExamScreen extends GetView<HskExamController> {
 
           // Arrow
           Icon(
-            isLocked ? Icons.lock_outline_rounded : Icons.chevron_right_rounded,
+            Icons.chevron_right_rounded,
             size: 20,
-            color: isLocked
-                ? AppColors.warning
-                : (isDark
-                      ? AppColors.textTertiaryDark
-                      : AppColors.textTertiary),
+            color: isDark
+                ? AppColors.textTertiaryDark
+                : AppColors.textTertiary,
           ),
         ],
       ),

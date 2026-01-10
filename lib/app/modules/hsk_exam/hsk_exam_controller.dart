@@ -11,9 +11,6 @@ class HskExamController extends GetxController {
   final AuthSessionService _authService = Get.find<AuthSessionService>();
   late final HskExamRepo _examRepo;
 
-  // User premium status
-  bool get isPremium => _authService.currentUser.value?.isPremium ?? false;
-  
   // Selected HSK level filter
   final RxString selectedLevel = 'all'.obs;
   
@@ -91,24 +88,12 @@ class HskExamController extends GetxController {
   }
 
   void startMockTest(String testId) {
-    // Find the test to check if it's premium
-    final test = tests.firstWhereOrNull((t) => t.id == testId);
-    if (test != null && test.isPremium && !isPremium) {
-      showPremiumUpgrade();
-      return;
-    }
-    
-    // Navigate to test taking screen
+    // Navigate to test taking screen - all tests are now free
     Get.toNamed(Routes.hskExamTest, arguments: {'testId': testId});
   }
 
   void viewHistory() {
     Get.toNamed(Routes.hskExamHistory);
-  }
-
-  void showPremiumUpgrade() {
-    HMToast.info(ToastMessages.premiumFeatureLocked);
-    Get.toNamed(Routes.premium);
   }
 
   /// Refresh all data

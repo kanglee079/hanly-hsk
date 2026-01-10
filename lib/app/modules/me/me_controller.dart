@@ -10,7 +10,6 @@ import '../../core/widgets/hm_bottom_sheet.dart';
 import '../../core/widgets/hm_toast.dart';
 import '../../core/widgets/hm_streak_bottom_sheet.dart';
 import '../../core/constants/strings_vi.dart';
-import '../../core/constants/app_limits.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/hm_button.dart';
@@ -26,7 +25,6 @@ class MeController extends GetxController {
 
   // User data
   UserModel? get user => _authService.currentUser.value;
-  bool get isPremium => user?.isPremium ?? false;
   String get displayName =>
       user?.displayName ?? user?.profile?.displayName ?? '';
   String get email => user?.email ?? '';
@@ -175,7 +173,7 @@ class MeController extends GetxController {
   void goToFavorites() => Get.toNamed(Routes.favorites);
   void goToDecks() => Get.toNamed(Routes.decks);
   void goToSettings() => Get.toNamed(Routes.settings);
-  void goToPremium() => Get.toNamed(Routes.premium);
+  void goToDonation() => Get.toNamed(Routes.donation);
   void goToStats() => Get.toNamed(Routes.stats);
   void goToLeaderboard() => Get.toNamed(Routes.leaderboard);
 
@@ -788,16 +786,13 @@ class MeController extends GetxController {
   }
 
   /// Show simple slider to adjust daily word count
-  /// Free users: max 30 words/day
-  /// Premium users: unlimited (up to 100)
+  /// All users can choose up to 100 words/day
   Future<void> adjustDailyWordCount() async {
     final currentGoal = dailyGoalTarget;
     final RxInt selectedGoal = RxInt(currentGoal);
 
-    // Get limits based on premium status
-    final maxWords = isPremium
-        ? AppLimits.premiumDailyNewWords.clamp(5, 100)
-        : AppLimits.freeDailyNewWords;
+    // All users have the same max limit
+    const maxWords = 100;
     final divisions = ((maxWords - 5) / 5).round();
 
     final result = await Get.bottomSheet<int>(
@@ -876,40 +871,13 @@ class MeController extends GetxController {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Số từ mới học mỗi ngày',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                          const Spacer(),
-                          // Show tier badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isPremium
-                                  ? AppColors.secondary.withAlpha(20)
-                                  : AppColors.primary.withAlpha(15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              isPremium ? '⭐ Premium' : 'Free',
-                              style: AppTypography.labelSmall.copyWith(
-                                color: isPremium
-                                    ? AppColors.secondary
-                                    : AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Số từ mới học mỗi ngày',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                        ),
                       ),
 
                       const SizedBox(height: 24),
@@ -987,7 +955,7 @@ class MeController extends GetxController {
                                   ),
                                 ),
                                 Text(
-                                  isPremium ? 'MAX' : '$maxWords ${S.words}',
+                                  '$maxWords ${S.words}',
                                   style: AppTypography.labelSmall.copyWith(
                                     color: isDark
                                         ? AppColors.textTertiaryDark
@@ -996,49 +964,6 @@ class MeController extends GetxController {
                                 ),
                               ],
                             ),
-
-                            // Upgrade hint for free users
-                            if (!isPremium) ...[
-                              const SizedBox(height: 16),
-                              GestureDetector(
-                                onTap: goToPremium,
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondary.withAlpha(15),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.secondary.withAlpha(50),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.auto_awesome,
-                                        size: 20,
-                                        color: AppColors.secondary,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          'Nâng cấp Premium để học không giới hạn',
-                                          style: AppTypography.bodySmall
-                                              .copyWith(
-                                                color: AppColors.secondary,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 14,
-                                        color: AppColors.secondary,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       ),
