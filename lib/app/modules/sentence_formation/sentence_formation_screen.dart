@@ -7,7 +7,11 @@ import '../../core/widgets/book_page_scaffold.dart';
 import '../../core/widgets/hm_button.dart';
 import '../../core/widgets/hm_app_bar.dart';
 import '../../core/widgets/hm_loading.dart';
+import '../../core/widgets/app_scaffold.dart';
 import 'sentence_formation_controller.dart';
+
+// Theme color for Sentence Formation (Orange/Amber)
+const _kThemeColor = Color(0xFFFF8F00);
 
 /// Sentence Formation Practice Screen
 /// Beautiful UI for arranging Chinese words to form correct sentences
@@ -18,66 +22,83 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+    return AppScaffold(
       appBar: _buildAppBar(isDark),
-      body: Obx(() {
-        switch (controller.state.value) {
-          case SentenceState.loading:
-            return _buildLoading(isDark);
-          case SentenceState.playing:
-          case SentenceState.feedback:
-            return _buildExercise(isDark);
-          case SentenceState.complete:
-            return _buildComplete(isDark);
-        }
-      }),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [const Color(0xFF1A1A2E), const Color(0xFF2D1B00)]
+                : [const Color(0xFFFFF8E1), const Color(0xFFFFECB3)],
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Obx(() {
+            switch (controller.state.value) {
+              case SentenceState.loading:
+                return _buildLoading(isDark);
+              case SentenceState.playing:
+              case SentenceState.feedback:
+                return _buildExercise(isDark);
+              case SentenceState.complete:
+                return _buildComplete(isDark);
+            }
+          }),
+        ),
+      ),
     );
   }
 
   PreferredSizeWidget _buildAppBar(bool isDark) {
     return HMAppBar(
-      title: 'Đặt câu',
       showBackButton: true,
       onBackPressed: () => _showExitConfirmation(isDark),
+      titleWidget: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'GHÉP TỪ',
+            style: AppTypography.labelSmall.copyWith(
+              color: (isDark ? Colors.white : AppColors.textTertiary)
+                  .withValues(alpha: 0.7),
+              letterSpacing: 1.2,
+              fontSize: 10,
+            ),
+          ),
+          Text(
+            'Sentence Formation',
+            style: AppTypography.titleMedium.copyWith(
+              color: isDark ? Colors.white : AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
       actions: [
-        // Progress indicator
-        Obx(() => Container(
+        Obx(() {
+          if (controller.exercises.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(20),
-                borderRadius: BorderRadius.circular(16),
+                color: _kThemeColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.sort_rounded,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${controller.currentIndex.value + 1}/${controller.exercises.length}',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            )),
-        // Timer
-        Obx(() => Padding(
-              padding: const EdgeInsets.only(right: 16),
               child: Text(
-                controller.formattedTime,
+                '${controller.currentIndex.value + 1}/${controller.exercises.length}',
                 style: AppTypography.labelMedium.copyWith(
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  color: _kThemeColor,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            )),
+            ),
+          );
+        }),
       ],
     );
   }
@@ -123,20 +144,9 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
   }
 
   Widget _buildLoading(bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const HMLoadingIndicator(size: 56),
-          const SizedBox(height: 24),
-          Text(
-            'Đang tải bài tập đặt câu...',
-            style: AppTypography.bodyLarge.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
+    return const HMLoadingContent(
+      message: 'Đang tải bài tập ghép từ...',
+      icon: Icons.sort_rounded,
     );
   }
 
@@ -198,187 +208,164 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
     final accuracy = (controller.accuracy * 100).round();
     final isGood = accuracy >= 70;
 
-    return SafeArea(
+    return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Spacer(),
-
-            // Trophy or result icon
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isGood
-                      ? [AppColors.success, AppColors.success.withAlpha(200)]
-                      : [AppColors.warning, AppColors.warning.withAlpha(200)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: (isGood ? AppColors.success : AppColors.warning).withAlpha(50),
-                    blurRadius: 24,
-                    spreadRadius: 4,
+            // Result icon with animation
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: isGood ? _kThemeColor : const Color(0xFFF59E0B),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isGood ? _kThemeColor : const Color(0xFFF59E0B))
+                              .withValues(alpha: 0.4),
+                          blurRadius: 24,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isGood ? Icons.emoji_events_rounded : Icons.refresh_rounded,
+                      size: 48,
+                      color: Colors.white,
+                    ),
                   ),
-                ],
-              ),
-              child: Icon(
-                isGood ? Icons.emoji_events_rounded : Icons.trending_up_rounded,
-                size: 60,
-                color: Colors.white,
-              ),
+                );
+              },
             ),
-
             const SizedBox(height: 32),
-
             Text(
-              isGood ? 'Xuất sắc!' : 'Cố gắng hơn nhé!',
-              style: AppTypography.displaySmall.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              isGood ? 'Tuyệt vời! 🎉' : 'Cố gắng thêm! 💪',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isDark ? Colors.white : AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              'Bạn đã hoàn thành ${controller.totalAnswered.value} câu đặt câu',
-              style: AppTypography.bodyLarge.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            // Stats cards
-            Row(
-              children: [
-                _buildStatCard(
-                  isDark: isDark,
-                  icon: Icons.check_circle_rounded,
-                  iconColor: AppColors.success,
-                  label: 'Đúng',
-                  value: '${controller.correctCount.value}',
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  isDark: isDark,
-                  icon: Icons.percent_rounded,
-                  iconColor: AppColors.primary,
-                  label: 'Độ chính xác',
-                  value: '$accuracy%',
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  isDark: isDark,
-                  icon: Icons.star_rounded,
-                  iconColor: AppColors.secondary,
-                  label: 'XP',
-                  value: '+${controller.xpEarned.value}',
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                _buildStatCard(
-                  isDark: isDark,
-                  icon: Icons.timer_rounded,
-                  iconColor: Colors.blue,
-                  label: 'Thời gian',
-                  value: controller.formattedTime,
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  isDark: isDark,
-                  icon: Icons.local_fire_department_rounded,
-                  iconColor: Colors.orange,
-                  label: 'Streak cao nhất',
-                  value: '${controller.streak.value}',
-                ),
-              ],
-            ),
-
-            const Spacer(),
-
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 54,
-                    child: HMButton(
-                      text: 'Luyện lại',
-                      variant: HMButtonVariant.secondary,
-                      onPressed: controller.restart,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SizedBox(
-                    height: 54,
-                    child: HMButton(
-                      text: 'Hoàn thành',
-                      onPressed: controller.exitSession,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required bool isDark,
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? AppColors.borderDark : AppColors.border,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 24, color: iconColor),
             const SizedBox(height: 8),
             Text(
-              value,
-              style: AppTypography.titleLarge.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
+              'Độ chính xác: $accuracy%',
+              style: AppTypography.titleMedium.copyWith(
+                color: isGood ? _kThemeColor : const Color(0xFFF59E0B),
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              label,
-              style: AppTypography.labelSmall.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              '${controller.correctCount.value}/${controller.totalAnswered.value} câu đúng',
+              style: AppTypography.bodyMedium.copyWith(
+                color: isDark ? Colors.white70 : AppColors.textSecondary,
               ),
-              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 48),
+            // Action buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.refresh_rounded,
+                      label: 'Luyện lại',
+                      onTap: controller.restart,
+                      isDark: isDark,
+                      isPrimary: false,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.check_circle_outline_rounded,
+                      label: 'Hoàn tất',
+                      onTap: controller.exitSession,
+                      isDark: isDark,
+                      isPrimary: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required bool isDark,
+    bool isPrimary = false,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isPrimary
+              ? _kThemeColor
+              : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(16),
+          border: isPrimary
+              ? null
+              : Border.all(
+                  color: isDark
+                      ? Colors.white24
+                      : Colors.black.withValues(alpha: 0.1),
+                ),
+          boxShadow: isPrimary
+              ? [
+                  BoxShadow(
+                    color: _kThemeColor.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isPrimary
+                  ? Colors.white
+                  : (isDark ? Colors.white70 : AppColors.textSecondary),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(
+                color: isPrimary
+                    ? Colors.white
+                    : (isDark ? Colors.white : AppColors.textPrimary),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }
 
 /// The actual sentence reorder exercise widget

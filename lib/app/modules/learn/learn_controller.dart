@@ -132,13 +132,14 @@ class LearnController extends GetxController {
   }
 
   /// Create fallback modes when API fails
+  /// Order: Ghép từ (Sentence Formation), Luyện Nghe, Phát âm, Ghép Cặp
   List<StudyModeModel> _createFallbackModes(int reviewCount, int newCount) {
     return [
       StudyModeModel(
-        id: 'sentence_formation',
-        name: 'Đặt câu',
+        id: 'srs_vocabulary', // Maps to sentence_formation in UI
+        name: 'Ghép từ',
         nameEn: 'Sentence Formation',
-        description: 'Sắp xếp từ tạo câu đúng',
+        description: 'Sắp xếp từ thành câu đúng',
         icon: '📝',
         estimatedMinutes: 5,
         wordCount: 10,
@@ -148,8 +149,8 @@ class LearnController extends GetxController {
       StudyModeModel(
         id: 'listening',
         name: 'Luyện Nghe',
-        nameEn: 'Nghe & chọn đáp án',
-        description: 'Luyện nghe hiểu từ vựng',
+        nameEn: 'Listening Practice',
+        description: 'Nghe và chọn đáp án đúng',
         icon: '🎧',
         estimatedMinutes: 5,
         wordCount: 10,
@@ -159,8 +160,8 @@ class LearnController extends GetxController {
       StudyModeModel(
         id: 'pronunciation',
         name: 'Phát âm',
-        nameEn: 'Luyện nói',
-        description: 'Luyện phát âm chuẩn',
+        nameEn: 'Pronunciation',
+        description: 'Luyện nói chuẩn',
         icon: '🎤',
         estimatedMinutes: 5,
         wordCount: 10,
@@ -169,8 +170,8 @@ class LearnController extends GetxController {
       ),
       StudyModeModel(
         id: 'matching',
-        name: 'Ghép Từ',
-        nameEn: 'Ngữ cảnh',
+        name: 'Ghép Cặp',
+        nameEn: 'Word Matching',
         description: 'Ghép từ với nghĩa đúng',
         icon: '🧩',
         estimatedMinutes: 8,
@@ -310,8 +311,8 @@ class LearnController extends GetxController {
     // Navigate to new Practice flow based on mode
     switch (mode) {
       case LearnMode.srsVocabulary:
-        // Flashcard review - beautiful flip animation
-        Get.toNamed(Routes.flashcard);
+        // Now redirects to Sentence Formation (Đặt câu) - replacing old Flashcard
+        Get.toNamed(Routes.sentenceFormation);
         break;
       case LearnMode.review:
         // Quick SRS review

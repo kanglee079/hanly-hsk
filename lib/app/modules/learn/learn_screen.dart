@@ -518,10 +518,10 @@ class LearnScreen extends GetView<LearnController> {
                   icon: Icons.sort_rounded,
                   iconBgColor: const Color(0xFFFFF8E1),
                   iconColor: const Color(0xFFFF8F00),
-                  title: 'Đặt câu',
-                  subtitle: 'Sắp xếp từ tạo câu',
+                  title: 'Ghép từ',
+                  subtitle: 'Sắp xếp từ thành câu',
                   duration: '~5m',
-                  onTap: () => controller.startMode(LearnMode.sentenceFormation),
+                  onTap: () => controller.startMode(LearnMode.srsVocabulary),
                   isDark: isDark,
                 ),
               ),
@@ -570,8 +570,8 @@ class LearnScreen extends GetView<LearnController> {
                   icon: Icons.hub_rounded,
                   iconBgColor: const Color(0xFFF3E5F5),
                   iconColor: const Color(0xFF9C27B0),
-                  title: 'Ghép Từ',
-                  subtitle: 'Ngữ cảnh',
+                  title: 'Ghép Cặp',
+                  subtitle: 'Ghép từ với nghĩa',
                   duration: '~8m',
                   onTap: () => controller.startMode(LearnMode.matching),
                   isDark: isDark,
@@ -1000,11 +1000,9 @@ class _DynamicModeCard extends StatelessWidget {
     IconData iconData;
     switch (modeId) {
       case 'srs_vocabulary':
-        iconData = Icons.style_rounded; // Flashcard icon
-        break;
       case 'sentence_formation':
       case 'sentence_reorder':
-        iconData = Icons.sort_rounded; // Sentence reorder icon
+        iconData = Icons.sort_rounded; // Sentence reorder icon for Ghép từ
         break;
       case 'listening':
         iconData = Icons.headphones_rounded;
@@ -1026,17 +1024,16 @@ class _DynamicModeCard extends StatelessWidget {
   String _getDisplayName(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
-        return 'Thẻ ghi nhớ'; // Flashcard
       case 'sentence_formation':
       case 'sentence_reorder':
-        return 'Đặt câu'; // Sentence Formation
+        return 'Ghép từ'; // Sentence Formation - replaced Flashcard
       case 'listening':
         return 'Luyện Nghe';
       case 'writing':
       case 'pronunciation':
         return 'Phát âm';
       case 'matching':
-        return 'Ghép Từ';
+        return 'Ghép Cặp'; // Word Matching
       case 'comprehensive':
         return 'Ôn tập tổng hợp';
       default:
@@ -1048,17 +1045,16 @@ class _DynamicModeCard extends StatelessWidget {
   String _getDisplaySubtitle(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
-        return 'Ôn tập với thẻ';
       case 'sentence_formation':
       case 'sentence_reorder':
-        return 'Sắp xếp từ tạo câu';
+        return 'Sắp xếp từ thành câu'; // Updated subtitle
       case 'listening':
         return 'Nghe & chọn đáp án';
       case 'writing':
       case 'pronunciation':
         return 'Luyện nói';
       case 'matching':
-        return 'Ngữ cảnh';
+        return 'Ghép từ với nghĩa'; // Updated subtitle
       case 'comprehensive':
         return 'Comprehensive Review';
       default:
@@ -1069,28 +1065,28 @@ class _DynamicModeCard extends StatelessWidget {
   _ModeColors _getModeColors(String modeId) {
     switch (modeId) {
       case 'srs_vocabulary':
-        return _ModeColors(
-          bgColor: const Color(0xFFFCE4EC), // Pink light
-          iconColor: const Color(0xFFE91E63), // Pink
-        );
       case 'sentence_formation':
       case 'sentence_reorder':
+        // Orange/Amber for Ghép từ (Sentence Formation)
         return _ModeColors(
           bgColor: const Color(0xFFFFF8E1), // Amber light
           iconColor: const Color(0xFFFF8F00), // Amber
         );
       case 'listening':
+        // Blue for Listening
         return _ModeColors(
           bgColor: const Color(0xFFE3F2FD),
           iconColor: const Color(0xFF2196F3),
         );
       case 'writing':
       case 'pronunciation':
+        // Green for Pronunciation
         return _ModeColors(
           bgColor: const Color(0xFFE8F5E9),
           iconColor: const Color(0xFF4CAF50),
         );
       case 'matching':
+        // Purple for Matching
         return _ModeColors(
           bgColor: const Color(0xFFF3E5F5),
           iconColor: const Color(0xFF9C27B0),
@@ -1119,7 +1115,6 @@ class _ModeCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String duration;
-  final int? pendingCount;
   final VoidCallback onTap;
   final bool isDark;
 
@@ -1130,7 +1125,6 @@ class _ModeCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.duration,
-    this.pendingCount,
     required this.onTap,
     required this.isDark,
   });
@@ -1225,34 +1219,6 @@ class _ModeCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            // Pending count indicator
-            if (pendingCount != null && pendingCount! > 0) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      '$pendingCount words pending',
-                      style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
       ),
