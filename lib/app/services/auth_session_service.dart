@@ -93,14 +93,22 @@ class AuthSessionService extends GetxService {
   }
 
   /// Create or login anonymous user
-  /// - If device already has an account → auto login to that account (isNewUser: false)
-  /// - If new device → create new anonymous account (isNewUser: true)
+  /// 
+  /// BE behavior (after fix):
+  /// - New device → creates user, returns { isNewUser: true }
+  /// - Existing device → returns existing user, { isNewUser: false }
+  /// - Deleted user → reactivates, returns { isNewUser: false }
+  /// - Suspended user → throws UnauthorizedError
+  /// - Race condition → handled gracefully by BE
   Future<bool> createAnonymousUser() async {
     try {
       isLoading.value = true;
+      isOfflineMode.value = false;
       
       final deviceId = getDeviceId();
       final deviceInfo = getDeviceInfo();
+      
+      Logger.d('AuthSessionService', '🔄 Creating/logging in anonymous user...');
       
       final response = await _authRepo.createAnonymousUser(
         deviceId: deviceId,
@@ -108,6 +116,7 @@ class AuthSessionService extends GetxService {
       );
       
       if (response.success) {
+        // Save tokens
         _storage.saveTokens(
           accessToken: response.accessToken,
           refreshToken: response.refreshToken,
@@ -116,49 +125,52 @@ class AuthSessionService extends GetxService {
         isAnonymous.value = response.isAnonymous;
         isNewUser.value = response.isNewUser;
         
-        // If returning user, mark intro/setup as complete (they already did it before)
+        // If returning user (device already had account), skip intro/setup
         if (!response.isNewUser) {
-          Logger.d('AuthSessionService', 'Returning user detected - skipping intro/setup');
+          Logger.d('AuthSessionService', '✅ Returning user detected - skipping intro/setup');
           _storage.isIntroSeen = true;
           _storage.isSetupComplete = true;
           _storage.isOnboardingComplete = true;
+        } else {
+          Logger.d('AuthSessionService', '✅ New user created');
         }
         
         Logger.d('AuthSessionService', 
-          'Auth success: userId=${response.userId}, isNewUser=${response.isNewUser}, isAnonymous=${response.isAnonymous}');
+          '✅ Auth success: userId=${response.userId}, isNewUser=${response.isNewUser}, isAnonymous=${response.isAnonymous}');
         return true;
       }
       
+      Logger.w('AuthSessionService', '⚠️ Auth response was not successful');
       return false;
     } catch (e) {
-      // Check if this is a DUPLICATE_ERROR - shouldn't happen after BE fix, but keep as fallback
-      if (_isDuplicateError(e)) {
-        Logger.d('AuthSessionService', 'Device already registered, trying fallback login');
-        return await _loginWithExistingDevice();
+      // Handle specific error cases
+      if (_isSuspendedError(e)) {
+        Logger.e('AuthSessionService', '🚫 Account suspended');
+        // TODO: Show suspended account dialog to user
+        return false;
       }
       
-      Logger.e('AuthSessionService', 'createAnonymousUser error', e);
+      if (_isNetworkError(e)) {
+        Logger.w('AuthSessionService', '📴 Network error - continuing offline');
+        _continueOfflineMode();
+        return false;
+      }
+      
+      Logger.e('AuthSessionService', '❌ createAnonymousUser error', e);
+      _continueOfflineMode();
       return false;
     } finally {
       isLoading.value = false;
     }
   }
   
-  /// Check if the error is a duplicate device error
-  bool _isDuplicateError(dynamic error) {
+  /// Check if error is a suspended account error
+  bool _isSuspendedError(dynamic error) {
     if (error is DioException) {
-      final message = error.message ?? '';
       final response = error.response?.data;
-      
-      // Check error message
-      if (message.contains('Duplicate') || message.contains('DUPLICATE')) {
-        return true;
-      }
-      
-      // Check response data
       if (response is Map<String, dynamic>) {
-        final errorCode = response['error']?['code'];
-        if (errorCode == 'DUPLICATE_ERROR' || errorCode == 'DEVICE_EXISTS') {
+        final message = response['error']?['message'] ?? '';
+        if (message.contains('tạm khóa') || message.contains('suspended')) {
           return true;
         }
       }
@@ -166,86 +178,15 @@ class AuthSessionService extends GetxService {
     return false;
   }
   
-  /// Login with existing device ID (auto-login to previous account)
-  /// Called when device already has an account registered (DUPLICATE_ERROR)
-  /// 
-  /// Expected behavior after BE fix:
-  /// - POST /auth/anonymous should return tokens for existing device
-  /// - This fallback should not be needed once BE is fixed
-  Future<bool> _loginWithExistingDevice() async {
-    try {
-      // Priority 1: Check if we have valid tokens stored
-      final existingToken = _storage.accessToken;
-      if (existingToken != null && existingToken.isNotEmpty) {
-        final status = await getAuthStatus();
-        if (status != null) {
-          Logger.d('AuthSessionService', '✅ Auto-login using existing tokens');
-          _storage.isIntroSeen = true;
-          _storage.isSetupComplete = true;
-          return true;
-        }
-      }
-      
-      // Priority 2: Try refresh token
-      final refreshToken = _storage.refreshToken;
-      if (refreshToken != null && refreshToken.isNotEmpty) {
-        try {
-          final tokens = await _authRepo.refreshTokens(refreshToken);
-          _storage.saveTokens(
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
-          );
-          _storage.isAnonymous = tokens.isAnonymous ?? true;
-          isAnonymous.value = tokens.isAnonymous ?? true;
-          _storage.isIntroSeen = true;
-          _storage.isSetupComplete = true;
-          Logger.d('AuthSessionService', '✅ Auto-login via refresh token');
-          return true;
-        } catch (e) {
-          Logger.w('AuthSessionService', '⚠️ Refresh token expired or invalid');
-        }
-      }
-      
-      // Priority 3: Call device-login endpoint (if BE has it)
-      try {
-        final deviceId = getDeviceId();
-        final deviceInfo = getDeviceInfo();
-        final response = await _authRepo.loginWithDevice(
-          deviceId: deviceId,
-          deviceInfo: deviceInfo,
-        );
-        
-        if (response.success) {
-          _storage.saveTokens(
-            accessToken: response.accessToken,
-            refreshToken: response.refreshToken,
-          );
-          _storage.isAnonymous = response.isAnonymous;
-          isAnonymous.value = response.isAnonymous;
-          _storage.isIntroSeen = true;
-          _storage.isSetupComplete = true;
-          Logger.d('AuthSessionService', '✅ Auto-login via device-login endpoint');
-          return true;
-        }
-      } catch (e) {
-        // Endpoint might not exist yet - this is expected
-        Logger.w('AuthSessionService', '⚠️ device-login endpoint not available: $e');
-      }
-      
-      // If all recovery fails, continue in offline mode
-      // DO NOT reset device ID (resetting causes more DUPLICATE_ERROR)
-      Logger.w('AuthSessionService', 
-        '⚠️ Cannot recover account - BE cần fix /auth/anonymous để trả token cho device đã tồn tại');
-      
-      // Enable offline mode so app still works
-      _continueOfflineMode();
-      
-      return false;
-    } catch (e) {
-      Logger.e('AuthSessionService', 'Auto-login failed', e);
-      _continueOfflineMode();
-      return false;
+  /// Check if error is a network error
+  bool _isNetworkError(dynamic error) {
+    if (error is DioException) {
+      return error.type == DioExceptionType.connectionTimeout ||
+             error.type == DioExceptionType.connectionError ||
+             error.type == DioExceptionType.receiveTimeout ||
+             error.type == DioExceptionType.sendTimeout;
     }
+    return false;
   }
   
   /// Continue in offline mode when auth fails
@@ -255,9 +196,6 @@ class AuthSessionService extends GetxService {
     _storage.isAnonymous = true;
     isAnonymous.value = true;
     isOfflineMode.value = true;
-    
-    // Still allow user to go through intro/setup
-    // This provides the best UX even when server is having issues
   }
   
   /// Is the app running in offline mode (no server auth)
