@@ -123,12 +123,17 @@ class TodayController extends GetxController {
     if (learnedTodayApiCount > actualLearnedCount)
       actualLearnedCount = learnedTodayApiCount;
 
-    // Adjust model với learned count thực tế
+    // Use LOCAL STORAGE dailyNewLimit (user's choice) instead of API value
+    // This ensures consistency with the displayed stats
+    final effectiveDailyLimit = dailyNewLimit; // getter uses local storage priority
+
+    // Adjust model với learned count thực tế VÀ dailyNewLimit từ local
     final adjusted = today.copyWith(
       newLearnedToday: actualLearnedCount,
-      remainingNewLimit: (today.dailyNewLimit - actualLearnedCount).clamp(
+      dailyNewLimit: effectiveDailyLimit, // Override API value with local preference
+      remainingNewLimit: (effectiveDailyLimit - actualLearnedCount).clamp(
         0,
-        today.dailyNewLimit,
+        effectiveDailyLimit,
       ),
     );
     nextAction.value = NextActionEngine.computeNextAction(adjusted);
