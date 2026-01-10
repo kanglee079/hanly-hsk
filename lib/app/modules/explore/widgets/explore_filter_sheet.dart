@@ -88,18 +88,18 @@ class ExploreFilterSheet extends StatelessWidget {
                 children: [
                   HMChip(
                     label: S.sortByOrder,
-                    isSelected: controller.sortBy.value == 'order',
-                    onTap: () => controller.applyFilters(sort: 'order'),
+                    isSelected: controller.sortBy.value == 'order_in_level',
+                    onTap: () => controller.applyFilters(sort: 'order_in_level'),
                   ),
                   HMChip(
                     label: S.sortByFrequency,
-                    isSelected: controller.sortBy.value == 'frequency',
-                    onTap: () => controller.applyFilters(sort: 'frequency'),
+                    isSelected: controller.sortBy.value == 'frequency_rank',
+                    onTap: () => controller.applyFilters(sort: 'frequency_rank'),
                   ),
                   HMChip(
                     label: S.sortByDifficulty,
-                    isSelected: controller.sortBy.value == 'difficulty',
-                    onTap: () => controller.applyFilters(sort: 'difficulty'),
+                    isSelected: controller.sortBy.value == 'difficulty_score',
+                    onTap: () => controller.applyFilters(sort: 'difficulty_score'),
                   ),
                 ],
               )),

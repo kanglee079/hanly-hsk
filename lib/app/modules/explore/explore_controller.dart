@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -46,6 +47,14 @@ class RecentItem {
   );
 }
 
+/// Browse mode enum
+enum BrowseMode {
+  home,      // Main explore view
+  search,    // Search results
+  level,     // Browse by HSK level
+  topic,     // Browse by topic
+}
+
 /// Explore controller - uses real BE API
 class ExploreController extends GetxController {
   final VocabRepo _vocabRepo = Get.find<VocabRepo>();
@@ -59,11 +68,13 @@ class ExploreController extends GetxController {
   final RxBool isLoadingCollections = false.obs;
   
   final RxList<VocabModel> vocabs = <VocabModel>[].obs;
+  final RxList<VocabModel> browseVocabs = <VocabModel>[].obs;
   final RxList<String> topics = <String>[].obs;
   final RxList<String> wordTypes = <String>[].obs;
   
   // Daily pick
   final Rx<VocabModel?> dailyPick = Rx<VocabModel?>(null);
+  final RxBool isLoadingDailyPick = false.obs;
   
   // Collections
   final RxList<CollectionModel> collections = <CollectionModel>[].obs;
@@ -75,13 +86,16 @@ class ExploreController extends GetxController {
   final RxBool isSearching = false.obs;
   final RxBool isLoadingMore = false.obs;
   final RxString searchQuery = ''.obs;
-  final RxBool showSearchResults = false.obs;
+  
+  // Browse mode state
+  final Rx<BrowseMode> browseMode = BrowseMode.home.obs;
+  final RxString browseTitle = ''.obs;
   
   // Filters
   final RxString selectedLevel = ''.obs;
   final RxString selectedWordType = ''.obs;
   final RxString selectedTopic = ''.obs;
-  final RxString sortBy = 'Frequency'.obs;
+  final RxString sortBy = 'frequency_rank'.obs;
   final RxString sortOrder = 'asc'.obs;
   final RxInt selectedChipIndex = 0.obs;
 
@@ -94,39 +108,50 @@ class ExploreController extends GetxController {
   Timer? _searchDebounce;
   static const Duration _searchDebounceDelay = Duration(milliseconds: 400);
 
-  final List<String> chipLabels = ['Cho bạn', 'HSK 1-3', 'HSK 4-6', 'Chủ đề'];
+  // Filter chip labels - simplified for clarity
+  final List<String> chipLabels = ['Khám phá', 'HSK 1-2', 'HSK 3-4', 'HSK 5-6', 'Chủ đề'];
 
   @override
   void onInit() {
     super.onInit();
     searchController.addListener(_onSearchQueryChanged);
-    loadCollections();
+    _initData();
+  }
+  
+  Future<void> _initData() async {
+    await Future.wait([
+      loadCollections(),
+      loadMeta(),
+      loadDailyPick(),
+    ]);
     _loadRecentItems();
-    loadVocabs();
-    loadMeta();
-    loadDailyPick();
   }
   
   /// Called when search text changes - debounced real-time search
   void _onSearchQueryChanged() {
-    final query = searchController.text;
+    final query = searchController.text.trim();
     searchQuery.value = query;
     
     // Cancel previous debounce timer
     _searchDebounce?.cancel();
     
     if (query.isEmpty) {
-      showSearchResults.value = false;
+      // Reset to home mode if was in search
+      if (browseMode.value == BrowseMode.search) {
+        browseMode.value = BrowseMode.home;
+        selectedChipIndex.value = 0;
+      }
       return;
     }
     
-    // Show results view but with loading state
-    showSearchResults.value = true;
+    // Switch to search mode
+    browseMode.value = BrowseMode.search;
+    isSearching.value = true;
     
     // Debounce the actual API call
     _searchDebounce = Timer(_searchDebounceDelay, () {
       if (query.isNotEmpty) {
-        search();
+        _performSearch();
       }
     });
   }
@@ -144,25 +169,33 @@ class ExploreController extends GetxController {
   Future<void> refresh() async {
     await Future.wait([
       loadCollections(),
-      loadVocabs(refresh: true),
       loadDailyPick(),
     ]);
+    if (browseMode.value != BrowseMode.home) {
+      await loadBrowseVocabs(refresh: true);
+    }
   }
 
-  /// Open search results view and optionally focus the search field
+  /// Open search mode and optionally focus the search field
   void openSearchView({bool focus = false}) {
-    showSearchResults.value = true;
+    browseMode.value = BrowseMode.search;
     if (focus) {
       isSearchFocused.value = true;
-      // Delay to ensure the TextField is mounted
       Future.delayed(const Duration(milliseconds: 100), () {
         searchFocusNode.requestFocus();
       });
     }
   }
 
-  /// Unfocus search field
-  void unfocusSearch() {
+  /// Go back to home mode
+  void goHome() {
+    browseMode.value = BrowseMode.home;
+    selectedChipIndex.value = 0;
+    searchController.clear();
+    searchQuery.value = '';
+    selectedLevel.value = '';
+    selectedTopic.value = '';
+    browseTitle.value = '';
     searchFocusNode.unfocus();
     isSearchFocused.value = false;
   }
@@ -176,7 +209,6 @@ class ExploreController extends GetxController {
       Logger.d('ExploreController', 'Loaded ${result.length} collections');
     } catch (e) {
       Logger.e('ExploreController', 'Error loading collections', e);
-      // Keep empty list on error
     } finally {
       isLoadingCollections.value = false;
     }
@@ -198,34 +230,46 @@ class ExploreController extends GetxController {
     );
   }
 
-  /// Load daily pick vocab
+  /// Load daily pick vocab - truly random per day
   Future<void> loadDailyPick() async {
+    isLoadingDailyPick.value = true;
     try {
-      // Check if we have a cached daily pick for today
       final today = DateTime.now().toIso8601String().substring(0, 10);
       final cached = _storage.getDailyPick();
+      
+      // Check if we have a valid cache for today
       if (cached != null && cached['date'] == today && cached['vocab'] != null) {
         dailyPick.value = VocabModel.fromJson(cached['vocab'] as Map<String, dynamic>);
+        isLoadingDailyPick.value = false;
         return;
       }
 
-      // Load a random vocab
+      // Generate a random page based on today's date for consistency
+      final random = Random(today.hashCode);
+      final randomPage = random.nextInt(50) + 1; // Pages 1-50
+      
       final result = await _vocabRepo.getVocabs(
-        page: 1,
-        limit: 1,
+        page: randomPage,
+        limit: 10,
         sort: 'frequency_rank',
         order: 'asc',
       );
+      
       if (result.items.isNotEmpty) {
-        dailyPick.value = result.items.first;
-        // Cache for today
+        // Pick a random vocab from the page
+        final randomIndex = random.nextInt(result.items.length);
+        final selectedVocab = result.items[randomIndex];
+        
+        dailyPick.value = selectedVocab;
         _storage.saveDailyPick({
           'date': today,
-          'vocab': result.items.first.toJson(),
+          'vocab': selectedVocab.toJson(),
         });
       }
     } catch (e) {
       Logger.e('ExploreController', 'Error loading daily pick', e);
+    } finally {
+      isLoadingDailyPick.value = false;
     }
   }
 
@@ -235,7 +279,7 @@ class ExploreController extends GetxController {
       if (data != null) {
         recentItems.value = data
             .map((e) => RecentItem.fromJson(e as Map<String, dynamic>))
-            .take(5)
+            .take(10)
             .toList();
       }
     } catch (e) {
@@ -253,10 +297,7 @@ class ExploreController extends GetxController {
   }
 
   void addToRecent(VocabModel vocab) {
-    // Remove if already exists
     recentItems.removeWhere((e) => e.id == vocab.id);
-    
-    // Add to beginning
     recentItems.insert(0, RecentItem(
       id: vocab.id,
       hanzi: vocab.hanzi,
@@ -265,15 +306,14 @@ class ExploreController extends GetxController {
       viewedAt: DateTime.now(),
     ));
     
-    // Keep only last 10
     if (recentItems.length > 10) {
       recentItems.removeRange(10, recentItems.length);
     }
-    
     _saveRecentItems();
   }
 
-  Future<void> loadVocabs({bool refresh = true}) async {
+  /// Load vocabs for browsing (level or topic)
+  Future<void> loadBrowseVocabs({bool refresh = true}) async {
     if (refresh) {
       _currentPage = 1;
       _hasMore = true;
@@ -295,19 +335,15 @@ class ExploreController extends GetxController {
       );
       
       if (refresh) {
-        vocabs.value = result.items;
-        // Set daily pick from first vocab if available
-        if (result.items.isNotEmpty && dailyPick.value == null) {
-          dailyPick.value = result.items.first;
-        }
+        browseVocabs.value = result.items;
       } else {
-        vocabs.addAll(result.items);
+        browseVocabs.addAll(result.items);
       }
       
       _hasMore = result.hasNext;
       _currentPage++;
     } catch (e) {
-      Logger.e('ExploreController', 'loadVocabs error', e);
+      Logger.e('ExploreController', 'loadBrowseVocabs error', e);
       HMToast.error('Không thể tải từ vựng');
     } finally {
       isLoading.value = false;
@@ -316,7 +352,11 @@ class ExploreController extends GetxController {
   }
 
   Future<void> loadMore() async {
-    await loadVocabs(refresh: false);
+    if (browseMode.value == BrowseMode.search) {
+      // Search doesn't support pagination in current API
+      return;
+    }
+    await loadBrowseVocabs(refresh: false);
   }
 
   Future<void> loadMeta() async {
@@ -331,14 +371,14 @@ class ExploreController extends GetxController {
     }
   }
 
-  Future<void> search() async {
+  /// Perform search
+  Future<void> _performSearch() async {
     if (searchQuery.value.isEmpty) {
-      showSearchResults.value = false;
+      goHome();
       return;
     }
 
     isSearching.value = true;
-    showSearchResults.value = true;
 
     try {
       final results = await _vocabRepo.searchVocabs(searchQuery.value, limit: 50);
@@ -348,7 +388,6 @@ class ExploreController extends GetxController {
       final sortedResults = _sortByRelevance(results, query);
       
       vocabs.value = sortedResults;
-      _hasMore = false;
     } catch (e) {
       Logger.e('ExploreController', 'search error', e);
       HMToast.error('Không thể tìm kiếm');
@@ -358,10 +397,7 @@ class ExploreController extends GetxController {
   }
 
   /// Sort search results by relevance
-  /// Priority: Exact match > Starts with > Contains
-  /// Field priority: Hanzi > Pinyin > Meaning
   List<VocabModel> _sortByRelevance(List<VocabModel> results, String query) {
-    // Calculate relevance score for each vocab
     final scoredResults = results.map((vocab) {
       int score = 0;
       
@@ -395,54 +431,62 @@ class ExploreController extends GetxController {
         score += 200;
       }
       
-      // Bonus for shorter words (more relevant)
-      if (hanzi.length <= 2) {
-        score += 50;
-      }
+      // Bonus for shorter words
+      if (hanzi.length <= 2) score += 50;
       
       // Bonus for common HSK levels
-      if (vocab.level == 'HSK1') {
-        score += 30;
-      } else if (vocab.level == 'HSK2') {
-        score += 25;
-      } else if (vocab.level == 'HSK3') {
-        score += 20;
-      }
+      if (vocab.level == 'HSK1') score += 30;
+      else if (vocab.level == 'HSK2') score += 25;
+      else if (vocab.level == 'HSK3') score += 20;
       
       return _ScoredVocab(vocab, score);
     }).toList();
     
-    // Sort by score descending
     scoredResults.sort((a, b) => b.score.compareTo(a.score));
-    
-    // Filter out results with score 0 (completely irrelevant)
-    final filtered = scoredResults.where((s) => s.score > 0).toList();
-    
-    return filtered.map((s) => s.vocab).toList();
+    return scoredResults.where((s) => s.score > 0).map((s) => s.vocab).toList();
   }
 
+  /// Handle chip filter selection
   void setChipFilter(int index) {
     selectedChipIndex.value = index;
     
     switch (index) {
-      case 0: // Cho bạn - show all
-        selectedLevel.value = '';
-        showSearchResults.value = false;
+      case 0: // Khám phá - go home
+        goHome();
         break;
-      case 1: // HSK 1-3
-        selectedLevel.value = 'HSK1,HSK2,HSK3';
-        showSearchResults.value = true;
-        loadVocabs();
+      case 1: // HSK 1-2
+        browseMode.value = BrowseMode.level;
+        browseTitle.value = 'HSK 1-2';
+        selectedLevel.value = 'HSK1,HSK2';
+        selectedTopic.value = '';
+        loadBrowseVocabs();
         break;
-      case 2: // HSK 4-6
-        selectedLevel.value = 'HSK4,HSK5,HSK6';
-        showSearchResults.value = true;
-        loadVocabs();
+      case 2: // HSK 3-4
+        browseMode.value = BrowseMode.level;
+        browseTitle.value = 'HSK 3-4';
+        selectedLevel.value = 'HSK3,HSK4';
+        selectedTopic.value = '';
+        loadBrowseVocabs();
         break;
-      case 3: // Chủ đề - show topics
-        showSearchResults.value = false;
+      case 3: // HSK 5-6
+        browseMode.value = BrowseMode.level;
+        browseTitle.value = 'HSK 5-6';
+        selectedLevel.value = 'HSK5,HSK6';
+        selectedTopic.value = '';
+        loadBrowseVocabs();
+        break;
+      case 4: // Chủ đề - show topic selection
+        browseMode.value = BrowseMode.topic;
+        browseTitle.value = 'Chọn chủ đề';
         break;
     }
+  }
+
+  /// Select a topic to browse
+  void selectTopic(String topic) {
+    selectedTopic.value = topic;
+    browseTitle.value = topic;
+    loadBrowseVocabs();
   }
 
   void applyFilters({
@@ -455,46 +499,20 @@ class ExploreController extends GetxController {
     if (topic != null) selectedTopic.value = topic;
     if (sort != null) sortBy.value = sort;
     if (order != null) sortOrder.value = order;
-    showSearchResults.value = true;
-    loadVocabs();
+    loadBrowseVocabs();
   }
 
   void clearFilters() {
-    selectedLevel.value = '';
     selectedWordType.value = '';
-    selectedTopic.value = '';
-    sortBy.value = 'Frequency';
+    sortBy.value = 'frequency_rank';
     sortOrder.value = 'asc';
-    searchController.clear();
-    searchQuery.value = '';
-    selectedChipIndex.value = 0;
-    showSearchResults.value = false;
   }
 
-  void clearSearch() {
-    searchController.clear();
-    searchQuery.value = '';
-    showSearchResults.value = false;
-    isSearchFocused.value = false;
-    searchFocusNode.unfocus();
-  }
-
-  void sortVocabs() {
-    String apiSort;
-    switch (sortBy.value) {
-      case 'Frequency':
-        apiSort = 'frequency_rank';
-        break;
-      case 'Difficulty':
-        apiSort = 'difficulty_score';
-        break;
-      case 'Level':
-        apiSort = 'order_in_level';
-        break;
-      default:
-        apiSort = 'frequency_rank';
+  void sortVocabs(String sort) {
+    sortBy.value = sort;
+    if (browseMode.value != BrowseMode.home && browseMode.value != BrowseMode.search) {
+      loadBrowseVocabs();
     }
-    applyFilters(sort: apiSort);
   }
 
   void openVocabDetail(VocabModel vocab) {
@@ -529,15 +547,40 @@ class ExploreController extends GetxController {
         HMToast.success(ToastMessages.favoritesAddSuccess);
       }
       
+      // Update in vocabs list
       final index = vocabs.indexWhere((v) => v.id == vocab.id);
       if (index != -1) {
         vocabs[index] = vocab.copyWith(isFavorite: !vocab.isFavorite);
+      }
+      
+      // Update in browseVocabs list
+      final browseIndex = browseVocabs.indexWhere((v) => v.id == vocab.id);
+      if (browseIndex != -1) {
+        browseVocabs[browseIndex] = vocab.copyWith(isFavorite: !vocab.isFavorite);
       }
     } catch (e) {
       Logger.e('ExploreController', 'toggleFavorite error', e);
       HMToast.error(ToastMessages.favoritesUpdateError);
     }
   }
+  
+  /// Get current list based on browse mode
+  List<VocabModel> get currentVocabs {
+    if (browseMode.value == BrowseMode.search) {
+      return vocabs;
+    }
+    return browseVocabs;
+  }
+  
+  /// Check if showing home view
+  bool get isHomeMode => browseMode.value == BrowseMode.home;
+  
+  /// Check if in any browse/search mode
+  bool get isBrowsing => browseMode.value != BrowseMode.home;
+  
+  /// Check if showing topic selection
+  bool get isTopicSelection => 
+      browseMode.value == BrowseMode.topic && selectedTopic.value.isEmpty;
 }
 
 /// Helper class for sorting vocabs by relevance score
