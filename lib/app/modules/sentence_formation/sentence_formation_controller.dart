@@ -26,7 +26,10 @@ class SentenceFormationController extends GetxController {
   final AudioService _audioService = Get.find<AudioService>();
   final TodayStore _todayStore = Get.find<TodayStore>();
 
-  static const int totalExercises = 10;
+  /// Minimum number of exercises per session
+  static const int minExercises = 5;
+  /// Target number of exercises per session
+  static const int targetExercises = 10;
 
   // TTS for speaking sentences
   FlutterTts? _tts;
@@ -100,9 +103,9 @@ class SentenceFormationController extends GetxController {
       isLoading.value = true;
       state.value = SentenceState.loading;
 
-      // Get learned vocabs that have examples for sentence formation
+      // Get more learned vocabs to ensure we have enough with examples
       final response = await _learningRepo.getLearnedVocabs(
-        limit: totalExercises * 2, // Get extra to filter
+        limit: targetExercises * 3, // Get extra to filter for vocabs with examples
         state: 'all',
         shuffle: true,
       );
@@ -110,19 +113,20 @@ class SentenceFormationController extends GetxController {
       // Filter vocabs that have examples (needed for sentence formation)
       final validVocabs = response.vocabs.toList().where((v) => v.examples.isNotEmpty).toList();
 
-      if (validVocabs.length < 3) {
-        HMToast.warning('Cần học thêm ít nhất 3 từ có ví dụ để luyện đặt câu!');
+      if (validVocabs.length < minExercises) {
+        HMToast.warning('Cần học thêm từ có ví dụ để luyện ghép câu!');
         vocabs.value = [];
         return;
       }
 
-      vocabs.assignAll(validVocabs.take(totalExercises).toList());
+      // Take up to targetExercises vocabs
+      vocabs.assignAll(validVocabs.take(targetExercises).toList());
 
       // Generate sentence order exercises
       _generateExercises();
 
-      if (exercises.isEmpty) {
-        HMToast.warning('Không thể tạo bài tập đặt câu!');
+      if (exercises.length < minExercises) {
+        HMToast.warning('Không đủ bài tập! Hãy học thêm từ vựng.');
         return;
       }
 

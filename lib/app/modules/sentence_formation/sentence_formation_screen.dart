@@ -1009,20 +1009,10 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
   }
 
   Widget _buildBottomSection() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      decoration: BoxDecoration(
-        color: widget.isDark ? AppColors.surfaceDark : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1057,68 +1047,39 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
                 ),
               ),
 
-            // Buttons
+            // Buttons - using HMButton for consistency
             Row(
               children: [
                 if (!_isCorrect && _hasChecked)
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(right: 12),
-                      child: SizedBox(
-                        height: 52,
-                        child: OutlinedButton(
-                          onPressed: _reset,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: widget.isDark ? Colors.white70 : AppColors.textSecondary,
-                            side: BorderSide(
-                              color: widget.isDark ? Colors.white24 : Colors.black12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text('Làm lại'),
-                        ),
+                      child: HMButton(
+                        text: 'Làm lại',
+                        variant: HMButtonVariant.secondary,
+                        onPressed: _reset,
                       ),
                     ),
                   ),
                 Expanded(
-                  child: SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _answerArea.isEmpty && !_hasChecked
-                          ? null
-                          : () {
-                              HapticFeedback.lightImpact();
-                              if (_hasChecked) {
-                                if (_isCorrect) {
-                                  widget.onContinue();
-                                } else {
-                                  _showCorrectAnswer();
-                                }
+                  child: HMButton(
+                    text: _hasChecked
+                        ? (_isCorrect ? 'Tiếp tục' : 'Xem đáp án')
+                        : 'Kiểm tra',
+                    onPressed: _answerArea.isEmpty && !_hasChecked
+                        ? null
+                        : () {
+                            HapticFeedback.lightImpact();
+                            if (_hasChecked) {
+                              if (_isCorrect) {
+                                widget.onContinue();
                               } else {
-                                _checkAnswer();
+                                _showCorrectAnswer();
                               }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _kThemeColor,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: widget.isDark ? Colors.white12 : Colors.grey.shade300,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        _hasChecked
-                            ? (_isCorrect ? 'Tiếp tục' : 'Xem đáp án')
-                            : 'Kiểm tra',
-                        style: AppTypography.labelLarge.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                            } else {
+                              _checkAnswer();
+                            }
+                          },
                   ),
                 ),
               ],
