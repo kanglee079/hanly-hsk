@@ -224,7 +224,7 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : AppColors.surface,
         border: Border(
@@ -236,63 +236,39 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
       child: SafeArea(
         top: false,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // First & Previous buttons
-            Row(
-              children: [
-                // First page
-                _PaginationButton(
-                  icon: Icons.first_page_rounded,
-                  onPressed: controller.canGoPrevious ? controller.firstPage : null,
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 8),
-                // Previous
-                _PaginationButton(
-                  icon: Icons.chevron_left_rounded,
-                  label: 'Trước',
-                  onPressed: controller.canGoPrevious ? controller.previousPage : null,
-                  isDark: isDark,
-                ),
-              ],
+            // Previous button
+            _PaginationIconButton(
+              icon: Icons.chevron_left_rounded,
+              onPressed: controller.canGoPrevious ? controller.previousPage : null,
+              isDark: isDark,
             ),
 
-            // Page indicator
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(15),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Trang ${controller.currentPage.value} / ${controller.totalPages}',
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
+            // Page indicator (flexible)
+            Expanded(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${controller.currentPage.value} / ${controller.totalPages}',
+                    style: AppTypography.labelMedium.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ),
 
-            // Next & Last buttons
-            Row(
-              children: [
-                // Next
-                _PaginationButton(
-                  icon: Icons.chevron_right_rounded,
-                  label: 'Sau',
-                  isTrailing: true,
-                  onPressed: controller.canGoNext ? controller.nextPage : null,
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 8),
-                // Last page
-                _PaginationButton(
-                  icon: Icons.last_page_rounded,
-                  onPressed: controller.canGoNext ? controller.lastPage : null,
-                  isDark: isDark,
-                ),
-              ],
+            // Next button
+            _PaginationIconButton(
+              icon: Icons.chevron_right_rounded,
+              onPressed: controller.canGoNext ? controller.nextPage : null,
+              isDark: isDark,
             ),
           ],
         ),
@@ -301,17 +277,13 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
   }
 }
 
-class _PaginationButton extends StatelessWidget {
+class _PaginationIconButton extends StatelessWidget {
   final IconData icon;
-  final String? label;
-  final bool isTrailing;
   final VoidCallback? onPressed;
   final bool isDark;
 
-  const _PaginationButton({
+  const _PaginationIconButton({
     required this.icon,
-    this.label,
-    this.isTrailing = false,
     this.onPressed,
     required this.isDark,
   });
@@ -323,65 +295,20 @@ class _PaginationButton extends StatelessWidget {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: label != null ? 12 : 8,
-          vertical: 8,
-        ),
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: isDisabled
               ? (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant)
               : AppColors.primary,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!isTrailing && label != null) ...[
-              Icon(
-                icon,
-                size: 18,
-                color: isDisabled
-                    ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
-                    : Colors.white,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label!,
-                style: AppTypography.labelMedium.copyWith(
-                  color: isDisabled
-                      ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
-                      : Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ] else if (isTrailing && label != null) ...[
-              Text(
-                label!,
-                style: AppTypography.labelMedium.copyWith(
-                  color: isDisabled
-                      ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
-                      : Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                icon,
-                size: 18,
-                color: isDisabled
-                    ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
-                    : Colors.white,
-              ),
-            ] else ...[
-              Icon(
-                icon,
-                size: 20,
-                color: isDisabled
-                    ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
-                    : Colors.white,
-              ),
-            ],
-          ],
+        child: Icon(
+          icon,
+          size: 24,
+          color: isDisabled
+              ? (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary)
+              : Colors.white,
         ),
       ),
     );
