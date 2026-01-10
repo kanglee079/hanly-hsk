@@ -33,6 +33,7 @@ abstract class Routes {
   static const String termsOfService = '/terms-of-service';
   static const String game30Home = '/game30';
   static const String game30Play = '/game30/play';
+  static const String collections = '/collections';
   static const String collectionDetail = '/collection-detail';
 
   // New routes

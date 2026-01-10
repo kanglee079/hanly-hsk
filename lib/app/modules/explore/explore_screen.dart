@@ -770,10 +770,23 @@ class ExploreScreen extends GetView<ExploreController> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              Text(
-                'Xem tất cả',
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.primary,
+              GestureDetector(
+                onTap: controller.openAllCollections,
+                child: Row(
+                  children: [
+                    Text(
+                      'Xem tất cả',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 12,
+                      color: AppColors.primary,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -784,6 +797,23 @@ class ExploreScreen extends GetView<ExploreController> {
         SizedBox(
           height: 200,
           child: Obx(() {
+            if (controller.isLoadingCollections.value) {
+              // Loading state
+              return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: 3,
+                itemBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: HMSkeleton(
+                    width: 180,
+                    height: 200,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              );
+            }
+            
             if (controller.collections.isEmpty) {
               // Empty state
               return Padding(
@@ -812,7 +842,7 @@ class ExploreScreen extends GetView<ExploreController> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Đang tải bộ sưu tập...',
+                        'Chưa có bộ sưu tập',
                         style: AppTypography.titleSmall.copyWith(
                           color: isDark
                               ? AppColors.textSecondaryDark
@@ -834,12 +864,16 @@ class ExploreScreen extends GetView<ExploreController> {
                 ),
               );
             }
+            
+            // Limit to 6 items on explore, show "Xem tất cả" to see more
+            final displayItems = controller.collections.take(6).toList();
+            
             return ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: controller.collections.length,
+              itemCount: displayItems.length,
               itemBuilder: (context, index) {
-                final collection = controller.collections[index];
+                final collection = displayItems[index];
                 return Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: _CollectionCard(

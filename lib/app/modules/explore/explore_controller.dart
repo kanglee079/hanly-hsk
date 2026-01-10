@@ -153,6 +153,11 @@ class ExploreController extends GetxController {
     }
   }
 
+  /// Open all collections screen
+  void openAllCollections() {
+    Get.toNamed(Routes.collections);
+  }
+
   /// Open collection detail
   void openCollection(CollectionModel collection) {
     Get.toNamed(

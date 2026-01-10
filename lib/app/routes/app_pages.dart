@@ -36,6 +36,8 @@ import '../modules/game30/game30_binding.dart';
 import '../modules/game30/game30_screen.dart';
 import '../modules/game30/game30_home_binding.dart';
 import '../modules/game30/game30_home_screen.dart';
+import '../modules/collections/collections_binding.dart';
+import '../modules/collections/collections_screen.dart';
 import '../modules/collection_detail/collection_detail_binding.dart';
 import '../modules/collection_detail/collection_detail_screen.dart';
 import '../modules/leaderboard/leaderboard_binding.dart';
@@ -192,6 +194,13 @@ class AppPages {
       name: Routes.game30Play,
       page: () => const Game30Screen(),
       binding: Game30Binding(),
+    ),
+
+    // Collections List
+    GetPage(
+      name: Routes.collections,
+      page: () => const CollectionsScreen(),
+      binding: CollectionsBinding(),
     ),
 
     // Collection Detail

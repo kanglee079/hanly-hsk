@@ -89,8 +89,31 @@ class VocabRepo {
     );
     
     final responseData = response.data;
-    final List<dynamic> data = responseData['data'] ?? [];
-    return data.map((e) => VocabModel.fromJson(e as Map<String, dynamic>)).toList();
+    
+    // Handle different API response formats
+    dynamic rawData = responseData['data'];
+    
+    // If data is null, try to use responseData directly
+    if (rawData == null) {
+      rawData = responseData;
+    }
+    
+    // If it's a Map with 'items' or 'results' key (paginated response)
+    if (rawData is Map<String, dynamic>) {
+      final items = rawData['items'] ?? rawData['results'] ?? rawData['vocabs'] ?? [];
+      if (items is List) {
+        return items.map((e) => VocabModel.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      // If no list found, return empty
+      return [];
+    }
+    
+    // If it's a List directly
+    if (rawData is List) {
+      return rawData.map((e) => VocabModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    
+    return [];
   }
 
   /// Get vocab by id
