@@ -33,6 +33,18 @@ class MeController extends GetxController {
   // Anonymous user detection
   bool get isAnonymous => _authService.isAnonymous.value;
   String? get userEmail => isAnonymous ? null : email;
+  
+  // Offline mode detection (auth failed, but app still works)
+  bool get isOfflineMode => _authService.isOfflineMode.value;
+  
+  /// Retry authentication (when offline mode is active)
+  Future<bool> retryAuthentication() async {
+    final success = await _authService.retryAuthentication();
+    if (success) {
+      await refresh(); // Refresh data after successful auth
+    }
+    return success;
+  }
 
   // Stats data
   late final Rxn<TodayModel> todayData = _todayStore.today.data;

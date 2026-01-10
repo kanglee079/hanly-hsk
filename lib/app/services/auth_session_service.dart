@@ -167,20 +167,26 @@ class AuthSessionService extends GetxService {
   }
   
   /// Login with existing device ID (auto-login to previous account)
-  /// Called when device already has an account registered
+  /// Called when device already has an account registered (DUPLICATE_ERROR)
+  /// 
+  /// Expected behavior after BE fix:
+  /// - POST /auth/anonymous should return tokens for existing device
+  /// - This fallback should not be needed once BE is fixed
   Future<bool> _loginWithExistingDevice() async {
     try {
-      // First priority: Check if we have valid tokens stored
+      // Priority 1: Check if we have valid tokens stored
       final existingToken = _storage.accessToken;
       if (existingToken != null && existingToken.isNotEmpty) {
         final status = await getAuthStatus();
         if (status != null) {
-          Logger.d('AuthSessionService', 'Auto-login using existing tokens');
+          Logger.d('AuthSessionService', '✅ Auto-login using existing tokens');
+          _storage.isIntroSeen = true;
+          _storage.isSetupComplete = true;
           return true;
         }
       }
       
-      // Second: Try refresh token
+      // Priority 2: Try refresh token
       final refreshToken = _storage.refreshToken;
       if (refreshToken != null && refreshToken.isNotEmpty) {
         try {
@@ -191,14 +197,16 @@ class AuthSessionService extends GetxService {
           );
           _storage.isAnonymous = tokens.isAnonymous ?? true;
           isAnonymous.value = tokens.isAnonymous ?? true;
-          Logger.d('AuthSessionService', 'Auto-login via refresh token');
+          _storage.isIntroSeen = true;
+          _storage.isSetupComplete = true;
+          Logger.d('AuthSessionService', '✅ Auto-login via refresh token');
           return true;
         } catch (e) {
-          Logger.w('AuthSessionService', 'Refresh token expired or invalid');
+          Logger.w('AuthSessionService', '⚠️ Refresh token expired or invalid');
         }
       }
       
-      // Third: Call device-login endpoint
+      // Priority 3: Call device-login endpoint (if BE has it)
       try {
         final deviceId = getDeviceId();
         final deviceInfo = getDeviceInfo();
@@ -214,80 +222,76 @@ class AuthSessionService extends GetxService {
           );
           _storage.isAnonymous = response.isAnonymous;
           isAnonymous.value = response.isAnonymous;
-          Logger.d('AuthSessionService', 'Auto-login via device-login endpoint');
+          _storage.isIntroSeen = true;
+          _storage.isSetupComplete = true;
+          Logger.d('AuthSessionService', '✅ Auto-login via device-login endpoint');
           return true;
         }
       } catch (e) {
-        Logger.e('AuthSessionService', 'Device login endpoint failed', e);
+        // Endpoint might not exist yet - this is expected
+        Logger.w('AuthSessionService', '⚠️ device-login endpoint not available: $e');
       }
       
-      // If all recovery fails, clear old device and create fresh account
-      Logger.w('AuthSessionService', 'Cannot recover account, resetting device identity');
-      return await _resetAndCreateNewAccount();
+      // If all recovery fails, continue in offline mode
+      // DO NOT reset device ID (resetting causes more DUPLICATE_ERROR)
+      Logger.w('AuthSessionService', 
+        '⚠️ Cannot recover account - BE cần fix /auth/anonymous để trả token cho device đã tồn tại');
+      
+      // Enable offline mode so app still works
+      _continueOfflineMode();
+      
+      return false;
     } catch (e) {
       Logger.e('AuthSessionService', 'Auto-login failed', e);
+      _continueOfflineMode();
       return false;
     }
   }
   
-  /// Reset device ID and create a completely new account
-  /// Used as last resort when recovery fails
-  Future<bool> _resetAndCreateNewAccount() async {
-    try {
-      // Clear old device ID to generate new one
-      _storage.deviceId = null;
-      
-      final newDeviceId = getDeviceId();
-      final deviceInfo = getDeviceInfo();
-      
-      final response = await _authRepo.createAnonymousUser(
-        deviceId: newDeviceId,
-        deviceInfo: deviceInfo,
-      );
-      
-      if (response.success) {
-        _storage.saveTokens(
-          accessToken: response.accessToken,
-          refreshToken: response.refreshToken,
-        );
-        _storage.isAnonymous = true;
-        isAnonymous.value = true;
-        Logger.d('AuthSessionService', 'Created fresh account with new device ID');
-        return true;
-      }
-      
-      return false;
-    } catch (e) {
-      // If still failing, the backend might have different duplicate detection
-      // (e.g., by IP or user agent). In this case, we just continue without auth
-      // and let the app work in "offline" mode
-      Logger.e('AuthSessionService', 'Failed to create new account - continuing offline', e);
-      
-      // Mark as anonymous even without server confirmation
-      // This allows the app to function in offline/demo mode
-      _storage.isAnonymous = true;
-      isAnonymous.value = true;
-      
-      return false;
-    }
+  /// Continue in offline mode when auth fails
+  /// App will function without server sync
+  void _continueOfflineMode() {
+    Logger.d('AuthSessionService', '📴 Continuing in offline mode');
+    _storage.isAnonymous = true;
+    isAnonymous.value = true;
+    isOfflineMode.value = true;
+    
+    // Still allow user to go through intro/setup
+    // This provides the best UX even when server is having issues
+  }
+  
+  /// Is the app running in offline mode (no server auth)
+  final RxBool isOfflineMode = false.obs;
+  
+  /// Retry authentication (user can trigger this manually)
+  Future<bool> retryAuthentication() async {
+    Logger.d('AuthSessionService', '🔄 Retrying authentication...');
+    isOfflineMode.value = false;
+    return await createAnonymousUser();
   }
   
   /// Force reset all auth state and try fresh
   /// Call this when user explicitly wants to start over
+  /// WARNING: This clears all local data and creates a new account
   Future<bool> forceResetAndCreateAccount() async {
-    Logger.d('AuthSessionService', 'Force resetting auth state...');
+    Logger.d('AuthSessionService', '🔄 Force resetting auth state...');
     
     // Clear everything
     _storage.clearAuth();
-    _storage.deviceId = null;
+    _storage.deviceId = null; // Generate new device ID
     _storage.isAnonymous = true;
     _storage.isSetupComplete = false;
     _storage.isOnboardingComplete = false;
     _storage.isIntroSeen = false;
+    isOfflineMode.value = false;
     
     // Try to create fresh account
     return await createAnonymousUser();
   }
+  
+  /// Check if this device has been registered before
+  /// Returns the device ID if exists
+  String? get existingDeviceId => _storage.deviceId;
   
   /// Get auth status from server
   Future<AuthStatusResponseModel?> getAuthStatus() async {

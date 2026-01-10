@@ -43,6 +43,14 @@ class MeScreen extends GetView<MeController> {
                 // Header
                 _buildHeader(isDark),
 
+                // Offline mode banner (shown when auth failed)
+                Obx(() {
+                  if (controller.isOfflineMode) {
+                    return _buildOfflineBanner(isDark);
+                  }
+                  return const SizedBox.shrink();
+                }),
+
                 const SizedBox(height: 12),
 
                 // Profile section
@@ -1149,6 +1157,92 @@ class MeScreen extends GetView<MeController> {
         ),
       );
     });
+  }
+
+  /// Build offline mode banner - shown when auth failed
+  Widget _buildOfflineBanner(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.warning.withAlpha(25),
+              AppColors.warning.withAlpha(15),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.warning.withAlpha(100),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withAlpha(40),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.wifi_off_rounded,
+                    color: AppColors.warning,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chế độ Offline',
+                        style: AppTypography.titleSmall.copyWith(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Dữ liệu chưa được đồng bộ với máy chủ',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            HMButton(
+              text: 'Thử kết nối lại',
+              variant: HMButtonVariant.outline,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              size: HMButtonSize.small,
+              fullWidth: true,
+              onPressed: () async {
+                final success = await controller.retryAuthentication();
+                if (success) {
+                  HMToast.success('Đã kết nối thành công!');
+                } else {
+                  HMToast.error('Không thể kết nối. Vui lòng thử lại sau.');
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildDivider(bool isDark) {

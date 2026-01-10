@@ -1,5 +1,13 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M2 20H22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M5 20V12L2 9L7 8L12 13L17 8L22 9L19 12V20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M12 13V20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M6 12L4 16C4 20 6 24 16 24C26 24 28 20 28 16L26 12L21 16L16 6L11 16L6 12Z" fill="url(#paint0_linear)"/>
+<path d="M16 22.5C18.5 22.5 20.5 21.5 20.5 21.5" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+<circle cx="6" cy="12" r="2" fill="#FBBF24"/>
+<circle cx="26" cy="12" r="2" fill="#FBBF24"/>
+<circle cx="16" cy="6" r="2" fill="#FBBF24"/>
+<defs>
+<linearGradient id="paint0_linear" x1="16" y1="6" x2="16" y2="24" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FBBF24"/>
+<stop offset="1" stop-color="#F59E0B"/>
+</linearGradient>
+</defs>
 </svg>
