@@ -837,34 +837,9 @@ class _DynamicModeCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            // Show word count if available
-            if (mode.wordCount > 0) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      '${mode.wordCount} từ',
-                      style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            // Show word count or status
+            const SizedBox(height: 10),
+            _buildModeStatus(mode.id, mode.wordCount, isDark),
           ],
         ),
       ),
@@ -936,6 +911,63 @@ class _DynamicModeCard extends StatelessWidget {
       default:
         return '';
     }
+  }
+
+  /// Build status indicator for each mode
+  Widget _buildModeStatus(String modeId, int wordCount, bool isDark) {
+    // Different status for different modes
+    String statusText;
+    Color statusColor;
+    IconData? statusIcon;
+
+    switch (modeId) {
+      case 'srs_vocabulary':
+      case 'sentence_formation':
+      case 'sentence_reorder':
+        // Ghép từ - needs vocabs with examples
+        statusText = wordCount > 0 ? '$wordCount từ' : 'Cần ví dụ';
+        statusColor = wordCount > 0 ? AppColors.success : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary);
+        statusIcon = wordCount > 0 ? null : Icons.info_outline_rounded;
+        break;
+      default:
+        if (wordCount > 0) {
+          statusText = '$wordCount từ';
+          statusColor = AppColors.success;
+        } else {
+          statusText = 'Sẵn sàng';
+          statusColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+        }
+    }
+
+    return Row(
+      children: [
+        if (statusIcon != null) ...[
+          Icon(statusIcon, size: 12, color: statusColor),
+          const SizedBox(width: 4),
+        ] else ...[
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: statusColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        Flexible(
+          child: Text(
+            statusText,
+            style: AppTypography.labelSmall.copyWith(
+              color: statusColor,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
   }
 
   _ModeColors _getModeColors(String modeId) {

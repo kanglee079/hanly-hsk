@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../../core/utils/logger.dart';
-import '../../core/widgets/hm_toast.dart';
 import '../../data/models/vocab_model.dart' show VocabModel, ExampleModel;
 import '../../data/models/exercise_model.dart';
 import '../../data/models/today_model.dart';
@@ -14,6 +13,7 @@ import '../../services/realtime/today_store.dart';
 /// State for sentence formation practice
 enum SentenceState {
   loading,
+  empty,        // No valid exercises available
   playing,      // Show exercise
   feedback,     // Show result after answer
   complete,     // Session finished
@@ -27,7 +27,7 @@ class SentenceFormationController extends GetxController {
   final TodayStore _todayStore = Get.find<TodayStore>();
 
   /// Minimum number of exercises per session
-  static const int minExercises = 5;
+  static const int minExercises = 3;
   /// Target number of exercises per session
   static const int targetExercises = 10;
 
@@ -38,6 +38,7 @@ class SentenceFormationController extends GetxController {
   // State
   final state = SentenceState.loading.obs;
   final isLoading = true.obs;
+  final errorMessage = ''.obs;
   final vocabs = <VocabModel>[].obs;
   final exercises = <Exercise>[].obs;
   final currentIndex = 0.obs;
@@ -60,13 +61,12 @@ class SentenceFormationController extends GetxController {
     super.onInit();
     _initTts();
     _loadExercises();
-    _startTimer();
   }
 
   @override
   void onClose() {
     // Save partial session in background if not already saved
-    if (!_sessionSaved && state.value != SentenceState.complete && elapsedSeconds.value >= _minSecondsToSave) {
+    if (!_sessionSaved && state.value == SentenceState.playing && elapsedSeconds.value >= _minSecondsToSave) {
       _sessionSaved = true;
       _savePartialSessionInBackground();
     }
@@ -93,6 +93,7 @@ class SentenceFormationController extends GetxController {
   }
 
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       elapsedSeconds.value++;
     });
@@ -102,23 +103,37 @@ class SentenceFormationController extends GetxController {
     try {
       isLoading.value = true;
       state.value = SentenceState.loading;
+      errorMessage.value = '';
 
-      // Get more learned vocabs to ensure we have enough with examples
+      Logger.d('SentenceFormationController', 'Loading vocabs for sentence formation...');
+
+      // Get learned vocabs with examples
       final response = await _learningRepo.getLearnedVocabs(
-        limit: targetExercises * 3, // Get extra to filter for vocabs with examples
+        limit: targetExercises * 3, // Get extra to filter
         state: 'all',
         shuffle: true,
       );
 
+      Logger.d('SentenceFormationController', 'Got ${response.vocabs.length} vocabs from API');
+
       // Filter vocabs that have examples (needed for sentence formation)
-      final validVocabs = response.vocabs.toList().where((v) => v.examples.isNotEmpty).toList();
+      final validVocabs = response.vocabs.where((v) => v.examples.isNotEmpty).toList();
+      
+      Logger.d('SentenceFormationController', 'Found ${validVocabs.length} vocabs with examples');
+
+      if (validVocabs.isEmpty) {
+        // No vocabs with examples at all
+        errorMessage.value = 'Chưa có từ vựng nào có câu ví dụ.\nHãy học thêm từ mới để luyện ghép câu!';
+        state.value = SentenceState.empty;
+        isLoading.value = false;
+        return;
+      }
 
       if (validVocabs.length < minExercises) {
-        HMToast.warning('Cần học thêm từ có ví dụ để luyện ghép câu!');
-        vocabs.value = [];
+        // Not enough vocabs with examples
+        errorMessage.value = 'Cần ít nhất $minExercises từ có câu ví dụ.\nHiện có ${validVocabs.length} từ. Hãy học thêm!';
+        state.value = SentenceState.empty;
         isLoading.value = false;
-        // Go back after showing message
-        Future.delayed(const Duration(milliseconds: 1500), () => Get.back());
         return;
       }
 
@@ -128,19 +143,25 @@ class SentenceFormationController extends GetxController {
       // Generate sentence order exercises
       _generateExercises();
 
-      if (exercises.length < minExercises) {
-        HMToast.warning('Không đủ bài tập! Hãy học thêm từ vựng.');
+      Logger.d('SentenceFormationController', 'Generated ${exercises.length} exercises');
+
+      if (exercises.isEmpty) {
+        errorMessage.value = 'Không thể tạo bài tập từ các từ vựng hiện có.\nHãy học thêm từ với câu ví dụ dài hơn!';
+        state.value = SentenceState.empty;
         isLoading.value = false;
-        Future.delayed(const Duration(milliseconds: 1500), () => Get.back());
         return;
       }
 
+      // Success - start the session
       state.value = SentenceState.playing;
-      Logger.d('SentenceFormationController', 'Generated ${exercises.length} sentence exercises');
+      isLoading.value = false;
+      _startTimer();
+      
+      Logger.d('SentenceFormationController', 'Session started with ${exercises.length} exercises');
     } catch (e) {
       Logger.e('SentenceFormationController', 'Failed to load exercises', e);
-      HMToast.error('Không thể tải bài tập');
-    } finally {
+      errorMessage.value = 'Không thể tải bài tập.\nVui lòng thử lại sau.';
+      state.value = SentenceState.empty;
       isLoading.value = false;
     }
   }
@@ -176,6 +197,7 @@ class SentenceFormationController extends GetxController {
     // Smart tokenization for Chinese sentence
     List<String> words = _tokenizeSentence(sentence, vocab.hanzi);
 
+    // Need at least 3 words to make it a puzzle
     if (words.length < 3) return null;
 
     return Exercise(
@@ -439,6 +461,7 @@ class SentenceFormationController extends GetxController {
 
   /// Restart practice
   void restart() {
+    _timer?.cancel();
     currentIndex.value = 0;
     correctCount.value = 0;
     totalAnswered.value = 0;
@@ -446,8 +469,10 @@ class SentenceFormationController extends GetxController {
     elapsedSeconds.value = 0;
     hasAnswered.value = false;
     isCorrect.value = false;
+    _sessionSaved = false;
+    exercises.clear();
+    vocabs.clear();
 
     _loadExercises();
-    _startTimer();
   }
 }

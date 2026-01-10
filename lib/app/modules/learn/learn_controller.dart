@@ -142,7 +142,7 @@ class LearnController extends GetxController {
         description: 'Sắp xếp từ thành câu đúng',
         icon: '📝',
         estimatedMinutes: 5,
-        wordCount: 10,
+        wordCount: 0, // Will be determined when entering (needs vocabs with examples)
         isPremium: false,
         isAvailable: true,
       ),

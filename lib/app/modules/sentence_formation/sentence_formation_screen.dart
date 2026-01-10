@@ -40,6 +40,8 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
             switch (controller.state.value) {
               case SentenceState.loading:
                 return _buildLoading(isDark);
+              case SentenceState.empty:
+                return _buildEmpty(isDark);
               case SentenceState.playing:
               case SentenceState.feedback:
                 return _buildExercise(isDark);
@@ -147,6 +149,73 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
     return const HMLoadingContent(
       message: 'Đang tải bài tập...',
       icon: Icons.sort_rounded,
+    );
+  }
+
+  Widget _buildEmpty(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: (isDark ? Colors.white : AppColors.textTertiary).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.school_rounded,
+                size: 48,
+                color: isDark ? Colors.white38 : AppColors.textTertiary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Chưa đủ từ vựng',
+              style: AppTypography.titleLarge.copyWith(
+                color: isDark ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Obx(() => Text(
+              controller.errorMessage.value.isNotEmpty
+                  ? controller.errorMessage.value
+                  : 'Hãy học thêm từ có câu ví dụ để luyện ghép câu',
+              style: AppTypography.bodyMedium.copyWith(
+                color: isDark ? Colors.white70 : AppColors.textSecondary,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            )),
+            const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                HMButton(
+                  text: 'Quay lại',
+                  variant: HMButtonVariant.secondary,
+                  onPressed: () => Get.back(),
+                  fullWidth: false,
+                ),
+                const SizedBox(width: 12),
+                HMButton(
+                  text: 'Học từ mới',
+                  onPressed: () {
+                    Get.back();
+                    // Navigate to learn new words
+                    Get.toNamed('/practice', arguments: {'mode': 'learnNew'});
+                  },
+                  fullWidth: false,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
