@@ -47,7 +47,6 @@ class SentenceFormationController extends GetxController {
   final correctCount = 0.obs;
   final totalAnswered = 0.obs;
   final streak = 0.obs;
-  final xpEarned = 0.obs;
 
   // Timer
   Timer? _timer;
@@ -180,7 +179,6 @@ class SentenceFormationController extends GetxController {
       questionAudioUrl: bestExample.audioUrl ?? vocab.audioUrl,
       sentenceWords: words, // Words in CORRECT order
       correctSentence: words.join(''),
-      xpReward: 20,
     );
   }
 
@@ -272,11 +270,6 @@ class SentenceFormationController extends GetxController {
     totalAnswered.value++;
     correctCount.value++;
     streak.value++;
-
-    final exercise = currentExercise;
-    if (exercise != null) {
-      xpEarned.value += exercise.xpReward;
-    }
 
     HapticFeedback.mediumImpact();
     state.value = SentenceState.feedback;
@@ -441,7 +434,6 @@ class SentenceFormationController extends GetxController {
     correctCount.value = 0;
     totalAnswered.value = 0;
     streak.value = 0;
-    xpEarned.value = 0;
     elapsedSeconds.value = 0;
     hasAnswered.value = false;
     isCorrect.value = false;

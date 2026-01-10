@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
-import '../../core/widgets/book_page_scaffold.dart';
 import '../../core/widgets/hm_button.dart';
 import '../../core/widgets/hm_app_bar.dart';
 import '../../core/widgets/hm_loading.dart';
@@ -12,6 +11,7 @@ import 'sentence_formation_controller.dart';
 
 // Theme color for Sentence Formation (Orange/Amber)
 const _kThemeColor = Color(0xFFFF8F00);
+const _kThemeColorDark = Color(0xFFE65100);
 
 /// Sentence Formation Practice Screen
 /// Beautiful UI for arranging Chinese words to form correct sentences
@@ -30,8 +30,8 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
-                ? [const Color(0xFF1A1A2E), const Color(0xFF2D1B00)]
-                : [const Color(0xFFFFF8E1), const Color(0xFFFFECB3)],
+                ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+                : [const Color(0xFFFFFBF5), const Color(0xFFFFF3E0)],
           ),
         ),
         child: SafeArea(
@@ -115,7 +115,7 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
           ),
         ),
         content: Text(
-          'Tiến trình hiện tại sẽ không được lưu.',
+          'Tiến trình hiện tại sẽ được lưu.',
           style: AppTypography.bodyMedium.copyWith(
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
           ),
@@ -125,7 +125,7 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
             onPressed: () => Get.back(),
             child: Text(
               'Tiếp tục',
-              style: AppTypography.labelLarge.copyWith(color: AppColors.primary),
+              style: AppTypography.labelLarge.copyWith(color: _kThemeColor),
             ),
           ),
           TextButton(
@@ -145,7 +145,7 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
 
   Widget _buildLoading(bool isDark) {
     return const HMLoadingContent(
-      message: 'Đang tải bài tập ghép từ...',
+      message: 'Đang tải bài tập...',
       icon: Icons.sort_rounded,
     );
   }
@@ -154,35 +154,40 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
     final exercise = controller.currentExercise;
     if (exercise == null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.sentiment_dissatisfied_rounded,
-              size: 64,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Không có bài tập phù hợp',
-              style: AppTypography.titleMedium.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.sentiment_dissatisfied_rounded,
+                size: 64,
+                color: isDark ? Colors.white38 : AppColors.textTertiary,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Hãy học thêm từ vựng có ví dụ để luyện đặt câu',
-              style: AppTypography.bodyMedium.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              const SizedBox(height: 16),
+              Text(
+                'Chưa đủ từ vựng',
+                style: AppTypography.titleLarge.copyWith(
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            HMButton(
-              text: 'Quay lại',
-              onPressed: () => Get.back(),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Hãy học thêm từ có ví dụ để luyện ghép từ',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isDark ? Colors.white70 : AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              HMButton(
+                text: 'Quay lại',
+                onPressed: () => Get.back(),
+                fullWidth: false,
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -200,7 +205,6 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
       onPlayAudio: ({bool slow = false}) => controller.playAudio(slow: slow),
       isSpeaking: controller.isSpeaking.value,
       streak: controller.streak.value,
-      xpEarned: controller.xpEarned.value,
     );
   }
 
@@ -226,7 +230,13 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: isGood ? _kThemeColor : const Color(0xFFF59E0B),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isGood
+                            ? [_kThemeColor, _kThemeColorDark]
+                            : [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+                      ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -238,7 +248,7 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
                       ],
                     ),
                     child: Icon(
-                      isGood ? Icons.emoji_events_rounded : Icons.refresh_rounded,
+                      isGood ? Icons.emoji_events_rounded : Icons.trending_up_rounded,
                       size: 48,
                       color: Colors.white,
                     ),
@@ -248,58 +258,122 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
             ),
             const SizedBox(height: 32),
             Text(
-              isGood ? 'Tuyệt vời! 🎉' : 'Cố gắng thêm! 💪',
+              isGood ? 'Tuyệt vời! 🎉' : 'Tiếp tục luyện tập! 💪',
               style: AppTypography.headlineSmall.copyWith(
                 color: isDark ? Colors.white : AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Độ chính xác: $accuracy%',
-              style: AppTypography.titleMedium.copyWith(
-                color: isGood ? _kThemeColor : const Color(0xFFF59E0B),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${controller.correctCount.value}/${controller.totalAnswered.value} câu đúng',
-              style: AppTypography.bodyMedium.copyWith(
-                color: isDark ? Colors.white70 : AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 48),
-            // Action buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.refresh_rounded,
-                      label: 'Luyện lại',
-                      onTap: controller.restart,
-                      isDark: isDark,
-                      isPrimary: false,
-                    ),
+            const SizedBox(height: 16),
+            // Stats
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.white.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.check_circle_outline_rounded,
-                      label: 'Hoàn tất',
-                      onTap: controller.exitSession,
-                      isDark: isDark,
-                      isPrimary: true,
-                    ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildStatItem(
+                    icon: Icons.check_circle_rounded,
+                    value: '${controller.correctCount.value}/${controller.totalAnswered.value}',
+                    label: 'Đúng',
+                    color: AppColors.success,
+                    isDark: isDark,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                  _buildStatItem(
+                    icon: Icons.percent_rounded,
+                    value: '$accuracy%',
+                    label: 'Chính xác',
+                    color: _kThemeColor,
+                    isDark: isDark,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                  _buildStatItem(
+                    icon: Icons.timer_rounded,
+                    value: controller.formattedTime,
+                    label: 'Thời gian',
+                    color: Colors.blue,
+                    isDark: isDark,
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 48),
+            // Action buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildActionButton(
+                  icon: Icons.refresh_rounded,
+                  label: 'Luyện lại',
+                  onTap: controller.restart,
+                  isDark: isDark,
+                  isPrimary: false,
+                ),
+                const SizedBox(width: 16),
+                _buildActionButton(
+                  icon: Icons.check_circle_outline_rounded,
+                  label: 'Hoàn tất',
+                  onTap: controller.exitSession,
+                  isDark: isDark,
+                  isPrimary: true,
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? Colors.white : AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: isDark ? Colors.white54 : AppColors.textTertiary,
+          ),
+        ),
+      ],
     );
   }
 
@@ -316,19 +390,18 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         decoration: BoxDecoration(
-          color: isPrimary
-              ? _kThemeColor
-              : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+          gradient: isPrimary
+              ? const LinearGradient(
+                  colors: [_kThemeColor, _kThemeColorDark],
+                )
+              : null,
+          color: isPrimary ? null : (isDark ? Colors.white12 : Colors.white),
           borderRadius: BorderRadius.circular(16),
           border: isPrimary
               ? null
-              : Border.all(
-                  color: isDark
-                      ? Colors.white24
-                      : Colors.black.withValues(alpha: 0.1),
-                ),
+              : Border.all(color: isDark ? Colors.white24 : Colors.black12),
           boxShadow: isPrimary
               ? [
                   BoxShadow(
@@ -340,7 +413,6 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
               : null,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
@@ -350,10 +422,10 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
                   ? Colors.white
                   : (isDark ? Colors.white70 : AppColors.textSecondary),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               label,
-              style: AppTypography.labelMedium.copyWith(
+              style: AppTypography.labelLarge.copyWith(
                 color: isPrimary
                     ? Colors.white
                     : (isDark ? Colors.white : AppColors.textPrimary),
@@ -365,7 +437,6 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
       ),
     );
   }
-
 }
 
 /// The actual sentence reorder exercise widget
@@ -381,7 +452,6 @@ class _SentenceExerciseWidget extends StatefulWidget {
   final Future<void> Function({bool slow}) onPlayAudio;
   final bool isSpeaking;
   final int streak;
-  final int xpEarned;
 
   const _SentenceExerciseWidget({
     super.key,
@@ -396,7 +466,6 @@ class _SentenceExerciseWidget extends StatefulWidget {
     required this.onPlayAudio,
     required this.isSpeaking,
     required this.streak,
-    required this.xpEarned,
   });
 
   @override
@@ -407,7 +476,6 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeIn;
-  late Animation<double> _scaleBook;
 
   // Exercise state
   late List<_TokenState> _wordBank;
@@ -415,8 +483,6 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
   bool _hasChecked = false;
   bool _isCorrect = false;
   List<bool>? _tokenCorrectness;
-
-  BookPageColors get _colors => BookPageColors(isDark: widget.isDark);
 
   @override
   void initState() {
@@ -428,17 +494,12 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
   void _initAnimations() {
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 400),
     );
 
     _fadeIn = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-    );
-
-    _scaleBook = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.1, 0.7, curve: Curves.easeOutBack),
+      curve: Curves.easeOut,
     );
 
     _controller.forward();
@@ -547,63 +608,62 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return FadeTransition(
+      opacity: _fadeIn,
       child: Column(
         children: [
-          // Streak & XP indicators
-          if (widget.streak > 0 || widget.xpEarned > 0)
+          // Streak indicator (if any)
+          if (widget.streak > 1)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (widget.streak > 0)
-                    _buildBadge(
-                      icon: Icons.local_fire_department_rounded,
-                      color: Colors.orange,
-                      text: '${widget.streak}',
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withAlpha(20),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.orange.withAlpha(40)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.local_fire_department_rounded,
+                        size: 18, color: Colors.orange),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${widget.streak} liên tiếp!',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  if (widget.streak > 0 && widget.xpEarned > 0)
-                    const SizedBox(width: 12),
-                  if (widget.xpEarned > 0)
-                    _buildBadge(
-                      icon: Icons.star_rounded,
-                      color: AppColors.secondary,
-                      text: '+${widget.xpEarned} XP',
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-          // Book content
+          const SizedBox(height: 16),
+
+          // Main content
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: AnimatedBuilder(
-                animation: _scaleBook,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: 0.9 + (_scaleBook.value * 0.1),
-                    child: Opacity(
-                      opacity: _fadeIn.value,
-                      child: child,
-                    ),
-                  );
-                },
-                child: BookPageScaffold(
-                  isDark: widget.isDark,
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _buildPrompt(),
-                      const SizedBox(height: 20),
-                      _buildAnswerArea(),
-                      const Spacer(),
-                      _buildWordBank(),
-                      const SizedBox(height: 12),
-                    ],
-                  ),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  // Prompt section
+                  _buildPromptSection(),
+
+                  const SizedBox(height: 24),
+
+                  // Answer area
+                  _buildAnswerArea(),
+
+                  const Spacer(),
+
+                  // Word bank
+                  _buildWordBank(),
+
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
           ),
@@ -615,139 +675,119 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
     );
   }
 
-  Widget _buildBadge({
-    required IconData icon,
-    required Color color,
-    required String text,
-  }) {
+  Widget _buildPromptSection() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
+        color: widget.isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withAlpha(50)),
+        boxShadow: widget.isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: AppTypography.labelMedium.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrompt() {
-    return Column(
-      children: [
-        // Target word hint
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.exercise.questionHanzi ?? '',
-                    style: TextStyle(
-                      fontFamily: 'NotoSansSC',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.exercise.questionPinyin ?? '',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.primary.withAlpha(180),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Audio button
-            GestureDetector(
-              onTap: () => widget.onPlayAudio(slow: false),
-              child: Container(
-                width: 36,
-                height: 36,
+          // Target word with audio
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: widget.isSpeaking
-                      ? AppColors.primary.withAlpha(30)
-                      : _colors.borderColor.withAlpha(20),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
+                  color: _kThemeColor.withAlpha(15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _kThemeColor.withAlpha(40)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.exercise.questionHanzi ?? '',
+                      style: const TextStyle(
+                        fontFamily: 'NotoSansSC',
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: _kThemeColor,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      widget.exercise.questionPinyin ?? '',
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: _kThemeColor.withValues(alpha: 0.7),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Audio button
+              GestureDetector(
+                onTap: () => widget.onPlayAudio(slow: false),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: widget.isSpeaking
+                        ? const LinearGradient(colors: [_kThemeColor, _kThemeColorDark])
+                        : null,
+                    color: widget.isSpeaking ? null : (widget.isDark ? Colors.white12 : Colors.grey.shade100),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    widget.isSpeaking ? Icons.stop_rounded : Icons.volume_up_rounded,
+                    size: 22,
                     color: widget.isSpeaking
-                        ? AppColors.primary
-                        : _colors.borderColor.withAlpha(50),
+                        ? Colors.white
+                        : (widget.isDark ? Colors.white70 : AppColors.textSecondary),
                   ),
                 ),
-                child: Icon(
-                  widget.isSpeaking ? Icons.stop_rounded : Icons.volume_up_rounded,
-                  size: 18,
-                  color: widget.isSpeaking ? AppColors.primary : _colors.textSecondary,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Instruction
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.translate_rounded, size: 16, color: _kThemeColor),
+              const SizedBox(width: 6),
+              Text(
+                'Sắp xếp từ để dịch câu sau',
+                style: AppTypography.labelMedium.copyWith(
+                  color: _kThemeColor,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        // Instruction
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.translate_rounded, size: 16, color: _colors.accentGold),
-            const SizedBox(width: 6),
-            Text(
-              'Sắp xếp từ để dịch câu sau',
-              style: AppTypography.labelMedium.copyWith(
-                color: _colors.accentGold,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 12),
-
-        // Vietnamese meaning to translate
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: _colors.accentGold.withAlpha(10),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _colors.accentGold.withAlpha(30)),
+            ],
           ),
-          child: Text(
-            widget.exercise.questionMeaning ?? 'Dịch câu này',
+
+          const SizedBox(height: 12),
+
+          // Vietnamese meaning
+          Text(
+            widget.exercise.questionMeaning ?? '',
             style: AppTypography.titleMedium.copyWith(
-              color: _colors.textPrimary,
+              color: widget.isDark ? Colors.white : AppColors.textPrimary,
               fontWeight: FontWeight.w500,
               height: 1.4,
             ),
             textAlign: TextAlign.center,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -757,44 +797,60 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
       children: [
         Row(
           children: [
-            Icon(Icons.edit_rounded, size: 14, color: _colors.textSecondary),
+            Icon(
+              Icons.edit_note_rounded,
+              size: 18,
+              color: widget.isDark ? Colors.white54 : AppColors.textTertiary,
+            ),
             const SizedBox(width: 6),
             Text(
-              'Câu trả lời của bạn:',
-              style: AppTypography.labelSmall.copyWith(
-                color: _colors.textSecondary,
+              'Câu trả lời của bạn',
+              style: AppTypography.labelMedium.copyWith(
+                color: widget.isDark ? Colors.white54 : AppColors.textTertiary,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Container(
           width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 70),
-          padding: const EdgeInsets.all(12),
+          constraints: const BoxConstraints(minHeight: 80),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _colors.borderColor.withAlpha(15),
-            borderRadius: BorderRadius.circular(12),
+            color: widget.isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _hasChecked
                   ? (_isCorrect ? AppColors.success : AppColors.error)
-                  : _colors.borderColor.withAlpha(50),
+                  : (widget.isDark ? Colors.white24 : Colors.black12),
               width: _hasChecked ? 2 : 1,
             ),
+            boxShadow: widget.isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: _answerArea.isEmpty
               ? Center(
                   child: Text(
-                    'Nhấn vào từ bên dưới để thêm vào đây',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: _colors.textTertiary,
+                    'Nhấn vào từ bên dưới để ghép câu',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: widget.isDark ? Colors.white38 : AppColors.textTertiary,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
                 )
               : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
                   children: List.generate(_answerArea.length, (index) {
                     final token = _answerArea[index];
                     final isCorrectToken = _tokenCorrectness != null &&
@@ -810,7 +866,6 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
                       isInAnswer: true,
                       isCorrect: isCorrectToken,
                       isWrong: isWrongToken,
-                      index: index,
                     );
                   }),
                 ),
@@ -825,46 +880,54 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
       children: [
         Row(
           children: [
-            Icon(Icons.inventory_2_outlined, size: 14, color: _colors.textSecondary),
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 18,
+              color: widget.isDark ? Colors.white54 : AppColors.textTertiary,
+            ),
             const SizedBox(width: 6),
             Text(
-              'Kho từ:',
-              style: AppTypography.labelSmall.copyWith(
-                color: _colors.textSecondary,
+              'Kho từ',
+              style: AppTypography.labelMedium.copyWith(
+                color: widget.isDark ? Colors.white54 : AppColors.textTertiary,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Container(
           width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 50),
-          padding: const EdgeInsets.all(12),
+          constraints: const BoxConstraints(minHeight: 60),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _colors.pageBg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _colors.borderColor.withAlpha(40)),
+            color: widget.isDark
+                ? Colors.white.withValues(alpha: 0.03)
+                : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: widget.isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.06),
+            ),
           ),
           child: _wordBank.isEmpty
               ? Center(
                   child: Text(
                     'Tất cả từ đã được sử dụng',
                     style: AppTypography.bodySmall.copyWith(
-                      color: _colors.textTertiary,
+                      color: widget.isDark ? Colors.white38 : AppColors.textTertiary,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
                 )
               : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
                   children: List.generate(_wordBank.length, (index) {
                     final token = _wordBank[index];
                     return _buildToken(
                       token.text,
                       onTap: () => _onTokenTapInBank(index),
                       isInAnswer: false,
-                      index: index,
                     );
                   }),
                 ),
@@ -877,77 +940,69 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
     String text, {
     required VoidCallback onTap,
     required bool isInAnswer,
-    required int index,
     bool isCorrect = false,
     bool isWrong = false,
   }) {
     Color bgColor;
     Color borderColor;
-    Color textColor = _colors.textPrimary;
+    Color textColor;
 
     if (isCorrect) {
-      bgColor = AppColors.success.withAlpha(20);
+      bgColor = AppColors.success.withAlpha(15);
       borderColor = AppColors.success;
       textColor = AppColors.success;
     } else if (isWrong) {
-      bgColor = AppColors.error.withAlpha(20);
+      bgColor = AppColors.error.withAlpha(15);
       borderColor = AppColors.error;
       textColor = AppColors.error;
     } else if (isInAnswer) {
-      bgColor = AppColors.primary.withAlpha(15);
-      borderColor = AppColors.primary.withAlpha(50);
+      bgColor = _kThemeColor.withAlpha(12);
+      borderColor = _kThemeColor.withAlpha(60);
+      textColor = _kThemeColor;
     } else {
-      bgColor = _colors.borderColor.withAlpha(20);
-      borderColor = _colors.borderColor.withAlpha(60);
+      bgColor = widget.isDark ? Colors.white.withAlpha(10) : Colors.white;
+      borderColor = widget.isDark ? Colors.white24 : Colors.black12;
+      textColor = widget.isDark ? Colors.white : AppColors.textPrimary;
     }
 
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('${isInAnswer ? 'ans' : 'bank'}_$index'),
-      tween: Tween(begin: 0.8, end: 1.0),
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutBack,
-      builder: (context, scale, child) {
-        return Transform.scale(scale: scale, child: child);
-      },
-      child: GestureDetector(
-        onTap: _hasChecked ? null : onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: borderColor, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(widget.isDark ? 30 : 10),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: _hasChecked ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(widget.isDark ? 20 : 8),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              style: TextStyle(
+                fontFamily: 'NotoSansSC',
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+            if (_hasChecked && (isCorrect || isWrong)) ...[
+              const SizedBox(width: 8),
+              Icon(
+                isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                size: 20,
+                color: isCorrect ? AppColors.success : AppColors.error,
               ),
             ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                text,
-                style: TextStyle(
-                  fontFamily: 'NotoSansSC',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
-              ),
-              if (_hasChecked && (isCorrect || isWrong)) ...[
-                const SizedBox(width: 6),
-                Icon(
-                  isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                  size: 18,
-                  color: isCorrect ? AppColors.success : AppColors.error,
-                ),
-              ],
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -955,86 +1010,121 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
 
   Widget _buildBottomSection() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       decoration: BoxDecoration(
-        color: widget.isDark ? AppColors.surfaceDark : AppColors.surface,
-        border: Border(
-          top: BorderSide(
-            color: widget.isDark ? AppColors.borderDark : AppColors.border,
+        color: widget.isDark ? AppColors.surfaceDark : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
           ),
-        ),
+        ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Feedback
-          if (_hasChecked)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                    color: _isCorrect ? AppColors.success : AppColors.error,
-                    size: 24,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Feedback
+            if (_hasChecked)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: (_isCorrect ? AppColors.success : AppColors.error).withAlpha(15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _isCorrect ? 'Chính xác! 🎉' : 'Chưa đúng. Thử lại!',
-                    style: AppTypography.titleMedium.copyWith(
-                      color: _isCorrect ? AppColors.success : AppColors.error,
-                      fontWeight: FontWeight.bold,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                        color: _isCorrect ? AppColors.success : AppColors.error,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isCorrect ? 'Chính xác! 🎉' : 'Chưa đúng rồi!',
+                        style: AppTypography.titleSmall.copyWith(
+                          color: _isCorrect ? AppColors.success : AppColors.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Buttons
+            Row(
+              children: [
+                if (!_isCorrect && _hasChecked)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: SizedBox(
+                        height: 52,
+                        child: OutlinedButton(
+                          onPressed: _reset,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: widget.isDark ? Colors.white70 : AppColors.textSecondary,
+                            side: BorderSide(
+                              color: widget.isDark ? Colors.white24 : Colors.black12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text('Làm lại'),
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-
-          // Buttons
-          Row(
-            children: [
-              if (!_isCorrect && _hasChecked)
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: SizedBox(
-                      height: 52,
-                      child: HMButton(
-                        text: 'Làm lại',
-                        variant: HMButtonVariant.secondary,
-                        onPressed: _reset,
+                  child: SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _answerArea.isEmpty && !_hasChecked
+                          ? null
+                          : () {
+                              HapticFeedback.lightImpact();
+                              if (_hasChecked) {
+                                if (_isCorrect) {
+                                  widget.onContinue();
+                                } else {
+                                  _showCorrectAnswer();
+                                }
+                              } else {
+                                _checkAnswer();
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _kThemeColor,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: widget.isDark ? Colors.white12 : Colors.grey.shade300,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        _hasChecked
+                            ? (_isCorrect ? 'Tiếp tục' : 'Xem đáp án')
+                            : 'Kiểm tra',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              Expanded(
-                child: SizedBox(
-                  height: 52,
-                  child: HMButton(
-                    text: _hasChecked
-                        ? (_isCorrect ? 'Tiếp tục' : 'Xem đáp án')
-                        : 'Kiểm tra',
-                    onPressed: _answerArea.isEmpty && !_hasChecked
-                        ? null
-                        : () {
-                            HapticFeedback.lightImpact();
-                            if (_hasChecked) {
-                              if (_isCorrect) {
-                                widget.onContinue();
-                              } else {
-                                _showCorrectAnswer();
-                              }
-                            } else {
-                              _checkAnswer();
-                            }
-                          },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
