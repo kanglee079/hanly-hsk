@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/vocab_model.dart';
@@ -87,24 +89,51 @@ class ExploreController extends GetxController {
   int _currentPage = 1;
   bool _hasMore = true;
   static const int _pageLimit = 20;
+  
+  // Debounce timer for real-time search
+  Timer? _searchDebounce;
+  static const Duration _searchDebounceDelay = Duration(milliseconds: 400);
 
   final List<String> chipLabels = ['Cho bạn', 'HSK 1-3', 'HSK 4-6', 'Chủ đề'];
 
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(() {
-      searchQuery.value = searchController.text;
-    });
+    searchController.addListener(_onSearchQueryChanged);
     loadCollections();
     _loadRecentItems();
     loadVocabs();
     loadMeta();
     loadDailyPick();
   }
+  
+  /// Called when search text changes - debounced real-time search
+  void _onSearchQueryChanged() {
+    final query = searchController.text;
+    searchQuery.value = query;
+    
+    // Cancel previous debounce timer
+    _searchDebounce?.cancel();
+    
+    if (query.isEmpty) {
+      showSearchResults.value = false;
+      return;
+    }
+    
+    // Show results view but with loading state
+    showSearchResults.value = true;
+    
+    // Debounce the actual API call
+    _searchDebounce = Timer(_searchDebounceDelay, () {
+      if (query.isNotEmpty) {
+        search();
+      }
+    });
+  }
 
   @override
   void onClose() {
+    _searchDebounce?.cancel();
     searchController.dispose();
     searchFocusNode.dispose();
     super.onClose();
@@ -312,8 +341,13 @@ class ExploreController extends GetxController {
     showSearchResults.value = true;
 
     try {
-      final results = await _vocabRepo.searchVocabs(searchQuery.value);
-      vocabs.value = results;
+      final results = await _vocabRepo.searchVocabs(searchQuery.value, limit: 50);
+      
+      // Sort results by relevance
+      final query = searchQuery.value.toLowerCase().trim();
+      final sortedResults = _sortByRelevance(results, query);
+      
+      vocabs.value = sortedResults;
       _hasMore = false;
     } catch (e) {
       Logger.e('ExploreController', 'search error', e);
@@ -321,6 +355,70 @@ class ExploreController extends GetxController {
     } finally {
       isSearching.value = false;
     }
+  }
+
+  /// Sort search results by relevance
+  /// Priority: Exact match > Starts with > Contains
+  /// Field priority: Hanzi > Pinyin > Meaning
+  List<VocabModel> _sortByRelevance(List<VocabModel> results, String query) {
+    // Calculate relevance score for each vocab
+    final scoredResults = results.map((vocab) {
+      int score = 0;
+      
+      final hanzi = vocab.hanzi.toLowerCase();
+      final pinyin = vocab.pinyin.toLowerCase().replaceAll(' ', '');
+      final pinyinWithSpaces = vocab.pinyin.toLowerCase();
+      final meaning = vocab.meaningVi.toLowerCase();
+      
+      // Exact match (highest priority)
+      if (hanzi == query) {
+        score += 1000;
+      } else if (pinyin == query || pinyinWithSpaces == query) {
+        score += 900;
+      } else if (meaning == query) {
+        score += 800;
+      }
+      // Starts with
+      else if (hanzi.startsWith(query)) {
+        score += 700;
+      } else if (pinyin.startsWith(query) || pinyinWithSpaces.startsWith(query)) {
+        score += 600;
+      } else if (meaning.startsWith(query)) {
+        score += 500;
+      }
+      // Contains
+      else if (hanzi.contains(query)) {
+        score += 400;
+      } else if (pinyin.contains(query) || pinyinWithSpaces.contains(query)) {
+        score += 300;
+      } else if (meaning.contains(query)) {
+        score += 200;
+      }
+      
+      // Bonus for shorter words (more relevant)
+      if (hanzi.length <= 2) {
+        score += 50;
+      }
+      
+      // Bonus for common HSK levels
+      if (vocab.level == 'HSK1') {
+        score += 30;
+      } else if (vocab.level == 'HSK2') {
+        score += 25;
+      } else if (vocab.level == 'HSK3') {
+        score += 20;
+      }
+      
+      return _ScoredVocab(vocab, score);
+    }).toList();
+    
+    // Sort by score descending
+    scoredResults.sort((a, b) => b.score.compareTo(a.score));
+    
+    // Filter out results with score 0 (completely irrelevant)
+    final filtered = scoredResults.where((s) => s.score > 0).toList();
+    
+    return filtered.map((s) => s.vocab).toList();
   }
 
   void setChipFilter(int index) {
@@ -440,4 +538,12 @@ class ExploreController extends GetxController {
       HMToast.error(ToastMessages.favoritesUpdateError);
     }
   }
+}
+
+/// Helper class for sorting vocabs by relevance score
+class _ScoredVocab {
+  final VocabModel vocab;
+  final int score;
+
+  _ScoredVocab(this.vocab, this.score);
 }
