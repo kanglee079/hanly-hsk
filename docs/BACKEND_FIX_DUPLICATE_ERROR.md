@@ -1,167 +1,229 @@
-# ✅ FIXED: DUPLICATE_ERROR Issue
+# 🚨 LỖI CHƯA SỬA: DUPLICATE_ERROR Issue
 
-## Trạng thái: ĐÃ SỬA XONG ✅
+## Trạng thái: CHƯA HOẠT ĐỘNG ❌
 
-### Nguyên nhân gốc rễ đã được xác định và sửa:
-
-1. **Query filter quá nghiêm**: `status: 'active'` bỏ sót user deleted/suspended
-2. **Thiếu error handling**: MongoDB 11000 duplicate key không được handle
-3. **email: null vs undefined**: Sparse unique index cần `undefined`
+Backend vẫn đang trả về `DUPLICATE_ERROR` thay vì đăng nhập user có sẵn.
 
 ---
 
-## Backend Changes (anonymousService.ts)
+## Vấn đề hiện tại
 
-### Trước (Bug):
-```javascript
-// Query chỉ tìm user active - bỏ sót deleted/suspended
-let user = await User.findOne({
-  deviceIdHash,
-  status: 'active'  // ← BUG: bỏ sót các status khác
-});
-
-// Create với email: null - gây lỗi unique index
-user = await User.create({
-  email: null,  // ← BUG: sparse index cần undefined
-  passwordHash: null,
-  // ...
-});
+**Log từ app:**
+```
+POST /auth/anonymous
+Request: { deviceId: "device_xxx", deviceInfo: {...} }
+Response: { "success": false, "error": { "message": "Duplicate entry", "code": "DUPLICATE_ERROR" } }
 ```
 
-### Sau (Fixed):
+**Đây là SAI.** Khi deviceId đã tồn tại, backend PHẢI trả về tokens của user đó, KHÔNG được trả về lỗi.
+
+---
+
+## ✅ CÁCH SỬA ĐÚNG
+
+### Endpoint: `POST /auth/anonymous`
+
 ```javascript
-// Query tìm TẤT CẢ user với deviceIdHash (bất kể status)
-let user = await User.findOne({ deviceIdHash });
-
-if (user) {
-  // Handle theo status
-  if (user.status === 'suspended') {
-    throw new UnauthorizedError('Tài khoản đã bị tạm khóa...');
-  }
+async function createOrLoginAnonymous(req, res) {
+  const { deviceId, deviceInfo } = req.body;
   
-  // Reactivate deleted users
-  if (user.status === 'deleted' || user.status === 'pending_deletion') {
-    user.status = 'active';
-    user.deletionScheduledAt = null;
-    user.deletionReason = null;
-  }
+  // 1. Hash deviceId
+  const deviceIdHash = hashDeviceId(deviceId);
   
-  user.lastLoginAt = new Date();
-  await user.save();
+  // 2. TÌM USER BẤT KỂ STATUS (không filter status: 'active')
+  let user = await User.findOne({ deviceIdHash });
   
-  // Return tokens with isNewUser: false
-}
-
-// Create với error handling cho race condition
-try {
-  user = await User.create({
-    // NOTE: KHÔNG set email/passwordHash - để undefined cho sparse index
-    isAnonymous: true,
-    deviceIdHash,
-    displayName: `Người học #${...}`,
-    status: 'active',
-  });
-} catch (error) {
-  if (error.code === 11000) {
-    // Race condition - device đã đăng ký trong lúc xử lý
-    const existingUser = await User.findOne({ deviceIdHash });
-    if (existingUser) {
-      // Handle và return tokens
+  // 3. NẾU USER ĐÃ TỒN TẠI → TRẢ VỀ TOKENS
+  if (user) {
+    // Check nếu bị suspend
+    if (user.status === 'suspended') {
+      return res.status(401).json({
+        success: false,
+        error: { 
+          message: 'Tài khoản đã bị tạm khóa', 
+          code: 'ACCOUNT_SUSPENDED' 
+        }
+      });
     }
-  }
-  throw error;
-}
-```
-
----
-
-## Frontend Changes (auth_session_service.dart)
-
-### Đã đơn giản hóa logic:
-
-```dart
-Future<bool> createAnonymousUser() async {
-  try {
-    final response = await _authRepo.createAnonymousUser(
-      deviceId: deviceId,
-      deviceInfo: deviceInfo,
-    );
     
-    if (response.success) {
-      _storage.saveTokens(...);
-      
-      // Returning user = skip intro/setup
-      if (!response.isNewUser) {
-        _storage.isIntroSeen = true;
-        _storage.isSetupComplete = true;
-        _storage.isOnboardingComplete = true;
+    // Reactivate nếu đã deleted
+    if (user.status === 'deleted' || user.status === 'pending_deletion') {
+      user.status = 'active';
+      user.deletionScheduledAt = null;
+    }
+    
+    // Update login time
+    user.lastLoginAt = new Date();
+    user.deviceInfo = deviceInfo;
+    await user.save();
+    
+    // Generate tokens
+    const tokens = generateTokens(user);
+    
+    // ✅ TRẢ VỀ TOKENS VỚI isNewUser: false
+    return res.json({
+      success: true,
+      data: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: userToResponse(user),
+        isNewUser: false  // ← QUAN TRỌNG
       }
-      
-      return true;
-    }
-    return false;
-  } catch (e) {
-    // Handle suspended account
-    if (_isSuspendedError(e)) {
-      // Show error to user
-      return false;
+    });
+  }
+  
+  // 4. NẾU USER CHƯA TỒN TẠI → TẠO MỚI
+  try {
+    user = await User.create({
+      deviceIdHash,
+      deviceInfo,
+      isAnonymous: true,
+      displayName: `Người học #${Date.now().toString().slice(-6)}`,
+      status: 'active',
+      // KHÔNG set email: null, để undefined
+    });
+    
+    const tokens = generateTokens(user);
+    
+    return res.json({
+      success: true,
+      data: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: userToResponse(user),
+        isNewUser: true  // ← QUAN TRỌNG
+      }
+    });
+    
+  } catch (error) {
+    // Handle race condition - duplicate key error
+    if (error.code === 11000) {
+      // Có ai đó vừa tạo user với deviceId này
+      const existingUser = await User.findOne({ deviceIdHash });
+      if (existingUser) {
+        const tokens = generateTokens(existingUser);
+        return res.json({
+          success: true,
+          data: {
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            user: userToResponse(existingUser),
+            isNewUser: false
+          }
+        });
+      }
     }
     
-    // Network error - continue offline
-    if (_isNetworkError(e)) {
-      _continueOfflineMode();
-      return false;
-    }
-    
-    _continueOfflineMode();
-    return false;
+    throw error;
   }
 }
 ```
 
 ---
 
-## Test Results
+## ❌ KHÔNG ĐƯỢC LÀM
 
-```
-PASS  tests/anonymousUser.test.ts
-  Anonymous User Creation         
-    ✓ should create a new anonymous user with device ID
-    ✓ should return existing anonymous user for same device ID
-    ✓ should reject invalid device ID
-    ✓ should create different users for different devices
-  Account Linking (6 tests)
-    ✓ All passing
-  Auth Status (2 tests)
-    ✓ All passing
+```javascript
+// ❌ SAI - Query chỉ tìm active users
+let user = await User.findOne({ deviceIdHash, status: 'active' });
 
-Tests: 13 passed, 13 total
+// ❌ SAI - Throw error khi tìm thấy user
+if (existingUser) {
+  throw new Error('Duplicate entry');  // ← ĐÂY LÀ BUG
+}
+
+// ❌ SAI - Return lỗi DUPLICATE_ERROR
+return res.status(400).json({
+  success: false,
+  error: { message: 'Duplicate entry', code: 'DUPLICATE_ERROR' }
+});
 ```
 
 ---
 
-## Behavior Matrix
+## Bảng hành vi đúng
 
-| Scenario | BE Response | FE Action |
-|----------|-------------|-----------|
-| New device | `{ success: true, isNewUser: true }` | Show Intro → Setup → Home |
-| Existing device | `{ success: true, isNewUser: false }` | Skip to Home |
-| Deleted user | Reactivated, `{ isNewUser: false }` | Skip to Home |
-| Suspended user | `UnauthorizedError` | Show error message |
-| Race condition | Handled by BE | Works normally |
-| Network error | N/A | Continue offline mode |
+| Tình huống | deviceId tồn tại? | Response |
+|------------|------------------|----------|
+| Cài mới app | Không | `{ success: true, isNewUser: true, tokens }` |
+| Mở lại app | Có | `{ success: true, isNewUser: false, tokens }` |
+| Xóa app rồi cài lại | Có (deviceId được lưu) | `{ success: true, isNewUser: false, tokens }` |
+| Thiết bị mới | Không | `{ success: true, isNewUser: true, tokens }` |
+| User bị suspend | Có | `{ success: false, code: 'ACCOUNT_SUSPENDED' }` |
 
 ---
 
-## Checklist ✅
+## Cách test
 
-- [x] BE: Query không filter theo status
-- [x] BE: Handle user deleted/suspended
-- [x] BE: Không set email: null (dùng undefined)
-- [x] BE: Handle race condition (error code 11000)
-- [x] BE: Return isNewUser flag
-- [x] FE: Remove fallback DUPLICATE_ERROR handling
-- [x] FE: Use isNewUser to decide flow
-- [x] FE: Handle suspended user error
-- [x] FE: Handle network error with offline mode
-- [x] Tests: All 13 tests passing
+```bash
+# 1. Gọi lần 1 - tạo user mới
+curl -X POST https://your-api/auth/anonymous \
+  -H "Content-Type: application/json" \
+  -d '{"deviceId": "test_device_123", "deviceInfo": {"platform": "ios"}}'
+
+# Expected: { success: true, isNewUser: true, ... }
+
+# 2. Gọi lại với cùng deviceId - phải trả về tokens
+curl -X POST https://your-api/auth/anonymous \
+  -H "Content-Type: application/json" \
+  -d '{"deviceId": "test_device_123", "deviceInfo": {"platform": "ios"}}'
+
+# Expected: { success: true, isNewUser: false, ... }
+# ❌ KHÔNG ĐƯỢC: { success: false, code: "DUPLICATE_ERROR" }
+```
+
+---
+
+## Kiểm tra MongoDB Index
+
+Nếu có unique index trên deviceIdHash, hãy đảm bảo:
+
+```javascript
+// Check index
+db.users.getIndexes()
+
+// Nếu có index gây conflict, hãy sử dụng findOneAndUpdate thay vì findOne + create
+const user = await User.findOneAndUpdate(
+  { deviceIdHash },
+  {
+    $setOnInsert: {
+      deviceIdHash,
+      deviceInfo,
+      isAnonymous: true,
+      displayName: `Người học #${Date.now().toString().slice(-6)}`,
+      status: 'active',
+      createdAt: new Date(),
+    },
+    $set: {
+      lastLoginAt: new Date(),
+      deviceInfo: deviceInfo,
+    }
+  },
+  {
+    upsert: true,
+    new: true,
+    setDefaultsOnInsert: true,
+  }
+);
+
+const isNewUser = user.createdAt.getTime() > Date.now() - 1000; // Created within 1 second
+```
+
+---
+
+## Checklist cho Backend Developer
+
+- [ ] `POST /auth/anonymous` KHÔNG return `DUPLICATE_ERROR` khi deviceId tồn tại
+- [ ] Khi deviceId tồn tại → return tokens của user đó
+- [ ] Query tìm user KHÔNG filter theo `status`
+- [ ] Handle deleted/pending_deletion users bằng cách reactivate
+- [ ] Handle suspended users với error code riêng
+- [ ] Handle race condition (MongoDB 11000)
+- [ ] Return `isNewUser: true/false` trong response
+- [ ] Test lại bằng curl với cùng deviceId 2 lần
+
+---
+
+## Tóm tắt
+
+**Nguyên tắc vàng:** `POST /auth/anonymous` LUÔN trả về tokens nếu deviceId hợp lệ. KHÔNG BAO GIỜ trả về `DUPLICATE_ERROR`.
