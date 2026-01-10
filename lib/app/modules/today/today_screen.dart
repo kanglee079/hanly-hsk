@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/constants/strings_vi.dart';
+import '../../core/constants/app_icons.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/utils/date_format.dart';
 import '../../routes/app_routes.dart';
@@ -360,10 +362,14 @@ class TodayScreen extends GetView<TodayController> {
             ),
             // Arrow (only show if not new user)
             if (!isNewUser)
-              Icon(
-                Icons.chevron_right, 
-                color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary, 
-                size: 20,
+              SvgPicture.asset(
+                AppIcons.chevronRight,
+                width: 20,
+                height: 20,
+                colorFilter: ColorFilter.mode(
+                  isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                  BlendMode.srcIn,
+                ),
               ),
           ],
         ),
@@ -973,7 +979,7 @@ class TodayScreen extends GetView<TodayController> {
             // Ôn tập SRS - từ cần ôn theo lịch (từ ngày trước)
             Expanded(
               child: _QuickActionCard(
-                icon: Icons.history,
+                svgPath: AppIcons.history,
                 title: 'Ôn tập SRS',
                 subtitle: dueCount > 0 ? 'Từ cũ cần ôn' : 'Không có từ',
                 badge: dueCount > 0 ? '$dueCount' : null,
@@ -1175,7 +1181,8 @@ class TodayScreen extends GetView<TodayController> {
 }
 
 class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? svgPath;
   final String title;
   final String subtitle;
   final String? badge;
@@ -1186,7 +1193,8 @@ class _QuickActionCard extends StatelessWidget {
   final bool isDisabled;
 
   const _QuickActionCard({
-    required this.icon,
+    this.icon,
+    this.svgPath,
     required this.title,
     required this.subtitle,
     this.badge,
@@ -1195,7 +1203,7 @@ class _QuickActionCard extends StatelessWidget {
     this.onTap,
     required this.isDark,
     this.isDisabled = false,
-  });
+  }) : assert(icon != null || svgPath != null, 'Either icon or svgPath must be provided');
 
   @override
   Widget build(BuildContext context) {
@@ -1222,14 +1230,29 @@ class _QuickActionCard extends StatelessWidget {
                           : AppColors.surfaceVariant,
                       borderRadius: AppSpacing.borderRadiusMd,
                     ),
-                    child: Icon(
-                      icon,
-                      color:
-                          iconColor ??
-                          (isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondary),
-                      size: 24,
+                    child: Center(
+                      child: svgPath != null
+                          ? SvgPicture.asset(
+                              svgPath!,
+                              width: 24,
+                              height: 24,
+                              colorFilter: ColorFilter.mode(
+                                iconColor ??
+                                    (isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondary),
+                                BlendMode.srcIn,
+                              ),
+                            )
+                          : Icon(
+                              icon,
+                              color:
+                                  iconColor ??
+                                  (isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary),
+                              size: 24,
+                            ),
                     ),
                   ),
                   const Spacer(),

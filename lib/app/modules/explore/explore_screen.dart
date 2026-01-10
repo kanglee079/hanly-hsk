@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/constants/strings_vi.dart';
+import '../../core/constants/app_icons.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/models/vocab_model.dart';
@@ -169,12 +171,16 @@ class ExploreScreen extends GetView<ExploreController> {
                             : AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        Icons.arrow_back_rounded,
-                        size: 20,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
+                      child: SvgPicture.asset(
+                        AppIcons.chevronLeft,
+                        width: 20,
+                        height: 20,
+                        colorFilter: ColorFilter.mode(
+                          isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -192,12 +198,16 @@ class ExploreScreen extends GetView<ExploreController> {
                             : AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        Icons.tune_rounded,
-                        size: 20,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
+                      child: SvgPicture.asset(
+                        AppIcons.filter,
+                        width: 20,
+                        height: 20,
+                        colorFilter: ColorFilter.mode(
+                          isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -370,14 +380,18 @@ class ExploreScreen extends GetView<ExploreController> {
             child: Row(
               children: [
                 const SizedBox(width: 14),
-                Icon(
-                  Icons.search,
-                  size: 20,
-                  color: isFocused
-                      ? AppColors.primary
-                      : (isDark
-                            ? AppColors.textTertiaryDark
-                            : AppColors.textTertiary),
+                SvgPicture.asset(
+                  AppIcons.search,
+                  width: 20,
+                  height: 20,
+                  colorFilter: ColorFilter.mode(
+                    isFocused
+                        ? AppColors.primary
+                        : (isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiary),
+                    BlendMode.srcIn,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -450,12 +464,16 @@ class ExploreScreen extends GetView<ExploreController> {
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.search,
-              size: 20,
-              color: isDark
-                  ? AppColors.textTertiaryDark
-                  : AppColors.textTertiary,
+            SvgPicture.asset(
+              AppIcons.search,
+              width: 20,
+              height: 20,
+              colorFilter: ColorFilter.mode(
+                isDark
+                    ? AppColors.textTertiaryDark
+                    : AppColors.textTertiary,
+                BlendMode.srcIn,
+              ),
             ),
             const SizedBox(width: 12),
             Text(

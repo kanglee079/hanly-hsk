@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import '../constants/app_icons.dart';
 
 /// Custom app bar with consistent styling
 class HMAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -100,10 +102,11 @@ class HMBackButton extends StatelessWidget {
                 )
               : null,
           child: Center(
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: iconColor,
-              size: size * 0.5,
+            child: SvgPicture.asset(
+              AppIcons.chevronLeft,
+              width: size * 0.5,
+              height: size * 0.5,
+              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
             ),
           ),
         ),
@@ -145,10 +148,14 @@ class HMFloatingBackButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-            size: 18,
+          child: SvgPicture.asset(
+            AppIcons.chevronLeft,
+            width: 18,
+            height: 18,
+            colorFilter: ColorFilter.mode(
+              isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              BlendMode.srcIn,
+            ),
           ),
         ),
       ),

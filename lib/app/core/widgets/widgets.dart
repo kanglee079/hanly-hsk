@@ -4,6 +4,7 @@ export 'book_page_scaffold.dart';
 export 'flip_flash_card.dart';
 export 'hm_app_bar.dart';
 export 'hm_button.dart';
+export 'hm_icon.dart';
 export 'hm_card.dart';
 export 'hm_chip.dart';
 export 'hm_text_field.dart';
