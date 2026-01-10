@@ -73,7 +73,9 @@ class HMLearnedTodayWidget extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Đã học $count từ hôm nay',
+                        count > 0 
+                            ? 'Đã học $count từ hôm nay'
+                            : 'Bắt đầu học để có từ ôn tập',
                         style: AppTypography.bodySmall.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -111,7 +113,7 @@ class HMLearnedTodayWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-          ] else ...[
+          ] else if (count > 0) ...[
             // Show message when items empty but count > 0
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -120,6 +122,59 @@ class HMLearnedTodayWidget extends StatelessWidget {
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                   fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ] else ...[
+            // Show empty state when no words learned yet
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.border,
+                    style: BorderStyle.solid,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Center(
+                        child: Text('📚', style: TextStyle(fontSize: 20)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Chưa có từ nào',
+                            style: AppTypography.labelMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Học từ mới để có từ ôn tập tại đây',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

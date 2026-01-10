@@ -684,16 +684,13 @@ class TodayScreen extends GetView<TodayController> {
     final count = controller.learnedTodayCount; // Includes local cache
     final isLoading = controller.isLoadingLearnedToday.value;
 
-    // Không ẩn nếu count > 0 (có từ trong local cache)
-    if (count == 0 && !isLoading) {
-      return const SizedBox.shrink();
-    }
-
+    // Luôn hiển thị section này để user biết tính năng tồn tại
+    // và tutorial có thể highlight được
     return HMLearnedTodayWidget(
       items: items,
       count: count,
       isLoading: isLoading,
-      showEvenIfEmpty: count > 0, // Show header even if items list is empty
+      showEvenIfEmpty: true, // Luôn hiển thị, kể cả khi chưa học từ nào
       onTapReview: count > 0
           ? () => controller.startSession(SessionMode.reviewToday)
           : null,
