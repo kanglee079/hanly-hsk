@@ -527,10 +527,23 @@ class AuthSessionService extends GetxService {
 
   /// Handle successful auth (save tokens, fetch user)
   Future<void> _handleAuthSuccess(AuthTokensModel tokens) async {
+    // Clear previous user's cached data to prevent cross-account data leakage
+    // This is important when switching accounts
+    try {
+      if (Get.isRegistered<RealtimeSyncService>()) {
+        Get.find<RealtimeSyncService>().clearAllCachedData();
+      }
+    } catch (e) {
+      Logger.w('AuthSessionService', 'Error clearing cached data: $e');
+    }
+    
     _storage.saveTokens(
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     );
+
+    // Update anonymous flag based on tokens (linked email = not anonymous)
+    isAnonymous.value = tokens.isAnonymous ?? false;
 
     if (tokens.user != null) {
       _storage.user = tokens.user;

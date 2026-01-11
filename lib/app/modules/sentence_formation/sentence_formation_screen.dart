@@ -554,6 +554,7 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
   final List<_TokenState> _answerArea = [];
   bool _hasChecked = false;
   bool _isCorrect = false;
+  bool _showingCorrectAnswer = false; // Flag to show correct answer was revealed
   List<bool>? _tokenCorrectness;
 
   @override
@@ -651,11 +652,13 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
       _wordBank.shuffle();
       _hasChecked = false;
       _isCorrect = false;
+      _showingCorrectAnswer = false;
       _tokenCorrectness = null;
     });
   }
 
   void _showCorrectAnswer() {
+    HapticFeedback.lightImpact();
     setState(() {
       _wordBank.clear();
       _answerArea.clear();
@@ -670,12 +673,10 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
       }
 
       _tokenCorrectness = List.filled(words.length, true);
-      _isCorrect = true;
+      _showingCorrectAnswer = true; // Mark that we're showing correct answer
     });
-
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) widget.onContinue();
-    });
+    
+    // Don't auto-advance - let user see the answer and tap "Tiếp tục"
   }
 
   @override
@@ -1039,44 +1040,60 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
       textColor = widget.isDark ? Colors.white : AppColors.textPrimary;
     }
 
+    // Calculate appropriate font size based on text length
+    double fontSize = 22;
+    if (text.length > 4) {
+      fontSize = 18;
+    }
+    if (text.length > 6) {
+      fontSize = 16;
+    }
+
     return GestureDetector(
       onTap: _hasChecked ? null : onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(widget.isDark ? 20 : 8),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              text,
-              style: TextStyle(
-                fontFamily: 'NotoSansSC',
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
-            ),
-            if (_hasChecked && (isCorrect || isWrong)) ...[
-              const SizedBox(width: 8),
-              Icon(
-                isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                size: 20,
-                color: isCorrect ? AppColors.success : AppColors.error,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 160), // Prevent overflow
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(widget.isDark ? 20 : 8),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
             ],
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontFamily: 'NotoSansSC',
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              if (_hasChecked && (isCorrect || isWrong)) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                  size: 18,
+                  color: isCorrect ? AppColors.success : AppColors.error,
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -1105,27 +1122,70 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: (_isCorrect ? AppColors.success : AppColors.error).withAlpha(15),
-                    borderRadius: BorderRadius.circular(12),
+                    color: _showingCorrectAnswer
+                        ? AppColors.primary.withAlpha(15)
+                        : (_isCorrect ? AppColors.success : AppColors.error).withAlpha(15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _showingCorrectAnswer
+                          ? AppColors.primary.withAlpha(40)
+                          : (_isCorrect ? AppColors.success : AppColors.error).withAlpha(40),
+                    ),
                   ),
-                  child: Row(
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        _isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                        color: _isCorrect ? AppColors.success : AppColors.error,
-                        size: 22,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _showingCorrectAnswer
+                                ? Icons.lightbulb_rounded
+                                : (_isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded),
+                            color: _showingCorrectAnswer
+                                ? AppColors.primary
+                                : (_isCorrect ? AppColors.success : AppColors.error),
+                            size: 22,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _showingCorrectAnswer
+                                ? 'Đáp án đúng'
+                                : (_isCorrect ? 'Chính xác! 🎉' : 'Chưa đúng rồi!'),
+                            style: AppTypography.titleSmall.copyWith(
+                              color: _showingCorrectAnswer
+                                  ? AppColors.primary
+                                  : (_isCorrect ? AppColors.success : AppColors.error),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isCorrect ? 'Chính xác! 🎉' : 'Chưa đúng rồi!',
-                        style: AppTypography.titleSmall.copyWith(
-                          color: _isCorrect ? AppColors.success : AppColors.error,
-                          fontWeight: FontWeight.bold,
+                      // Show correct sentence when revealing answer
+                      if (_showingCorrectAnswer) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          widget.exercise.sentenceWords?.join('') ?? '',
+                          style: TextStyle(
+                            fontFamily: 'NotoSansSC',
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: widget.isDark ? Colors.white : AppColors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.exercise.questionMeaning ?? '',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: widget.isDark ? Colors.white70 : AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1134,7 +1194,8 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
             // Buttons - using HMButton for consistency
             Row(
               children: [
-                if (!_isCorrect && _hasChecked)
+                // Show "Làm lại" only when wrong and not yet showing correct answer
+                if (!_isCorrect && _hasChecked && !_showingCorrectAnswer)
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(right: 12),
@@ -1148,16 +1209,18 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
                 Expanded(
                   child: HMButton(
                     text: _hasChecked
-                        ? (_isCorrect ? 'Tiếp tục' : 'Xem đáp án')
+                        ? ((_isCorrect || _showingCorrectAnswer) ? 'Tiếp tục' : 'Xem đáp án')
                         : 'Kiểm tra',
                     onPressed: _answerArea.isEmpty && !_hasChecked
                         ? null
                         : () {
                             HapticFeedback.lightImpact();
                             if (_hasChecked) {
-                              if (_isCorrect) {
+                              if (_isCorrect || _showingCorrectAnswer) {
+                                // Both correct answer and "showing correct" state advance to next
                                 widget.onContinue();
                               } else {
+                                // Show the correct answer first
                                 _showCorrectAnswer();
                               }
                             } else {
