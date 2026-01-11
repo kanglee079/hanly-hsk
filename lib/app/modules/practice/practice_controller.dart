@@ -801,7 +801,7 @@ class PracticeController extends GetxController {
           config.showLearningContent &&
           prevExercise != null &&
           nextEx.vocabId != prevExercise.vocabId) {
-        await _completeLearnNewWord(prevExercise.vocabId);
+        _completeLearnNewWord(prevExercise.vocabId); // Non-blocking
         currentExerciseIndex.value = nextIndex;
         state.value = PracticeState.learning;
         return;
@@ -822,7 +822,7 @@ class PracticeController extends GetxController {
 
     // End of session: complete last learnNew word (if any) then finish
     if (mode == PracticeMode.learnNew && prevExercise != null) {
-      await _completeLearnNewWord(prevExercise.vocabId);
+      _completeLearnNewWord(prevExercise.vocabId); // Non-blocking
     }
     await _finishSession();
   }
@@ -1352,7 +1352,7 @@ class PracticeController extends GetxController {
     }
   }
 
-  Future<void> _completeLearnNewWord(String vocabId) async {
+  void _completeLearnNewWord(String vocabId) {
     if (vocabId.isEmpty) return;
     if (_learnNewCompletedVocabIds.contains(vocabId)) return;
 
@@ -1368,32 +1368,38 @@ class PracticeController extends GetxController {
       _storage.addLearnNewVocab(_todayKey, vocab.toJson());
     }
 
-    // Auto-submit SRS update (so BE removes it from /today.newQueue)
+    // Auto-submit SRS update in background (non-blocking)
+    // This prevents UI delay when moving to next exercise
+    _submitLearnNewProgressInBackground(vocabId);
+  }
+
+  /// Submit learn new progress in background (fire-and-forget)
+  void _submitLearnNewProgressInBackground(String vocabId) {
     final total = _learnNewTotalByVocab[vocabId] ?? 0;
     final correct = _learnNewCorrectByVocab[vocabId] ?? 0;
     final ratio = total > 0 ? (correct / total) : 1.0;
     final rating = _mapRatioToRating(ratio);
     final timeSpent = _learnNewTimeSpentMsByVocab[vocabId] ?? 3000;
 
-    try {
-      await _learningRepo.submitReviewAnswer(
-        vocabId: vocabId,
-        rating: rating,
-        mode: 'learn_new',
-        timeSpent: timeSpent,
-      );
+    // Run in background without blocking UI
+    _learningRepo.submitReviewAnswer(
+      vocabId: vocabId,
+      rating: rating,
+      mode: 'learn_new',
+      timeSpent: timeSpent,
+    ).then((_) {
       Logger.d(
         'PracticeController',
         '✅ LearnNew progress submitted: vocabId=$vocabId rating=${rating.value} ratio=${ratio.toStringAsFixed(2)}',
       );
-    } catch (e) {
+    }).catchError((e) {
       Logger.e(
         'PracticeController',
         '❌ LearnNew submit progress error (vocabId=$vocabId)',
         e,
       );
       // Do not block user flow; local cache prevents repeats.
-    }
+    });
   }
 
   ReviewRating _mapRatioToRating(double ratio) {
