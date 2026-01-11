@@ -53,7 +53,7 @@ class Game30Screen extends GetView<Game30Controller> {
               return Column(
                 children: [
                   // Header
-                  _buildHeader(isDark, isSmallScreen),
+                  _buildHeader(context, isDark, isSmallScreen),
 
                   SizedBox(height: isSmallScreen ? 8 : 16),
 
@@ -193,7 +193,65 @@ class Game30Screen extends GetView<Game30Controller> {
     );
   }
 
-  Widget _buildHeader(bool isDark, bool isSmallScreen) {
+  /// Show exit confirmation dialog
+  void _showExitConfirmation(BuildContext context, bool isDark) {
+    // Skip confirmation if game is already over
+    if (controller.isGameOver.value) {
+      controller.exitGame();
+      return;
+    }
+
+    // Pause game when showing dialog
+    if (!controller.isPaused.value) {
+      controller.togglePause();
+    }
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Thoát trò chơi?',
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'Tiến trình hiện tại sẽ không được lưu.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Get.back();
+              // Resume game
+              if (controller.isPaused.value) {
+                controller.togglePause();
+              }
+            },
+            child: Text(
+              'Tiếp tục',
+              style: AppTypography.labelLarge.copyWith(color: AppColors.primary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              controller.exitGame();
+            },
+            child: Text(
+              'Thoát',
+              style: AppTypography.labelLarge.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isDark, bool isSmallScreen) {
     final buttonSize = isSmallScreen ? 40.0 : 44.0;
     final iconSize = isSmallScreen ? 20.0 : 22.0;
 
@@ -206,7 +264,7 @@ class Game30Screen extends GetView<Game30Controller> {
         children: [
           // Close button
           GestureDetector(
-            onTap: controller.exitGame,
+            onTap: () => _showExitConfirmation(context, isDark),
             child: Container(
               width: buttonSize,
               height: buttonSize,

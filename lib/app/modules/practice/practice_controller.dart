@@ -352,17 +352,20 @@ class PracticeController extends GetxController {
             }
 
             // CHECK 2: Check daily limit - dùng cả BE và local cache
+            // Use LOCAL STORAGE limit (user's choice), NOT backend value
+            final effectiveDailyLimit = _getEffectiveDailyLimit();
+            
             final localLearnedCount = _learnNewCompletedVocabIds.length;
             final beLearnedCount = today.newLearnedToday;
             final actualLearned = localLearnedCount > beLearnedCount
                 ? localLearnedCount
                 : beLearnedCount;
-            final actualRemaining = today.dailyNewLimit - actualLearned;
+            final actualRemaining = effectiveDailyLimit - actualLearned;
 
             if (actualRemaining <= 0) {
               hasNoData.value = true;
               noDataMessage.value =
-                  'Bạn đã học đủ ${today.dailyNewLimit} từ mới hôm nay! 🎉\n\nNâng cấp Premium để học không giới hạn!';
+                  'Bạn đã học đủ $effectiveDailyLimit từ mới hôm nay! 🎉';
               isLoading.value = false;
               return;
             }
@@ -1234,12 +1237,15 @@ class PracticeController extends GetxController {
           }
 
           // CHECK 2: Check daily limit - dùng cả BE và local cache
+          // Use LOCAL STORAGE limit (user's choice), NOT backend value
+          final effectiveDailyLimit = _getEffectiveDailyLimit();
+          
           final localLearnedCount = _learnNewCompletedVocabIds.length;
           final beLearnedCount = today.newLearnedToday;
           final actualLearned = localLearnedCount > beLearnedCount
               ? localLearnedCount
               : beLearnedCount;
-          final actualRemaining = today.dailyNewLimit - actualLearned;
+          final actualRemaining = effectiveDailyLimit - actualLearned;
 
           if (actualRemaining <= 0) {
             HMToast.info(ToastMessages.practiceNoNewWordsToday);
@@ -1411,6 +1417,22 @@ class PracticeController extends GetxController {
 
   static String _formatDateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Get effective daily new word limit from LOCAL STORAGE (user's choice)
+  /// This ensures consistency with TodayController and the displayed stats
+  int _getEffectiveDailyLimit() {
+    // 1. LOCAL STORAGE FIRST - User's explicit choice during setup
+    final storedLimit = _storage.userDailyNewLimit;
+    if (storedLimit > 0) return storedLimit;
+    
+    // 2. Fallback to today data (from API)
+    if (Get.isRegistered<TodayStore>()) {
+      final todayLimit = Get.find<TodayStore>().today.data.value?.dailyNewLimit;
+      if (todayLimit != null && todayLimit > 0) return todayLimit;
+    }
+    
+    return 10; // Default
   }
 
   /// Flag to prevent double-saving when exitSession() was already called

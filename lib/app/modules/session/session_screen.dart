@@ -51,7 +51,7 @@ class SessionScreen extends GetView<SessionController> {
     return AppScaffold(
         appBar: HMAppBar(
         showBackButton: true,
-        onBackPressed: controller.exitSession,
+        onBackPressed: () => _showExitConfirmation(context, isDark),
         titleWidget: Obx(() => HMLinearStepIndicator(
               totalSteps: 6, // 6 steps now including pronunciation
               currentStep: controller.currentStep.value + 1,
@@ -113,6 +113,53 @@ class SessionScreen extends GetView<SessionController> {
           ],
         );
       }),
+    );
+  }
+
+  /// Show exit confirmation dialog
+  void _showExitConfirmation(BuildContext context, bool isDark) {
+    // Skip confirmation if session is loading or already complete
+    if (controller.isLoading.value || controller.isSessionComplete.value) {
+      controller.exitSession();
+      return;
+    }
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Thoát bài học?',
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'Tiến trình hiện tại sẽ được lưu.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Tiếp tục',
+              style: AppTypography.labelLarge.copyWith(color: AppColors.primary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              controller.exitSession();
+            },
+            child: Text(
+              'Thoát',
+              style: AppTypography.labelLarge.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

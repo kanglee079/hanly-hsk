@@ -32,7 +32,7 @@ class PracticeScreen extends GetView<PracticeController> {
     return AppScaffold(
       appBar: HMAppBar(
         showBackButton: true,
-        onBackPressed: controller.exitSession,
+        onBackPressed: () => _showExitConfirmation(context, isDark),
         titleWidget: Obx(() => _buildAppBarTitle(isDark)),
         actions: [Obx(() => _buildTimer(isDark))],
       ),
@@ -687,6 +687,55 @@ class PracticeScreen extends GetView<PracticeController> {
             text: 'Bỏ qua',
             variant: HMButtonVariant.outline,
             onPressed: controller.skipExercise,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show exit confirmation dialog
+  void _showExitConfirmation(BuildContext context, bool isDark) {
+    // Skip confirmation if session hasn't really started
+    if (controller.state.value == PracticeState.loading ||
+        controller.hasNoData.value ||
+        controller.state.value == PracticeState.complete) {
+      controller.exitSession();
+      return;
+    }
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Thoát bài tập?',
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'Tiến trình hiện tại sẽ được lưu.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Tiếp tục',
+              style: AppTypography.labelLarge.copyWith(color: AppColors.primary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              controller.exitSession();
+            },
+            child: Text(
+              'Thoát',
+              style: AppTypography.labelLarge.copyWith(color: AppColors.error),
+            ),
           ),
         ],
       ),
