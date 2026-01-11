@@ -193,20 +193,19 @@ class _HskExamAllTestsScreenState extends State<HskExamAllTestsScreen> {
   }
 
   Widget _buildLoadingState(bool isDark) {
-    return Padding(
-      padding: AppSpacing.screenPadding,
-      child: Column(
-        children: List.generate(6, (_) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: HMSkeleton(
-              width: double.infinity,
-              height: 90,
-              borderRadius: BorderRadius.circular(16),
-            ),
-          );
-        }),
-      ),
+    return ListView.builder(
+      padding: AppSpacing.screenPadding.copyWith(top: 0),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: HMSkeleton(
+            width: double.infinity,
+            height: 90,
+            borderRadius: BorderRadius.circular(16),
+          ),
+        );
+      },
     );
   }
 
