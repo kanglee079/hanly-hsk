@@ -29,9 +29,6 @@ class ShellScreen extends GetView<ShellController> {
     RepaintBoundary(child: MeScreen()),
   ];
 
-  // Global key for bottom nav (used in tutorial)
-  static final GlobalKey bottomNavKey = GlobalKey();
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -49,7 +46,7 @@ class ShellScreen extends GetView<ShellController> {
           ),
           bottomNavigationBar: Obx(
             () => _PillBottomNav(
-              key: bottomNavKey,
+              key: controller.bottomNavKey,
               currentIndex: controller.currentIndex.value,
               onTap: controller.changePage,
               isDark: isDark,

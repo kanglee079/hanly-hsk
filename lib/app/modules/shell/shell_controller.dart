@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../services/realtime/realtime_sync_service.dart';
@@ -9,6 +10,10 @@ import '../today/today_controller.dart';
 class ShellController extends GetxController {
   final RxInt currentIndex = 0.obs;
   final RealtimeSyncService _rt = Get.find<RealtimeSyncService>();
+  
+  // GlobalKey for bottom nav - managed by controller to prevent duplicate key issue
+  // when navigating away and back to shell (e.g., switching accounts)
+  final GlobalKey bottomNavKey = GlobalKey(debugLabel: 'bottomNav');
 
   @override
   void onInit() {
