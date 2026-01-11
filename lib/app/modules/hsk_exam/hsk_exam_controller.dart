@@ -102,6 +102,27 @@ class HskExamController extends GetxController {
   void viewHistory() {
     Get.toNamed(Routes.hskExamHistory);
   }
+  
+  /// View all tests (shows full list instead of limited 5)
+  void viewAllTests() {
+    Get.toNamed(Routes.hskExamAllTests);
+  }
+  
+  /// Practice listening comprehension - filter to listening tests
+  void practiceListening() {
+    Get.toNamed(Routes.hskExamAllTests, arguments: {
+      'skill': 'listening',
+      'title': 'Luyện nghe hiểu',
+    });
+  }
+  
+  /// Practice reading comprehension - filter to reading tests
+  void practiceReading() {
+    Get.toNamed(Routes.hskExamAllTests, arguments: {
+      'skill': 'reading',
+      'title': 'Luyện đọc hiểu',
+    });
+  }
 
   /// Refresh all data
   Future<void> refresh() async {

@@ -60,6 +60,7 @@ abstract class Routes {
   static const String hskExamTest = '/hsk-exam/test';
   static const String hskExamHistory = '/hsk-exam/history';
   static const String hskExamReview = '/hsk-exam/review';
+  static const String hskExamAllTests = '/hsk-exam/all-tests';
   
   // Sentence Formation Practice
   static const String sentenceFormation = '/sentence-formation';

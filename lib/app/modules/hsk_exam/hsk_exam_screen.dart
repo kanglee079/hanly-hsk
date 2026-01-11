@@ -350,7 +350,7 @@ class HskExamScreen extends GetView<HskExamController> {
               ),
             ),
             GestureDetector(
-              onTap: () {},
+              onTap: controller.viewAllTests,
               child: Text(
                 'Xem tất cả',
                 style: AppTypography.labelMedium.copyWith(
@@ -546,7 +546,9 @@ class HskExamScreen extends GetView<HskExamController> {
                 title: 'Nghe hiểu',
                 subtitle: 'Luyện nghe đề thi',
                 color: const Color(0xFF3B82F6),
+                icon: Icons.headphones_rounded,
                 isDark: isDark,
+                onTap: controller.practiceListening,
               ),
             ),
             const SizedBox(width: 12),
@@ -555,7 +557,9 @@ class HskExamScreen extends GetView<HskExamController> {
                 title: 'Đọc hiểu',
                 subtitle: 'Luyện đọc đề thi',
                 color: const Color(0xFF22C55E),
+                icon: Icons.menu_book_rounded,
                 isDark: isDark,
+                onTap: controller.practiceReading,
               ),
             ),
           ],
@@ -568,26 +572,28 @@ class HskExamScreen extends GetView<HskExamController> {
     required String title,
     required String subtitle,
     required Color color,
+    required IconData icon,
     required bool isDark,
+    VoidCallback? onTap,
   }) {
     return HMCard(
-      onTap: () {},
+      onTap: onTap,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
               ),
             ),
           ),

@@ -63,6 +63,7 @@ import '../modules/sentence_formation/sentence_formation_screen.dart';
 import '../modules/hsk_exam/hsk_exam_test_screen.dart';
 import '../modules/hsk_exam/hsk_exam_history_screen.dart';
 import '../modules/hsk_exam/hsk_exam_review_screen.dart';
+import '../modules/hsk_exam/hsk_exam_all_tests_screen.dart';
 
 /// App pages configuration
 class AppPages {
@@ -296,6 +297,12 @@ class AppPages {
     GetPage(
       name: Routes.hskExamReview,
       page: () => const HskExamReviewScreen(),
+    ),
+    
+    // HSK Exam - All Tests
+    GetPage(
+      name: Routes.hskExamAllTests,
+      page: () => const HskExamAllTestsScreen(),
     ),
 
     // Stubs
