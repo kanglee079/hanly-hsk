@@ -58,17 +58,17 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
-  app_links: 585674be3c6661708e6cd794ab4f39fb9d8356f9
-  audio_session: 19e9480dbdd4e5f6c4543826b2e8b0e4ab6145fe
+  app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
+  audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_tts: 0f492aab6accf87059b72354fcb4ba934304771d
-  just_audio: a42c63806f16995daf5b219ae1d679deb76e6a79
-  path_provider_foundation: 0b743cbb62d8e47eab856f09262bb8c1ddcfe6ba
-  speech_to_text: b43a7d99aef037bd758ed8e45d79bbac035d2dfe
-  sqflite_darwin: 5a7236e3b501866c1c9befc6771dfd73ffb8702d
+  flutter_tts: b88dbc8655d3dc961bc4a796e4e16a4cc1795833
+  just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
+  path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
+  speech_to_text: ae2abc312e619ff1c53e675a9fc4d785a15c03bb
+  sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   Try: 5ef669ae832617b3cee58cb2c6f99fb767a4ff96
-  url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
+  url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
 PODFILE CHECKSUM: 2ebfac0ad1efdb6dce82e11a6d5712f828af66cb
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2

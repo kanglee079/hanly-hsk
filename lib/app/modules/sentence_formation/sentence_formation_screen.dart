@@ -25,6 +25,8 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
     return AppScaffold(
       appBar: _buildAppBar(isDark),
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -36,6 +38,7 @@ class SentenceFormationScreen extends GetView<SentenceFormationController> {
         ),
         child: SafeArea(
           top: false,
+          bottom: false,
           child: Obx(() {
             switch (controller.state.value) {
               case SentenceState.loading:
@@ -680,6 +683,7 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
     return FadeTransition(
       opacity: _fadeIn,
       child: Column(
+        mainAxisSize: MainAxisSize.max,
         children: [
           // Streak indicator (if any)
           if (widget.streak > 1)
@@ -717,6 +721,7 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   // Prompt section
                   _buildPromptSection(),
@@ -1078,13 +1083,23 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
   }
 
   Widget _buildBottomSection() {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: widget.isDark
+              ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+              : [const Color(0xFFFFFBF5), const Color(0xFFFFF3E0)],
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // Feedback
             if (_hasChecked)
               Padding(
@@ -1154,6 +1169,7 @@ class _SentenceExerciseWidgetState extends State<_SentenceExerciseWidget>
               ],
             ),
           ],
+        ),
         ),
       ),
     );
