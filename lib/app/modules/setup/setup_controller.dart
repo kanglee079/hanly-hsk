@@ -138,7 +138,7 @@ class SetupController extends GetxController {
       
       // Submit onboarding to server
       // dailyMinutesTarget = selectedWordLimit (1 word = 1 minute)
-      await _authService.submitOnboarding(
+      final onboardingSuccess = await _authService.submitOnboarding(
         displayName: nameController.text.trim(),
         goalType: selectedGoals.contains('exam') ? 'hsk_exam' : 
                  selectedGoals.contains('daily') ? 'conversation' : 'both',
@@ -147,6 +147,16 @@ class SetupController extends GetxController {
         dailyNewLimit: selectedWordLimit.value,
         focusWeights: {'listening': 0.33, 'hanzi': 0.34, 'meaning': 0.33},
       );
+      
+      // IMPORTANT: Also call PUT /me/profile to ensure dailyNewLimit is synced
+      // Backend confirmed PUT /me/profile has dailyNewLimit field
+      if (onboardingSuccess) {
+        await _authService.updateProfile({
+          'dailyNewLimit': selectedWordLimit.value,
+          'dailyMinutesTarget': selectedWordLimit.value,
+        });
+        Logger.d('SetupController', '✅ dailyNewLimit synced: ${selectedWordLimit.value}');
+      }
       
       _authService.markSetupComplete();
       

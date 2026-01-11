@@ -5,6 +5,9 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
 import 'pronunciation_controller.dart';
 
+// Theme color for Pronunciation (Green)
+const _kThemeColor = Color(0xFF4CAF50);
+
 /// Pronunciation practice screen with speech recognition
 class PronunciationScreen extends GetView<PronunciationController> {
   const PronunciationScreen({super.key});
@@ -16,7 +19,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
     return AppScaffold(
       appBar: HMAppBar(
         showBackButton: true,
-        onBackPressed: controller.goBack,
+        onBackPressed: () => _showExitConfirmation(context, isDark),
         titleWidget: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
@@ -98,6 +101,55 @@ class PronunciationScreen extends GetView<PronunciationController> {
             return _buildPracticeView(context, isDark);
           }),
         ),
+      ),
+    );
+  }
+
+  /// Show exit confirmation dialog
+  void _showExitConfirmation(BuildContext context, bool isDark) {
+    // Skip confirmation if not started or already finished
+    if (controller.isLoading.value || 
+        controller.words.isEmpty ||
+        controller.isSessionComplete.value) {
+      controller.goBack();
+      return;
+    }
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Thoát bài tập?',
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'Tiến trình hiện tại sẽ không được lưu.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Tiếp tục',
+              style: AppTypography.labelLarge.copyWith(color: _kThemeColor),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              controller.goBack();
+            },
+            child: Text(
+              'Thoát',
+              style: AppTypography.labelLarge.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
       ),
     );
   }

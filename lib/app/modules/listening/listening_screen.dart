@@ -77,9 +77,23 @@ class ListeningScreen extends GetView<ListeningController> {
           top: false,
           child: Obx(() {
             if (controller.isLoading.value) {
-              return const HMLoadingContent(
-                message: 'Đang tải bài nghe...',
-                icon: Icons.headphones_rounded,
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    HMLoadingIndicator(
+                      size: 48,
+                      color: isDark ? Colors.white : const Color(0xFF2196F3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Đang tải bài nghe...',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: isDark ? Colors.white70 : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
               );
             }
 
