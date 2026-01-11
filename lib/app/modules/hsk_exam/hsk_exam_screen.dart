@@ -19,8 +19,6 @@ class HskExamScreen extends GetView<HskExamController> {
       Get.find<TutorialService>().registerKey('hsk_level_select');
   GlobalKey get _practiceKey =>
       Get.find<TutorialService>().registerKey('hsk_practice');
-  GlobalKey get _skillPracticeKey =>
-      Get.find<TutorialService>().registerKey('hsk_skill_practice');
   GlobalKey get _historyKey =>
       Get.find<TutorialService>().registerKey('hsk_history');
 
@@ -90,21 +88,6 @@ class HskExamScreen extends GetView<HskExamController> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: _buildMockTestsSection(isDark),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Practice section
-                      Showcase(
-                        key: _skillPracticeKey,
-                        title: 'Luyện kỹ năng',
-                        description:
-                            'Luyện từng kỹ năng riêng: Nghe, Đọc, Viết.',
-                        overlayOpacity: 0.7,
-                        targetShapeBorder: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: _buildPracticeSection(isDark),
                       ),
 
                       const SizedBox(height: 20),
@@ -524,99 +507,6 @@ class HskExamScreen extends GetView<HskExamController> {
       default:
         return AppColors.primary;
     }
-  }
-
-  /// Practice section - grid of practice types
-  Widget _buildPracticeSection(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Luyện tập theo phần',
-          style: AppTypography.titleSmall.copyWith(
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildPracticeCard(
-                title: 'Nghe hiểu',
-                subtitle: 'Luyện nghe đề thi',
-                color: const Color(0xFF3B82F6),
-                icon: Icons.headphones_rounded,
-                isDark: isDark,
-                onTap: controller.practiceListening,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildPracticeCard(
-                title: 'Đọc hiểu',
-                subtitle: 'Luyện đọc đề thi',
-                color: const Color(0xFF22C55E),
-                icon: Icons.menu_book_rounded,
-                isDark: isDark,
-                onTap: controller.practiceReading,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPracticeCard({
-    required String title,
-    required String subtitle,
-    required Color color,
-    required IconData icon,
-    required bool isDark,
-    VoidCallback? onTap,
-  }) {
-    return HMCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Icon(
-                icon,
-                color: color,
-                size: 24,
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: AppTypography.titleSmall.copyWith(
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: AppTypography.bodySmall.copyWith(
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   /// Tips section - clean list

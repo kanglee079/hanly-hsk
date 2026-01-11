@@ -23,17 +23,12 @@ class _HskExamAllTestsScreenState extends State<HskExamAllTestsScreen> {
   List<MockTestModel> tests = [];
   bool isLoading = true;
   String selectedLevel = 'all';
-  String? skillFilter;
-  String screenTitle = 'Tất cả đề thi';
 
   final levels = ['all', 'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'];
 
   @override
   void initState() {
     super.initState();
-    // Get skill filter from arguments
-    skillFilter = Get.arguments?['skill'] as String?;
-    screenTitle = Get.arguments?['title'] as String? ?? 'Tất cả đề thi';
     _loadTests();
   }
 
@@ -43,18 +38,6 @@ class _HskExamAllTestsScreenState extends State<HskExamAllTestsScreen> {
       tests = await _examRepo.getTests(
         level: selectedLevel == 'all' ? null : selectedLevel,
       );
-      
-      // Filter by skill if specified
-      if (skillFilter != null) {
-        tests = tests.where((test) {
-          if (skillFilter == 'listening') {
-            return test.sections.any((s) => s.isListening);
-          } else if (skillFilter == 'reading') {
-            return test.sections.any((s) => !s.isListening);
-          }
-          return true;
-        }).toList();
-      }
     } catch (e) {
       HMToast.error(ToastMessages.examTestsLoadError);
     }
@@ -115,26 +98,12 @@ class _HskExamAllTestsScreenState extends State<HskExamAllTestsScreen> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  screenTitle,
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (skillFilter != null)
-                  Text(
-                    skillFilter == 'listening' 
-                        ? 'Luyện tập phần nghe' 
-                        : 'Luyện tập phần đọc',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-                    ),
-                  ),
-              ],
+            child: Text(
+              'Tất cả đề thi',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           // Test count badge
@@ -217,11 +186,7 @@ class _HskExamAllTestsScreenState extends State<HskExamAllTestsScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              skillFilter == 'listening' 
-                  ? Icons.headphones_rounded 
-                  : skillFilter == 'reading' 
-                      ? Icons.menu_book_rounded 
-                      : Icons.quiz_rounded,
+              Icons.quiz_rounded,
               size: 64,
               color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
             ),
@@ -234,11 +199,7 @@ class _HskExamAllTestsScreenState extends State<HskExamAllTestsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              skillFilter == 'listening'
-                  ? 'Chưa có đề luyện nghe cho cấp độ này'
-                  : skillFilter == 'reading'
-                      ? 'Chưa có đề luyện đọc cho cấp độ này'
-                      : 'Chưa có đề thi cho cấp độ này',
+              'Chưa có đề thi cho cấp độ này',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
