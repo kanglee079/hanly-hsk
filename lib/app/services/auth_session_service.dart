@@ -9,6 +9,7 @@ import '../core/utils/logger.dart';
 import '../routes/app_routes.dart';
 import 'storage_service.dart';
 import 'realtime/realtime_sync_service.dart';
+import 'realtime/today_store.dart';
 
 /// Auth session service - Anonymous-First + Email + Password + 2FA
 class AuthSessionService extends GetxService {
@@ -527,16 +528,27 @@ class AuthSessionService extends GetxService {
 
   /// Handle successful auth (save tokens, fetch user)
   Future<void> _handleAuthSuccess(AuthTokensModel tokens) async {
-    // Clear previous user's cached data to prevent cross-account data leakage
-    // This is important when switching accounts
+    // CRITICAL: Clear previous user's data to prevent cross-account data leakage
+    // This includes local storage (learning progress) and realtime sync cache
+    Logger.d('AuthSessionService', '🔄 Clearing previous user data before auth success');
+    
+    // 1. Clear user-specific data from local storage (NOT tokens - we'll save new ones)
+    _storage.clearUserSpecificData();
+    
+    // 2. Clear realtime sync cached data
     try {
       if (Get.isRegistered<RealtimeSyncService>()) {
         Get.find<RealtimeSyncService>().clearAllCachedData();
+      }
+      // Also clear TodayStore specifically
+      if (Get.isRegistered<TodayStore>()) {
+        Get.find<TodayStore>().clearAllData();
       }
     } catch (e) {
       Logger.w('AuthSessionService', 'Error clearing cached data: $e');
     }
     
+    // 3. Save new tokens
     _storage.saveTokens(
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -545,12 +557,15 @@ class AuthSessionService extends GetxService {
     // Update anonymous flag based on tokens (linked email = not anonymous)
     isAnonymous.value = tokens.isAnonymous ?? false;
 
+    // 4. Fetch and store new user data
     if (tokens.user != null) {
       _storage.user = tokens.user;
       currentUser.value = tokens.user;
     } else {
       await fetchCurrentUser();
     }
+    
+    Logger.d('AuthSessionService', '✅ Auth success handled, new user: ${currentUser.value?.email ?? "anonymous"}');
   }
 
   /// Refresh tokens (called by RefreshInterceptor or manually)

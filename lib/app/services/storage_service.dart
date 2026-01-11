@@ -186,6 +186,13 @@ class StorageService {
     _box.remove(_keyAccessToken);
     _box.remove(_keyRefreshToken);
     _box.remove(_keyUser);
+    clearUserSpecificData();
+  }
+  
+  /// Clear only user-specific data (NOT tokens)
+  /// Called when switching accounts to prevent cross-account data leakage
+  void clearUserSpecificData() {
+    _box.remove(_keyUser);
     _box.remove(_keyOnboardingComplete);
     // Clear user-specific cached data
     _box.remove(_keyRecentVocabs);
@@ -200,7 +207,8 @@ class StorageService {
     _box.remove(_keyUserLevel);
     _box.remove(_keyUserGoals);
     _box.remove(_keyUserDailyMinutes);
-    // Keep lastEmail and isIntroSeen for convenience
+    _box.remove(_keyUserDailyNewLimit);
+    // Keep lastEmail, isIntroSeen, and deviceId for convenience
   }
 
   // Clear all storage
