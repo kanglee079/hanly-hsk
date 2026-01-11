@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/hm_button.dart';
 import '../../core/widgets/hm_text_field.dart';
+import '../../core/widgets/app_scaffold.dart';
 import 'auth_controller.dart';
 
 /// Register screen with email + password - Clean & Compact design
@@ -14,11 +15,8 @@ class RegisterScreen extends GetView<AuthController> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-        body: SafeArea(
+    return AppScaffold(
+      body: SafeArea(
           child: Column(
             children: [
               // Fixed top - Back button
@@ -68,8 +66,7 @@ class RegisterScreen extends GetView<AuthController> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildBackButton(bool isDark) {

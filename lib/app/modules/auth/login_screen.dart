@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/hm_button.dart';
 import '../../core/widgets/hm_text_field.dart';
+import '../../core/widgets/app_scaffold.dart';
 import 'auth_controller.dart';
 
 /// Login screen with email + password - Clean & Compact design
@@ -15,11 +16,8 @@ class LoginScreen extends GetView<AuthController> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-        body: SafeArea(
+    return AppScaffold(
+      body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
@@ -79,8 +77,7 @@ class LoginScreen extends GetView<AuthController> {
             },
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildLogo() {

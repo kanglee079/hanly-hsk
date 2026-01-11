@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/hm_button.dart';
+import '../../core/widgets/app_scaffold.dart';
 import '../../services/auth_session_service.dart';
 import 'auth_controller.dart';
 
@@ -16,11 +17,8 @@ class Verify2FAScreen extends GetView<AuthController> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authService = Get.find<AuthSessionService>();
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-        body: SafeArea(
+    return AppScaffold(
+      body: SafeArea(
           child: Column(
             children: [
               // Fixed top - Back button
@@ -92,8 +90,7 @@ class Verify2FAScreen extends GetView<AuthController> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildBackButton(bool isDark) {

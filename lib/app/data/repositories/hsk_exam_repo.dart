@@ -29,20 +29,44 @@ class HskExamRepo {
       if (type != null) 'type': type,
     };
 
+    print('🔍 [HSK Exam Repo] Fetching tests with params: $queryParams');
     final response = await _api.get(
       ApiEndpoints.hskExamTests,
       queryParameters: queryParams,
     );
+    print('📦 [HSK Exam Repo] Response data: ${response.data}');
+    
     final data = response.data['data'] ?? response.data;
     final tests = data['tests'] as List<dynamic>? ?? data as List<dynamic>? ?? [];
-    return tests.map((e) => MockTestModel.fromJson(e as Map<String, dynamic>)).toList();
+    print('📊 [HSK Exam Repo] Found ${tests.length} tests in response');
+    
+    final parsedTests = tests.map((e) => MockTestModel.fromJson(e as Map<String, dynamic>)).toList();
+    print('✅ [HSK Exam Repo] Parsed ${parsedTests.length} tests');
+    
+    return parsedTests;
   }
 
   /// Get test details (start attempt)
   Future<MockTestWithAttempt> getTestDetail(String testId) async {
+    print('🔍 [HSK Exam Repo] Fetching test detail for: $testId');
     final response = await _api.get('${ApiEndpoints.hskExamTests}/$testId');
+    print('📦 [HSK Exam Repo] Test detail response: ${response.data}');
+    
     final data = response.data['data'] ?? response.data;
-    return MockTestWithAttempt.fromJson(data);
+    final result = MockTestWithAttempt.fromJson(data);
+    
+    print('✅ [HSK Exam Repo] Test detail parsed:');
+    print('   - Title: ${result.test.title}');
+    print('   - Level: ${result.test.level}');
+    print('   - Sections: ${result.test.sections.length}');
+    print('   - Total questions: ${result.test.totalQuestions}');
+    
+    for (var i = 0; i < result.test.sections.length; i++) {
+      final section = result.test.sections[i];
+      print('   - Section ${i + 1}: ${section.name} (${section.questions.length} questions)');
+    }
+    
+    return result;
   }
 
   /// Submit test answers

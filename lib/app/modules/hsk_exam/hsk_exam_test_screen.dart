@@ -79,7 +79,34 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
     });
 
     try {
+      print('🔍 [HSK Exam] Loading test: $testId');
       final result = await _examRepo.getTestDetail(testId);
+      print('✅ [HSK Exam] Test loaded successfully');
+      print('📊 [HSK Exam] Test title: ${result.test.title}');
+      print('📊 [HSK Exam] Sections: ${result.test.sections.length}');
+      print('📊 [HSK Exam] Total questions: ${result.test.totalQuestions}');
+      
+      // Check if test has data
+      if (result.test.sections.isEmpty) {
+        print('⚠️ [HSK Exam] Test has no sections!');
+        setState(() {
+          errorMessage = 'Đề thi chưa có nội dung. Vui lòng chọn đề khác.';
+          isLoading = false;
+        });
+        return;
+      }
+      
+      // Check if sections have questions
+      final totalQuestionsInSections = result.test.sections.fold(0, (sum, s) => sum + s.questions.length);
+      if (totalQuestionsInSections == 0) {
+        print('⚠️ [HSK Exam] Sections have no questions!');
+        setState(() {
+          errorMessage = 'Đề thi chưa có câu hỏi. Vui lòng chọn đề khác.';
+          isLoading = false;
+        });
+        return;
+      }
+      
       setState(() {
         test = result.test;
         attempt = result.attempt;
@@ -87,7 +114,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
         isLoading = false;
       });
       _startTimer();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [HSK Exam] Error loading test: $e');
+      print('Stack trace: $stackTrace');
       setState(() {
         errorMessage = 'Không thể tải đề thi. Vui lòng thử lại.';
         isLoading = false;

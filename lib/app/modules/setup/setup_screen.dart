@@ -15,9 +15,11 @@ class SetupScreen extends GetView<SetupController> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-      body: SafeArea(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+        body: SafeArea(
         child: Column(
           children: [
             // Progress indicator
@@ -41,6 +43,7 @@ class SetupScreen extends GetView<SetupController> {
             _buildBottomNav(isDark),
           ],
         ),
+      ),
       ),
     );
   }

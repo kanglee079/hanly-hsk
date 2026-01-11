@@ -15,13 +15,15 @@ class LinkAccountScreen extends GetView<LinkAccountController> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-      appBar: HMAppBar(
-        title: 'Liên kết tài khoản',
-        showBackButton: true,
-      ),
-      body: SafeArea(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+        appBar: HMAppBar(
+          title: 'Liên kết tài khoản',
+          showBackButton: true,
+        ),
+        body: SafeArea(
         child: Obx(() {
           switch (controller.currentStep.value) {
             case LinkAccountStep.email:
@@ -34,6 +36,7 @@ class LinkAccountScreen extends GetView<LinkAccountController> {
               return _ErrorStep(controller: controller, isDark: isDark);
           }
         }),
+      ),
       ),
     );
   }

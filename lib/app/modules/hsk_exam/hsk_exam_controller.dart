@@ -72,11 +72,18 @@ class HskExamController extends GetxController {
   Future<void> loadTests() async {
     isLoadingTests.value = true;
     try {
+      print('🔍 [HSK Exam Controller] Loading tests for level: ${selectedLevel.value}');
       tests.value = await _examRepo.getTests(
         level: selectedLevel.value == 'all' ? null : selectedLevel.value,
       );
-    } catch (e) {
+      print('✅ [HSK Exam Controller] Tests loaded: ${tests.length}');
+      for (var test in tests) {
+        print('   - ${test.title} (${test.level}) - ${test.totalQuestions} questions, ${test.sections.length} sections');
+      }
+    } catch (e, stackTrace) {
       // Failed to load tests
+      print('❌ [HSK Exam Controller] Error loading tests: $e');
+      print('Stack trace: $stackTrace');
       HMToast.error(ToastMessages.examTestsLoadError);
     } finally {
       isLoadingTests.value = false;
