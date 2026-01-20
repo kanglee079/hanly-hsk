@@ -112,6 +112,7 @@ class MeRepo {
   }
 
   /// Upload avatar
+  /// Returns the avatar URL or throws if failed
   Future<String> uploadAvatar(File imageFile) async {
     final fileName = imageFile.path.split('/').last;
     final formData = FormData.fromMap({
@@ -124,7 +125,13 @@ class MeRepo {
     final response = await _api.post(ApiEndpoints.meAvatar, data: formData);
 
     final data = response.data['data'] ?? response.data;
-    return data['avatarUrl'] as String;
+    final avatarUrl = data['avatarUrl'];
+
+    if (avatarUrl == null || avatarUrl.toString().isEmpty) {
+      throw Exception('Upload failed: No avatar URL returned');
+    }
+
+    return avatarUrl as String;
   }
 }
 
