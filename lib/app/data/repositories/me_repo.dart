@@ -111,9 +111,12 @@ class MeRepo {
     return NotificationSettingsModel.fromJson(response.data);
   }
 
-  /// Upload avatar
-  /// Returns the avatar URL or throws if failed
-  Future<String> uploadAvatar(File imageFile) async {
+  /// Upload avatar with progress tracking
+  /// [onProgress] callback receives value from 0.0 to 1.0
+  Future<String> uploadAvatar(
+    File imageFile, {
+    void Function(double progress)? onProgress,
+  }) async {
     final fileName = imageFile.path.split('/').last;
     final formData = FormData.fromMap({
       'avatar': await MultipartFile.fromFile(
@@ -122,7 +125,15 @@ class MeRepo {
       ),
     });
 
-    final response = await _api.post(ApiEndpoints.meAvatar, data: formData);
+    final response = await _api.dio.post(
+      ApiEndpoints.meAvatar,
+      data: formData,
+      onSendProgress: (sent, total) {
+        if (total > 0 && onProgress != null) {
+          onProgress(sent / total);
+        }
+      },
+    );
 
     final data = response.data['data'] ?? response.data;
     final avatarUrl = data['avatarUrl'];

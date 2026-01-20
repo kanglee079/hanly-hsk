@@ -16,6 +16,7 @@ class EditProfileController extends GetxController {
   final displayNameController = TextEditingController();
   final RxBool isLoading = false.obs;
   final RxBool isUploadingAvatar = false.obs;
+  final RxDouble uploadProgress = 0.0.obs;
   final Rx<File?> selectedImage = Rx<File?>(null);
 
   @override
@@ -26,7 +27,8 @@ class EditProfileController extends GetxController {
 
   void _loadCurrentData() {
     final user = _authService.currentUser.value;
-    displayNameController.text = user?.displayName ?? user?.profile?.displayName ?? '';
+    displayNameController.text =
+        user?.displayName ?? user?.profile?.displayName ?? '';
   }
 
   @override
@@ -40,9 +42,9 @@ class EditProfileController extends GetxController {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        maxWidth: 512, // Reduced for faster upload
+        maxHeight: 512,
+        imageQuality: 70, // Lower quality for faster upload
       );
 
       if (image != null) {
@@ -56,18 +58,27 @@ class EditProfileController extends GetxController {
     }
   }
 
-  /// Upload avatar to server
+  /// Upload avatar to server with progress tracking
   Future<void> uploadAvatar() async {
     if (selectedImage.value == null) return;
 
     isUploadingAvatar.value = true;
+    uploadProgress.value = 0.0;
 
     try {
-      final avatarUrl = await _meRepo.uploadAvatar(selectedImage.value!);
-      
+      final avatarUrl = await _meRepo.uploadAvatar(
+        selectedImage.value!,
+        onProgress: (progress) {
+          uploadProgress.value = progress;
+        },
+      );
+
       // Update local user data
       await _authService.fetchCurrentUser();
-      
+
+      // Clear selected image so UI shows the server avatar
+      selectedImage.value = null;
+
       HMToast.success('Cập nhật ảnh đại diện thành công!');
       Logger.d('EditProfileController', 'Avatar uploaded: $avatarUrl');
     } catch (e) {
@@ -76,6 +87,7 @@ class EditProfileController extends GetxController {
       selectedImage.value = null;
     } finally {
       isUploadingAvatar.value = false;
+      uploadProgress.value = 0.0;
     }
   }
 
@@ -92,10 +104,10 @@ class EditProfileController extends GetxController {
 
     try {
       await _meRepo.updateProfile({'displayName': displayName});
-      
+
       // Refresh user data
       await _authService.fetchCurrentUser();
-      
+
       HMToast.success('Cập nhật thông tin thành công!');
       Get.back();
     } catch (e) {
