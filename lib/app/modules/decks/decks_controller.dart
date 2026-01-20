@@ -9,6 +9,7 @@ import '../../core/constants/strings_vi.dart';
 import '../../routes/app_routes.dart';
 
 /// Decks controller - uses real BE API
+/// OPTIMIZED: Prevents duplicate API calls with guard
 class DecksController extends GetxController {
   final DecksRepo _decksRepo = Get.find<DecksRepo>();
 
@@ -16,11 +17,17 @@ class DecksController extends GetxController {
   final RxBool isLoading = false.obs;
 
   final nameController = TextEditingController();
+  
+  // Guard against duplicate loads
+  bool _isInitialized = false;
 
   @override
   void onInit() {
     super.onInit();
-    loadDecks();
+    if (!_isInitialized) {
+      _isInitialized = true;
+      loadDecks();
+    }
   }
 
   @override
@@ -29,7 +36,13 @@ class DecksController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadDecks() async {
+  Future<void> loadDecks({bool forceRefresh = false}) async {
+    // Prevent duplicate calls
+    if (isLoading.value) return;
+    
+    // Skip if already have data and not forcing refresh
+    if (!forceRefresh && decks.isNotEmpty) return;
+    
     isLoading.value = true;
 
     try {

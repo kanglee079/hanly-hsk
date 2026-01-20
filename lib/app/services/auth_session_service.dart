@@ -338,22 +338,24 @@ class AuthSessionService extends GetxService {
   Future<RegisterResponseModel?> register({
     required String email,
     required String password,
-    required String confirmPassword,
   }) async {
     try {
       isLoading.value = true;
       
+      // Get current anonymous user ID for auto-merge
+      final anonymousUserId = currentUser.value?.id;
+      
       final response = await _authRepo.register(
         email: email,
         password: password,
-        confirmPassword: confirmPassword,
+        anonymousUserId: anonymousUserId, // Auto-merge from anonymous account
       );
       
       if (response.success && response.tokens != null) {
         await _handleAuthSuccess(response.tokens!);
       }
       
-      Logger.d('AuthSessionService', 'Register successful for $email');
+      Logger.d('AuthSessionService', 'Register successful for $email. Merged: ${response.merged}');
       return response;
     } catch (e) {
       Logger.e('AuthSessionService', 'register error', e);

@@ -5,6 +5,7 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/hm_button.dart';
 import '../../core/widgets/hm_app_bar.dart';
 import '../../core/widgets/hm_loading.dart';
+import '../../routes/app_routes.dart';
 import 'donation_controller.dart';
 
 class DonationScreen extends GetView<DonationController> {
@@ -155,7 +156,7 @@ class DonationScreen extends GetView<DonationController> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () => Get.toNamed(Routes.aboutUs),
                               child: Text(
                                 'Về chúng tôi',
                                 style: AppTypography.bodySmall.copyWith(
@@ -170,7 +171,7 @@ class DonationScreen extends GetView<DonationController> {
                               ),
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () => Get.toNamed(Routes.contactUs),
                               child: Text(
                                 'Liên hệ',
                                 style: AppTypography.bodySmall.copyWith(

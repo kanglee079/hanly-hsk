@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'app_routes.dart';
@@ -64,6 +63,18 @@ import '../modules/hsk_exam/hsk_exam_test_screen.dart';
 import '../modules/hsk_exam/hsk_exam_history_screen.dart';
 import '../modules/hsk_exam/hsk_exam_review_screen.dart';
 import '../modules/hsk_exam/hsk_exam_all_tests_screen.dart';
+import '../modules/edit_profile/edit_profile_binding.dart';
+import '../modules/edit_profile/edit_profile_screen.dart';
+import '../modules/notification_settings/notification_settings_binding.dart';
+import '../modules/notification_settings/notification_settings_screen.dart';
+import '../modules/sound_settings/sound_settings_binding.dart';
+import '../modules/sound_settings/sound_settings_screen.dart';
+import '../modules/offline_download/offline_download_binding.dart';
+import '../modules/offline_download/offline_download_screen.dart';
+import '../modules/legal/privacy_policy_screen.dart';
+import '../modules/legal/terms_of_service_screen.dart';
+import '../modules/info/about_us_screen.dart';
+import '../modules/info/contact_us_screen.dart';
 
 /// App pages configuration
 class AppPages {
@@ -105,10 +116,12 @@ class AppPages {
     GetPage(
       name: Routes.authRegister,
       page: () => const RegisterScreen(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: Routes.authVerify2FA,
       page: () => const Verify2FAScreen(),
+      binding: AuthBinding(),
     ),
 
     // Onboarding (deprecated - use setup)
@@ -305,28 +318,44 @@ class AppPages {
       page: () => const HskExamAllTestsScreen(),
     ),
 
-    // Stubs
+    // Profile & Settings Screens
+    GetPage(
+      name: Routes.editProfile,
+      page: () => const EditProfileScreen(),
+      binding: EditProfileBinding(),
+    ),
+    GetPage(
+      name: Routes.notificationSettings,
+      page: () => const NotificationSettingsScreen(),
+      binding: NotificationSettingsBinding(),
+    ),
+    GetPage(
+      name: Routes.soundSettings,
+      page: () => const SoundSettingsScreen(),
+      binding: SoundSettingsBinding(),
+    ),
+    GetPage(
+      name: Routes.offlineDownload,
+      page: () => const OfflineDownloadScreen(),
+      binding: OfflineDownloadBinding(),
+    ),
+
+    // Legal & Info Screens
     GetPage(
       name: Routes.privacyPolicy,
-      page: () => const _PlaceholderScreen(title: 'Chính sách bảo mật'),
+      page: () => const PrivacyPolicyScreen(),
     ),
     GetPage(
       name: Routes.termsOfService,
-      page: () => const _PlaceholderScreen(title: 'Điều khoản sử dụng'),
+      page: () => const TermsOfServiceScreen(),
+    ),
+    GetPage(
+      name: Routes.aboutUs,
+      page: () => const AboutUsScreen(),
+    ),
+    GetPage(
+      name: Routes.contactUs,
+      page: () => const ContactUsScreen(),
     ),
   ];
-}
-
-/// Placeholder screen for stubs
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const _PlaceholderScreen({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const Center(child: Text('Nội dung sẽ được cập nhật')),
-    );
-  }
 }

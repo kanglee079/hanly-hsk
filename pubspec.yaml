@@ -19,6 +19,9 @@ dependencies:
   # Local storage
   get_storage: ^2.1.1
   
+  # SQLite for offline-first vocab database
+  sqflite: ^2.3.0
+  
   # Networking
   dio: ^5.4.0
   
@@ -53,6 +56,9 @@ dependencies:
   
   # Deep linking for magic link authentication
   app_links: ^6.3.3
+  
+  # Image picker for avatar upload
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:
@@ -65,3 +71,4 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/database/

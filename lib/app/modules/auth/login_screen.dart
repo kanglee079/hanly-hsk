@@ -17,7 +17,7 @@ class LoginScreen extends GetView<AuthController> {
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
     return AppScaffold(
-      body: SafeArea(
+        body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
@@ -75,9 +75,9 @@ class LoginScreen extends GetView<AuthController> {
                 ),
               );
             },
-          ),
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildLogo() {

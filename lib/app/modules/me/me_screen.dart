@@ -881,7 +881,7 @@ class MeScreen extends GetView<MeController> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
-                          child: Text('☁️', style: TextStyle(fontSize: 24)),
+                          child: Icon(Icons.warning_rounded, color: AppColors.warning, size: 28),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -898,7 +898,7 @@ class MeScreen extends GetView<MeController> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Liên kết email để backup & đồng bộ qua các thiết bị',
+                              'Dữ liệu có thể mất khi xóa app. Tạo tài khoản để backup.',
                               style: AppTypography.bodySmall.copyWith(
                                 color: isDark
                                     ? Colors.white.withValues(alpha: 0.8)
@@ -914,9 +914,9 @@ class MeScreen extends GetView<MeController> {
                   SizedBox(
                     width: double.infinity,
                     child: HMButton(
-                      text: 'Liên kết tài khoản',
-                      onPressed: () => Get.toNamed(Routes.linkAccount),
-                      icon: const Icon(Icons.link_rounded, size: 18, color: Colors.white),
+                      text: 'Tạo tài khoản để backup',
+                      onPressed: () => Get.toNamed(Routes.authRegister),
+                      icon: const Icon(Icons.cloud_upload_rounded, size: 18, color: Colors.white),
                     ),
                   ),
                 ],
@@ -956,7 +956,7 @@ class MeScreen extends GetView<MeController> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Đăng nhập tài khoản khác',
+                                  'Đăng nhập tài khoản có sẵn',
                                   style: AppTypography.bodyLarge.copyWith(
                                     color: isDark
                                         ? AppColors.textPrimaryDark
@@ -965,7 +965,7 @@ class MeScreen extends GetView<MeController> {
                                   ),
                                 ),
                                 Text(
-                                  'Đã có tài khoản? Đăng nhập để đồng bộ',
+                                  'Đã tạo tài khoản? Đăng nhập để đồng bộ data',
                                   style: AppTypography.bodySmall.copyWith(
                                     color: isDark
                                         ? AppColors.textSecondaryDark

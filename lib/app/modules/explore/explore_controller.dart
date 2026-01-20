@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/vocab_model.dart';
 import '../../data/models/collection_model.dart';
-import '../../data/repositories/vocab_repo.dart';
+import '../../data/local/vocab_local_datasource.dart';
 import '../../data/repositories/favorites_repo.dart';
 import '../../data/repositories/collections_repo.dart';
 import '../../services/storage_service.dart';
@@ -55,9 +54,10 @@ enum BrowseMode {
   topic,     // Browse by topic
 }
 
-/// Explore controller - uses real BE API
+/// Explore controller - uses LOCAL DATABASE (offline-first)
 class ExploreController extends GetxController {
-  final VocabRepo _vocabRepo = Get.find<VocabRepo>();
+  // OFFLINE-FIRST: Use local database instead of API
+  final VocabLocalDataSource _vocabLocal = Get.find<VocabLocalDataSource>();
   final FavoritesRepo _favoritesRepo = Get.find<FavoritesRepo>();
   final CollectionsRepo _collectionsRepo = Get.find<CollectionsRepo>();
   final StorageService _storage = Get.find<StorageService>();
@@ -230,7 +230,7 @@ class ExploreController extends GetxController {
     );
   }
 
-  /// Load daily pick vocab - truly random per day
+  /// Load daily pick vocab - truly random per day (OFFLINE-FIRST)
   Future<void> loadDailyPick() async {
     isLoadingDailyPick.value = true;
     try {
@@ -244,26 +244,14 @@ class ExploreController extends GetxController {
         return;
       }
 
-      // Generate a random page based on today's date for consistency
-      final random = Random(today.hashCode);
-      final randomPage = random.nextInt(50) + 1; // Pages 1-50
+      // OFFLINE-FIRST: Get daily pick from local database
+      final vocab = await _vocabLocal.getDailyPick(today);
       
-      final result = await _vocabRepo.getVocabs(
-        page: randomPage,
-        limit: 10,
-        sort: 'frequency_rank',
-        order: 'asc',
-      );
-      
-      if (result.items.isNotEmpty) {
-        // Pick a random vocab from the page
-        final randomIndex = random.nextInt(result.items.length);
-        final selectedVocab = result.items[randomIndex];
-        
-        dailyPick.value = selectedVocab;
+      if (vocab != null) {
+        dailyPick.value = vocab;
         _storage.saveDailyPick({
           'date': today,
-          'vocab': selectedVocab.toJson(),
+          'vocab': vocab.toJson(),
         });
       }
     } catch (e) {
@@ -312,7 +300,7 @@ class ExploreController extends GetxController {
     _saveRecentItems();
   }
 
-  /// Load vocabs for browsing (level or topic)
+  /// Load vocabs for browsing (level or topic) - OFFLINE-FIRST
   Future<void> loadBrowseVocabs({bool refresh = true}) async {
     if (refresh) {
       _currentPage = 1;
@@ -324,7 +312,8 @@ class ExploreController extends GetxController {
     }
 
     try {
-      final result = await _vocabRepo.getVocabs(
+      // OFFLINE-FIRST: Query local database instead of API
+      final result = await _vocabLocal.getVocabs(
         page: _currentPage,
         limit: _pageLimit,
         level: selectedLevel.value.isNotEmpty ? selectedLevel.value : null,
@@ -359,19 +348,21 @@ class ExploreController extends GetxController {
     await loadBrowseVocabs(refresh: false);
   }
 
+  /// Load metadata (topics, word types) - OFFLINE-FIRST
   Future<void> loadMeta() async {
     try {
-      final topicsData = await _vocabRepo.getTopics();
+      // OFFLINE-FIRST: Query local database
+      final topicsData = await _vocabLocal.getTopics();
       topics.value = topicsData;
       
-      final typesData = await _vocabRepo.getWordTypes();
+      final typesData = await _vocabLocal.getWordTypes();
       wordTypes.value = typesData;
     } catch (e) {
       Logger.e('ExploreController', 'loadMeta error', e);
     }
   }
 
-  /// Perform search
+  /// Perform search - OFFLINE-FIRST (instant local search)
   Future<void> _performSearch() async {
     if (searchQuery.value.isEmpty) {
       goHome();
@@ -381,69 +372,17 @@ class ExploreController extends GetxController {
     isSearching.value = true;
 
     try {
-      final results = await _vocabRepo.searchVocabs(searchQuery.value, limit: 50);
+      // OFFLINE-FIRST: Search local database (instant, no network)
+      final results = await _vocabLocal.searchVocabs(searchQuery.value, limit: 50);
       
-      // Sort results by relevance
-      final query = searchQuery.value.toLowerCase().trim();
-      final sortedResults = _sortByRelevance(results, query);
-      
-      vocabs.value = sortedResults;
+      // Local search already returns relevance-sorted results
+      vocabs.value = results;
     } catch (e) {
       Logger.e('ExploreController', 'search error', e);
       HMToast.error('Không thể tìm kiếm');
     } finally {
       isSearching.value = false;
     }
-  }
-
-  /// Sort search results by relevance
-  List<VocabModel> _sortByRelevance(List<VocabModel> results, String query) {
-    final scoredResults = results.map((vocab) {
-      int score = 0;
-      
-      final hanzi = vocab.hanzi.toLowerCase();
-      final pinyin = vocab.pinyin.toLowerCase().replaceAll(' ', '');
-      final pinyinWithSpaces = vocab.pinyin.toLowerCase();
-      final meaning = vocab.meaningVi.toLowerCase();
-      
-      // Exact match (highest priority)
-      if (hanzi == query) {
-        score += 1000;
-      } else if (pinyin == query || pinyinWithSpaces == query) {
-        score += 900;
-      } else if (meaning == query) {
-        score += 800;
-      }
-      // Starts with
-      else if (hanzi.startsWith(query)) {
-        score += 700;
-      } else if (pinyin.startsWith(query) || pinyinWithSpaces.startsWith(query)) {
-        score += 600;
-      } else if (meaning.startsWith(query)) {
-        score += 500;
-      }
-      // Contains
-      else if (hanzi.contains(query)) {
-        score += 400;
-      } else if (pinyin.contains(query) || pinyinWithSpaces.contains(query)) {
-        score += 300;
-      } else if (meaning.contains(query)) {
-        score += 200;
-      }
-      
-      // Bonus for shorter words
-      if (hanzi.length <= 2) score += 50;
-      
-      // Bonus for common HSK levels
-      if (vocab.level == 'HSK1') score += 30;
-      else if (vocab.level == 'HSK2') score += 25;
-      else if (vocab.level == 'HSK3') score += 20;
-      
-      return _ScoredVocab(vocab, score);
-    }).toList();
-    
-    scoredResults.sort((a, b) => b.score.compareTo(a.score));
-    return scoredResults.where((s) => s.score > 0).map((s) => s.vocab).toList();
   }
 
   /// Handle chip filter selection
@@ -581,12 +520,4 @@ class ExploreController extends GetxController {
   /// Check if showing topic selection
   bool get isTopicSelection => 
       browseMode.value == BrowseMode.topic && selectedTopic.value.isEmpty;
-}
-
-/// Helper class for sorting vocabs by relevance score
-class _ScoredVocab {
-  final VocabModel vocab;
-  final int score;
-
-  _ScoredVocab(this.vocab, this.score);
 }

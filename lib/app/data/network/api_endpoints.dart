@@ -21,12 +21,6 @@ class ApiEndpoints {
   static const String authChangePassword = '/auth/change-password';
   static const String refresh = '/auth/refresh';
   static const String logout = '/auth/logout';
-  
-  // Deprecated (returns 410 Gone)
-  @Deprecated('Use authLogin instead')
-  static const String requestLink = '/auth/request-link';
-  @Deprecated('Use authLogin instead')
-  static const String verifyLink = '/auth/verify-link';
 
   // User
   static const String me = '/me';
@@ -35,16 +29,22 @@ class ApiEndpoints {
   static const String meStats = '/me/stats';
   static const String meAchievements = '/me/achievements';
   static const String meCalendar = '/me/calendar';
-  
+
   // Account Deletion (Soft Delete)
   static const String meRequestDeletion = '/me/request-deletion';
   static const String meCancelDeletion = '/me/cancel-deletion';
-  
+
+  // Notification Settings
+  static const String meNotifications = '/me/notifications';
+
+  // Avatar Upload
+  static const String meAvatar = '/me/avatar';
+
   // Level Progress (New mastery system)
   static const String meProgressLevel = '/me/progress/level';
   static const String meProgressUnlockNext = '/me/progress/unlock-next';
   static const String meProgressNeedsMastery = '/me/progress/needs-mastery';
-  
+
   // Learned Vocabs (for games)
   static const String meLearnedVocabs = '/me/learned-vocabs';
 
@@ -59,17 +59,17 @@ class ApiEndpoints {
   static const String today = '/today';
   static const String reviewAnswer = '/review/answer';
   static const String sessionFinish = '/session/finish';
-  
+
   // Dashboard (aggregated endpoint)
   static const String dashboard = '/dashboard';
-  
+
   // Today extensions
   static const String todayForecast = '/today/forecast';
   static const String todayLearnedToday = '/today/learned-today';
-  
+
   // Daily Pick
   static const String dailyPick = '/vocabs/daily-pick';
-  
+
   // Study Modes
   static const String studyModes = '/study-modes';
   static String studyModeWords(String modeId) => '/study-modes/$modeId/words';
@@ -93,14 +93,15 @@ class ApiEndpoints {
   // Game & Leaderboard
   static const String gameSubmit = '/game/submit';
   static const String gameMyStats = '/game/my-stats';
-  static String gameLeaderboard(String gameType) => '/game/leaderboard/$gameType';
+  static String gameLeaderboard(String gameType) =>
+      '/game/leaderboard/$gameType';
 
   // Pronunciation
   static const String pronunciationWords = '/pronunciation/words';
   static const String pronunciationEvaluate = '/pronunciation/evaluate';
   static const String pronunciationSession = '/pronunciation/session';
   static const String pronunciationHistory = '/pronunciation/history';
-  
+
   // Offline Manager
   static const String offlineBundles = '/offline/bundles';
   static String offlineBundle(String level) => '/offline/bundle/$level';
@@ -114,14 +115,6 @@ class ApiEndpoints {
   static const String donationHistory = '/donations/history';
   static String donationVerify(String id) => '/donations/$id/verify';
 
-  // Deprecated - Premium (removed)
-  @Deprecated('Premium removed, use donations instead')
-  static const String subscription = '/me/subscription';
-  @Deprecated('Premium removed, use donations instead')
-  static const String premiumPlans = '/premium/plans';
-  @Deprecated('Premium removed, use donations instead')
-  static const String premiumSubscribe = '/premium/subscribe';
-
   // Level Progress
   static const String levelProgress = '/me/level-progress';
   static const String advanceLevel = '/me/advance-level';
@@ -131,7 +124,8 @@ class ApiEndpoints {
   static const String hskExamTests = '/hsk-exam/tests';
   static const String hskExamHistory = '/hsk-exam/history';
   static String hskExamTestById(String testId) => '/hsk-exam/tests/$testId';
-  static String hskExamSubmit(String testId) => '/hsk-exam/tests/$testId/submit';
-  static String hskExamReview(String testId, String attemptId) => 
+  static String hskExamSubmit(String testId) =>
+      '/hsk-exam/tests/$testId/submit';
+  static String hskExamReview(String testId, String attemptId) =>
       '/hsk-exam/tests/$testId/review/$attemptId';
 }

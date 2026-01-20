@@ -16,7 +16,7 @@ class RegisterScreen extends GetView<AuthController> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AppScaffold(
-      body: SafeArea(
+        body: SafeArea(
           child: Column(
             children: [
               // Fixed top - Back button
@@ -64,9 +64,9 @@ class RegisterScreen extends GetView<AuthController> {
                 ),
               ),
             ],
-          ),
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildBackButton(bool isDark) {
@@ -97,7 +97,7 @@ class RegisterScreen extends GetView<AuthController> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Tạo tài khoản',
+          'Tạo tài khoản backup',
           style: AppTypography.headlineSmall.copyWith(
             color: isDark ? Colors.white : AppColors.textPrimary,
             fontWeight: FontWeight.bold,
@@ -105,7 +105,7 @@ class RegisterScreen extends GetView<AuthController> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Bắt đầu hành trình học tiếng Trung',
+          'Đăng ký để backup dữ liệu và đồng bộ giữa các thiết bị',
           style: AppTypography.bodyMedium.copyWith(
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
           ),
@@ -136,9 +136,9 @@ class RegisterScreen extends GetView<AuthController> {
         Obx(() => HMTextField(
           controller: controller.passwordController,
           labelText: 'Mật khẩu',
-          hintText: '••••••••',
+          hintText: 'Tối thiểu 6 ký tự',
           obscureText: controller.obscurePassword.value,
-          textInputAction: TextInputAction.next,
+          textInputAction: TextInputAction.done,
           errorText: controller.passwordError.value.isEmpty 
               ? null 
               : controller.passwordError.value,
@@ -153,54 +153,18 @@ class RegisterScreen extends GetView<AuthController> {
             ),
             onPressed: controller.togglePasswordVisibility,
           ),
+          onSubmitted: (_) => controller.register(),
         )),
         
         const SizedBox(height: 10),
         
-        // Password requirements (compact)
-        _buildPasswordRequirements(isDark),
-        
-        const SizedBox(height: 14),
-        
-        // Confirm password field
-        Obx(() => HMTextField(
-          controller: controller.confirmPasswordController,
-          labelText: 'Xác nhận mật khẩu',
-          hintText: '••••••••',
-          obscureText: controller.obscureConfirmPassword.value,
-          textInputAction: TextInputAction.done,
-          errorText: controller.confirmPasswordError.value.isEmpty 
-              ? null 
-              : controller.confirmPasswordError.value,
-          prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-          suffixIcon: IconButton(
-            icon: Icon(
-              controller.obscureConfirmPassword.value 
-                  ? Icons.visibility_outlined 
-                  : Icons.visibility_off_outlined,
-              color: AppColors.textTertiary,
-              size: 20,
-            ),
-            onPressed: controller.toggleConfirmPasswordVisibility,
-          ),
-          onSubmitted: (_) => controller.register(),
-        )),
+        // Password hint (simplified)
+        _buildPasswordHint(isDark),
       ],
     );
   }
 
-  Widget _buildPasswordRequirements(bool isDark) {
-    return Obx(() {
-      final password = controller.password.value;
-      
-      final requirements = [
-        _PasswordReq('8+ ký tự', password.length >= 8),
-        _PasswordReq('A-Z', password.contains(RegExp(r'[A-Z]'))),
-        _PasswordReq('a-z', password.contains(RegExp(r'[a-z]'))),
-        _PasswordReq('0-9', password.contains(RegExp(r'[0-9]'))),
-        _PasswordReq('!@#', password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))),
-      ];
-      
+  Widget _buildPasswordHint(bool isDark) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -210,35 +174,24 @@ class RegisterScreen extends GetView<AuthController> {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: requirements.map((req) => _buildReqChip(req, isDark)).toList(),
-        ),
-      );
-    });
-  }
-
-  Widget _buildReqChip(_PasswordReq req, bool isDark) {
-    final color = req.isMet 
-        ? AppColors.success 
-        : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary);
-    
-    return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          req.isMet ? Icons.check_circle_rounded : Icons.circle_outlined,
-          size: 12,
-          color: color,
+            Icons.info_outline_rounded,
+            size: 16,
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
         ),
-        const SizedBox(width: 3),
-        Text(
-          req.label,
-          style: AppTypography.labelSmall.copyWith(
-            color: color,
-            fontSize: 10,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Mật khẩu dùng để backup dữ liệu khi đổi máy',
+              style: AppTypography.bodySmall.copyWith(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                fontSize: 12,
+              ),
           ),
         ),
       ],
+      ),
     );
   }
 
@@ -267,9 +220,3 @@ class RegisterScreen extends GetView<AuthController> {
   }
 }
 
-class _PasswordReq {
-  final String label;
-  final bool isMet;
-  
-  _PasswordReq(this.label, this.isMet);
-}

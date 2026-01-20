@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
+import '../models/notification_settings_model.dart';
 import '../models/user_model.dart';
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
@@ -45,10 +48,7 @@ class MeRepo {
 
   /// Update profile (partial update)
   Future<ProfileModel> updateProfile(Map<String, dynamic> profileData) async {
-    final response = await _api.put(
-      ApiEndpoints.meProfile,
-      data: profileData,
-    );
+    final response = await _api.put(ApiEndpoints.meProfile, data: profileData);
     final data = response.data['data'] ?? response.data;
     return ProfileModel.fromJson(data);
   }
@@ -78,22 +78,53 @@ class MeRepo {
   Future<void> deleteAccount() async {
     await _api.delete(ApiEndpoints.me);
   }
-  
+
   /// Request account deletion (soft delete - 7 days)
   Future<DeletionResponse> requestDeletion({String? reason}) async {
     final response = await _api.post(
       ApiEndpoints.meRequestDeletion,
-      data: {
-        if (reason != null) 'reason': reason,
-      },
+      data: {if (reason != null) 'reason': reason},
     );
     final data = response.data['data'] ?? response.data;
     return DeletionResponse.fromJson(data);
   }
-  
+
   /// Cancel account deletion request
   Future<void> cancelDeletion() async {
     await _api.post(ApiEndpoints.meCancelDeletion);
+  }
+
+  /// Get notification settings
+  Future<NotificationSettingsModel> getNotificationSettings() async {
+    final response = await _api.get(ApiEndpoints.meNotifications);
+    return NotificationSettingsModel.fromJson(response.data);
+  }
+
+  /// Update notification settings
+  Future<NotificationSettingsModel> updateNotificationSettings(
+    NotificationSettingsModel settings,
+  ) async {
+    final response = await _api.post(
+      ApiEndpoints.meNotifications,
+      data: settings.toJson(),
+    );
+    return NotificationSettingsModel.fromJson(response.data);
+  }
+
+  /// Upload avatar
+  Future<String> uploadAvatar(File imageFile) async {
+    final fileName = imageFile.path.split('/').last;
+    final formData = FormData.fromMap({
+      'avatar': await MultipartFile.fromFile(
+        imageFile.path,
+        filename: fileName,
+      ),
+    });
+
+    final response = await _api.post(ApiEndpoints.meAvatar, data: formData);
+
+    final data = response.data['data'] ?? response.data;
+    return data['avatarUrl'] as String;
   }
 }
 
@@ -112,7 +143,9 @@ class DeletionResponse {
   factory DeletionResponse.fromJson(Map<String, dynamic> json) {
     return DeletionResponse(
       message: json['message'] as String? ?? '',
-      deletionScheduledAt: DateTime.parse(json['deletionScheduledAt'] as String),
+      deletionScheduledAt: DateTime.parse(
+        json['deletionScheduledAt'] as String,
+      ),
       daysRemaining: json['daysRemaining'] as int? ?? 7,
     );
   }

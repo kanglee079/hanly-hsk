@@ -29,6 +29,9 @@ import 'app/services/realtime/realtime_sync_service.dart';
 import 'app/services/realtime/today_store.dart';
 import 'app/services/realtime/study_modes_store.dart';
 import 'app/services/tutorial_service.dart';
+import 'app/services/progress_sync_service.dart';
+import 'app/data/local/database_service.dart';
+import 'app/data/local/vocab_local_datasource.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +67,11 @@ Future<void> _initDependencies() async {
   // Storage
   Get.put(StorageService());
 
+  // Initialize offline-first database
+  final dbService = await DatabaseService().init();
+  Get.put(dbService);
+  Get.put(VocabLocalDataSource());
+
   // API Client
   final apiClient = ApiClient();
   Get.put(apiClient);
@@ -97,6 +105,9 @@ Future<void> _initDependencies() async {
 
   // Tutorial service
   Get.put(TutorialService());
+
+  // Progress sync service (syncs local progress to backend)
+  Get.put(ProgressSyncService());
 
   // Deep Link Service (must be after AuthSessionService)
   await Get.putAsync<DeepLinkService>(() => DeepLinkService().init());

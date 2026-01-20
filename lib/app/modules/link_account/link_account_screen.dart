@@ -18,12 +18,12 @@ class LinkAccountScreen extends GetView<LinkAccountController> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-        appBar: HMAppBar(
-          title: 'Liên kết tài khoản',
-          showBackButton: true,
-        ),
-        body: SafeArea(
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+      appBar: HMAppBar(
+        title: 'Liên kết tài khoản',
+        showBackButton: true,
+      ),
+      body: SafeArea(
         child: Obx(() {
           switch (controller.currentStep.value) {
             case LinkAccountStep.email:

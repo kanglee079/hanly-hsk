@@ -93,8 +93,11 @@ class LearnController extends GetxController {
     // If study-modes endpoint is missing/unavailable, synthesize minimal data from /today.
     ever(_todayStore.today.data, (_) => _maybeApplyFallback());
 
-    // Nudge an initial sync (service also polls, but this makes first render snappier).
-    _studyModesStore.syncNow();
+    // OPTIMIZED: Only sync if no data yet (RealtimeSyncService already handles initial sync)
+    // This prevents duplicate API calls when controller is re-initialized
+    if (studyModesData.value == null) {
+      _studyModesStore.syncNow();
+    }
   }
 
   /// Force-sync (legacy callers).

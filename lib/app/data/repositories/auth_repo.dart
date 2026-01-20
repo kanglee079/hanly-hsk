@@ -96,19 +96,21 @@ class AuthRepo {
     return VerifyLinkAccountResponseModel.fromJson(response.data);
   }
 
-  /// Register with email + password
-  /// POST /auth/register { email, password, confirmPassword }
+  /// Register with email + password (simplified - no confirmPassword needed)
+  /// POST /auth/register { email, password, anonymousUserId? }
+  /// Minimum password: 6 characters
+  /// Auto-merges data from anonymous user if anonymousUserId provided
   Future<RegisterResponseModel> register({
     required String email,
     required String password,
-    required String confirmPassword,
+    String? anonymousUserId, // Optional: for auto-merge from anonymous account
   }) async {
     final response = await _api.post(
       ApiEndpoints.authRegister,
       data: {
         'email': email,
         'password': password,
-        'confirmPassword': confirmPassword,
+        if (anonymousUserId != null) 'anonymousUserId': anonymousUserId,
       },
     );
     

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/today_model.dart';
 import '../../data/models/dashboard_model.dart';
+import '../../data/repositories/progress_repo.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/next_action_engine.dart';
 import '../../services/storage_service.dart';
@@ -10,6 +11,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/hm_streak_bottom_sheet.dart';
 import '../../core/widgets/hm_button.dart';
+import '../../core/widgets/hm_toast.dart';
+import '../../core/utils/logger.dart';
 import '../../routes/app_routes.dart';
 import '../../services/realtime/today_store.dart';
 import '../practice/practice_controller.dart';
@@ -57,8 +60,11 @@ class TodayController extends GetxController {
     super.onInit();
     _updateDisplayName();
     _refreshLocalCacheCount();
-    // Force sync fresh data on first load (especially important after onboarding)
-    _todayStore.syncNow(force: true);
+    // OPTIMIZED: Only sync if no data yet (RealtimeSyncService handles regular sync)
+    // This prevents duplicate API calls on every tab switch
+    if (todayData.value == null) {
+      _todayStore.syncNow(force: true);
+    }
     // Listen to user changes - reset local cache when user changes
     ever(_authService.currentUser, (_) {
       _updateDisplayName();
@@ -443,12 +449,20 @@ class TodayController extends GetxController {
 
   /// Advance to next HSK level
   Future<void> advanceToNextLevel() async {
-    // TODO: Call API POST /me/advance-level when BE is ready
-    // For now, just show toast
-    Get.snackbar(
-      'Đang phát triển',
-      'Tính năng chuyển level sẽ có sớm!',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    try {
+      final progressRepo = Get.find<ProgressRepo>();
+      await progressRepo.unlockNext();
+      
+      // Refresh user and today data
+      await Future.wait([
+        _authService.fetchCurrentUser(),
+        _todayStore.syncNow(force: true),
+      ]);
+      
+      HMToast.success('Chúc mừng! Bạn đã chuyển sang HSK$nextHskLevel 🎉');
+    } catch (e) {
+      Logger.e('TodayController', 'Error advancing level', e);
+      HMToast.error('Chưa thể chuyển level. Vui lòng hoàn thành level hiện tại.');
+    }
   }
 }

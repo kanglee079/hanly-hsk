@@ -64,22 +64,10 @@ class AuthController extends GetxController {
     obscureConfirmPassword.value = !obscureConfirmPassword.value;
   }
 
-  /// Validate password strength
+  /// Validate password strength (simplified - minimum 6 characters)
   String? _validatePassword(String password) {
-    if (password.length < 8) {
-      return 'Mật khẩu ít nhất 8 ký tự';
-    }
-    if (!password.contains(RegExp(r'[A-Z]'))) {
-      return 'Cần ít nhất 1 chữ hoa';
-    }
-    if (!password.contains(RegExp(r'[a-z]'))) {
-      return 'Cần ít nhất 1 chữ thường';
-    }
-    if (!password.contains(RegExp(r'[0-9]'))) {
-      return 'Cần ít nhất 1 số';
-    }
-    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
-      return 'Cần ít nhất 1 ký tự đặc biệt';
+    if (password.length < 6) {
+      return 'Mật khẩu ít nhất 6 ký tự';
     }
     return null;
   }
@@ -124,11 +112,11 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Register with email + password
+  /// Register with email + password (simplified)
+  /// Auto-merges data from anonymous account
   Future<void> register() async {
     emailError.value = '';
     passwordError.value = '';
-    confirmPasswordError.value = '';
 
     if (!isEmailValid) {
       emailError.value = 'Email không hợp lệ';
@@ -141,22 +129,21 @@ class AuthController extends GetxController {
       return;
     }
 
-    if (confirmPassword.value != password.value) {
-      confirmPasswordError.value = 'Mật khẩu xác nhận không khớp';
-      return;
-    }
-
     isLoading.value = true;
     
     try {
       final response = await _authService.register(
         email: email.value.trim(),
         password: password.value,
-        confirmPassword: confirmPassword.value,
       );
 
       if (response != null && response.success) {
+        // Show success message with merge info if available
+        if (response.merged && response.mergeResult != null) {
+          HMToast.success(response.mergeResult!.message ?? 'Đăng ký thành công!');
+        } else {
         HMToast.success('Đăng ký thành công!');
+        }
         _navigateAfterAuth();
       }
     } catch (e) {

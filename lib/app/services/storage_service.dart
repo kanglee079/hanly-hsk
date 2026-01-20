@@ -18,6 +18,8 @@ class StorageService {
   static const String _keyGame30sHighScore = 'game30s_high_score';
   static const String _keyGame30sGamesPlayed = 'game30s_games_played';
   static const String _keyCompletedTutorials = 'completed_tutorials';
+  static const String _keySoundEnabled = 'sound_enabled';
+  static const String _keyHapticsEnabled = 'haptics_enabled';
   
   // Anonymous-First flow keys
   static const String _keyDeviceId = 'device_id';
@@ -431,4 +433,14 @@ class StorageService {
       setCompletedTutorials(completed);
     }
   }
+
+  // ===== Sound & Haptics Settings =====
+
+  /// Sound enabled
+  bool get soundEnabled => _box.read<bool>(_keySoundEnabled) ?? true;
+  set soundEnabled(bool value) => _box.write(_keySoundEnabled, value);
+
+  /// Haptics enabled
+  bool get hapticsEnabled => _box.read<bool>(_keyHapticsEnabled) ?? true;
+  set hapticsEnabled(bool value) => _box.write(_keyHapticsEnabled, value);
 }

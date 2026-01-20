@@ -29,14 +29,14 @@ class MeController extends GetxController {
       user?.displayName ?? user?.profile?.displayName ?? '';
   String get email => user?.email ?? '';
   String? get avatarUrl => user?.avatarUrl;
-  
+
   // Anonymous user detection
   bool get isAnonymous => _authService.isAnonymous.value;
   String? get userEmail => isAnonymous ? null : email;
-  
+
   // Offline mode detection (auth failed, but app still works)
   bool get isOfflineMode => _authService.isOfflineMode.value;
-  
+
   /// Retry authentication (when offline mode is active)
   Future<bool> retryAuthentication() async {
     final success = await _authService.retryAuthentication();
@@ -62,7 +62,7 @@ class MeController extends GetxController {
     // LOCAL STORAGE FIRST - User's explicit choice
     final storedLimit = _storage.userDailyNewLimit;
     if (storedLimit > 0) return storedLimit;
-    
+
     // Fallback to API data
     return user?.profile?.dailyNewLimit ?? todayData.value?.dailyNewLimit ?? 10;
   }
@@ -143,13 +143,15 @@ class MeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Ensure data is fresh when screen opens
-    _todayStore.syncNow(force: true);
-
-    // Watch for user profile changes and sync today data
-    ever(_authService.currentUser, (_) {
-      // Re-sync today data when user profile changes
+    // OPTIMIZED: Only sync if no data yet (RealtimeSyncService handles regular sync)
+    if (todayData.value == null) {
       _todayStore.syncNow(force: true);
+    }
+
+    // Watch for user profile changes - just refresh local data, don't re-sync
+    // RealtimeSyncService already handles auth state changes
+    ever(_authService.currentUser, (_) {
+      todayData.refresh(); // Just trigger UI update
     });
 
     // Listen to onLearnedUpdate event from Practice for refresh
@@ -189,33 +191,28 @@ class MeController extends GetxController {
   }
 
   void goToAccount() {
-    // TODO: Navigate to account detail screen
-    HMToast.info(S.comingSoon);
+    Get.toNamed(Routes.editProfile);
   }
 
   void goToNotifications() {
-    // TODO: Navigate to notifications settings
-    HMToast.info(S.comingSoon);
+    Get.toNamed(Routes.notificationSettings);
   }
 
   void goToSoundSettings() {
-    // TODO: Navigate to sound & haptics settings
-    HMToast.info(S.comingSoon);
+    Get.toNamed(Routes.soundSettings);
   }
 
   void goToVietnameseSupport() {
-    // TODO: Navigate to Vietnamese support settings
-    HMToast.info(S.comingSoon);
+    // Vietnamese support is a profile setting - navigate to edit profile
+    Get.toNamed(Routes.editProfile);
   }
 
   void goToOffline() {
-    // TODO: Navigate to offline download
-    HMToast.info(S.comingSoon);
+    Get.toNamed(Routes.offlineDownload);
   }
 
   void editProfile() {
-    // TODO: Show edit profile sheet
-    HMToast.info(S.comingSoon);
+    Get.toNamed(Routes.editProfile);
   }
 
   /// Show comprehensive learning settings sheet (HSK level, goal type, focus skills)
@@ -228,8 +225,8 @@ class MeController extends GetxController {
     );
     // LOCAL STORAGE FIRST for user preferences, fallback to profile
     final storedLimit = _storage.userDailyNewLimit;
-    final currentWords = storedLimit > 0 
-        ? storedLimit 
+    final currentWords = storedLimit > 0
+        ? storedLimit
         : (profile?.dailyNewLimit ?? 10);
     final RxInt selectedWords = RxInt(currentWords);
     final RxBool listeningEnabled = RxBool(
@@ -748,7 +745,7 @@ class MeController extends GetxController {
       // Calculate dailyMinutes based on words (words is primary, 1 word = 1 minute)
       final dailyMinutes = _wordsToMinutes(dailyWords);
       final dailyNewLimit = dailyWords;
-      
+
       // SAVE TO LOCAL STORAGE FIRST (primary source for user preferences)
       _storage.userDailyNewLimit = dailyNewLimit;
       _storage.userLevel = level;
@@ -1004,6 +1001,9 @@ class MeController extends GetxController {
 
     if (result != null && result != currentGoal) {
       isUpdatingGoal.value = true;
+      // SAVE TO LOCAL STORAGE FIRST (primary source for user preferences)
+      // This ensures the value persists even if API call fails
+      _storage.userDailyNewLimit = result;
       // Optimistically update local override for immediate UI feedback
       _localDailyGoalOverride.value = result;
 
@@ -1018,6 +1018,8 @@ class MeController extends GetxController {
       } catch (e) {
         // Revert optimistic update on error
         _localDailyGoalOverride.value = null;
+        // Revert local storage to previous value
+        _storage.userDailyNewLimit = currentGoal;
         HMToast.error(S.errorUnknown);
       } finally {
         isUpdatingGoal.value = false;

@@ -241,23 +241,32 @@ class LoginResponseModel {
   }
 }
 
-/// Register response
+/// Register response - supports auto-merge from anonymous user
 class RegisterResponseModel {
   final bool success;
   final String? message;
   final AuthTokensModel? tokens;
+  final bool merged; // true if data was merged from anonymous account
+  final MergeResultModel? mergeResult; // merge statistics
 
   RegisterResponseModel({
     required this.success,
     this.message,
     this.tokens,
+    this.merged = false,
+    this.mergeResult,
   });
 
   factory RegisterResponseModel.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>?;
     return RegisterResponseModel(
       success: json['success'] as bool? ?? true,
       message: json['message'] as String?,
-      tokens: json['data'] != null ? AuthTokensModel.fromJson(json) : null,
+      tokens: data != null ? AuthTokensModel.fromJson(json) : null,
+      merged: data?['merged'] as bool? ?? false,
+      mergeResult: data?['mergeResult'] != null
+          ? MergeResultModel.fromJson(data!['mergeResult'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

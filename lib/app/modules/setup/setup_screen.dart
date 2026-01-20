@@ -18,8 +18,8 @@ class SetupScreen extends GetView<SetupController> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-        body: SafeArea(
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+      body: SafeArea(
         child: Column(
           children: [
             // Progress indicator
@@ -43,7 +43,7 @@ class SetupScreen extends GetView<SetupController> {
             _buildBottomNav(isDark),
           ],
         ),
-      ),
+        ),
       ),
     );
   }

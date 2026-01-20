@@ -18,7 +18,7 @@ class Verify2FAScreen extends GetView<AuthController> {
     final authService = Get.find<AuthSessionService>();
 
     return AppScaffold(
-      body: SafeArea(
+        body: SafeArea(
           child: Column(
             children: [
               // Fixed top - Back button
@@ -88,9 +88,9 @@ class Verify2FAScreen extends GetView<AuthController> {
                 ),
               ),
             ],
-          ),
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildBackButton(bool isDark) {

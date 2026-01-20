@@ -33,7 +33,8 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
   // Current state
   int currentSectionIndex = 0;
   int currentQuestionIndex = 0;
-  Map<String, String> answers = {}; // questionId -> optionLabel (A, B, C) - backend expects label
+  Map<String, String> answers =
+      {}; // questionId -> optionLabel (A, B, C) - backend expects label
 
   // Timer
   Timer? _timer;
@@ -85,7 +86,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
       print('📊 [HSK Exam] Test title: ${result.test.title}');
       print('📊 [HSK Exam] Sections: ${result.test.sections.length}');
       print('📊 [HSK Exam] Total questions: ${result.test.totalQuestions}');
-      
+
       // Check if test has data
       if (result.test.sections.isEmpty) {
         print('⚠️ [HSK Exam] Test has no sections!');
@@ -95,9 +96,12 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
         });
         return;
       }
-      
+
       // Check if sections have questions
-      final totalQuestionsInSections = result.test.sections.fold(0, (sum, s) => sum + s.questions.length);
+      final totalQuestionsInSections = result.test.sections.fold(
+        0,
+        (sum, s) => sum + s.questions.length,
+      );
       if (totalQuestionsInSections == 0) {
         print('⚠️ [HSK Exam] Sections have no questions!');
         setState(() {
@@ -106,7 +110,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
         });
         return;
       }
-      
+
       setState(() {
         test = result.test;
         attempt = result.attempt;
@@ -220,7 +224,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
       // Debug: Log answers being sent
       debugPrint('=== SUBMITTING ANSWERS ===');
       for (final answer in answersData) {
-        debugPrint('Q: ${answer['questionId']} -> Answer: ${answer['selectedOption']}');
+        debugPrint(
+          'Q: ${answer['questionId']} -> Answer: ${answer['selectedOption']}',
+        );
       }
       debugPrint('Total: ${answersData.length} answers');
 
@@ -230,13 +236,15 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
         answers: answersData,
         timeSpent: timeSpent,
       );
-      
+
       // Debug: Log result
       debugPrint('=== RESULT RECEIVED ===');
       debugPrint('Score: ${result.score}/${result.maxScore}');
       debugPrint('Passed: ${result.passed}');
       for (final answer in result.answers) {
-        debugPrint('Q: ${answer.questionId} -> Selected: ${answer.selectedOption}, Correct: ${answer.correctOption}, IsCorrect: ${answer.isCorrect}');
+        debugPrint(
+          'Q: ${answer.questionId} -> Selected: ${answer.selectedOption}, Correct: ${answer.correctOption}, IsCorrect: ${answer.isCorrect}',
+        );
       }
 
       Get.back(); // Close loading
@@ -314,14 +322,18 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded,
-                      color: AppColors.warning, size: 18),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppColors.warning,
+                    size: 18,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Còn $unanswered câu chưa trả lời',
-                      style: AppTypography.bodySmall
-                          .copyWith(color: AppColors.warning),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.warning,
+                      ),
                     ),
                   ),
                 ],
@@ -415,16 +427,23 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: result.passed
-                              ? [const Color(0xFF34D399), const Color(0xFF10B981)]
-                              : [const Color(0xFFF87171), const Color(0xFFEF4444)],
+                              ? [
+                                  const Color(0xFF34D399),
+                                  const Color(0xFF10B981),
+                                ]
+                              : [
+                                  const Color(0xFFF87171),
+                                  const Color(0xFFEF4444),
+                                ],
                         ),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: (result.passed
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFFEF4444))
-                                .withAlpha(80),
+                            color:
+                                (result.passed
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFEF4444))
+                                    .withAlpha(80),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -464,7 +483,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                   const SizedBox(height: 4),
 
                   Text(
-                    result.passed ? 'Chúc mừng bạn đã đạt!' : 'Chưa đạt yêu cầu',
+                    result.passed
+                        ? 'Chúc mừng bạn đã đạt!'
+                        : 'Chưa đạt yêu cầu',
                     style: AppTypography.titleMedium.copyWith(
                       color: isDark
                           ? AppColors.textPrimaryDark
@@ -478,7 +499,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                   // Stats row
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 14),
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       color: isDark
                           ? AppColors.surfaceVariantDark
@@ -489,12 +512,22 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _buildResultStat(
-                            '${result.score}/${result.maxScore}', 'Điểm', isDark),
-                        _buildDivider(isDark),
-                        _buildResultStat('${result.passingScore}%', 'Yêu cầu', isDark),
+                          '${result.score}/${result.maxScore}',
+                          'Điểm',
+                          isDark,
+                        ),
                         _buildDivider(isDark),
                         _buildResultStat(
-                            '$answeredCount/$totalQuestions', 'Trả lời', isDark),
+                          '${result.passingScore}%',
+                          'Yêu cầu',
+                          isDark,
+                        ),
+                        _buildDivider(isDark),
+                        _buildResultStat(
+                          '$answeredCount/$totalQuestions',
+                          'Trả lời',
+                          isDark,
+                        ),
                       ],
                     ),
                   ),
@@ -503,7 +536,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
@@ -520,8 +555,11 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.emoji_events_rounded,
-                              color: Colors.white, size: 18),
+                          const Icon(
+                            Icons.emoji_events_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             'Kỷ lục mới!',
@@ -563,10 +601,13 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                           onPressed: () {
                             Get.back();
                             Get.back();
-                            Get.toNamed(Routes.hskExamReview, arguments: {
-                              'testId': test!.id,
-                              'attemptId': result.attemptId,
-                            });
+                            Get.toNamed(
+                              Routes.hskExamReview,
+                              arguments: {
+                                'testId': test!.id,
+                                'attemptId': result.attemptId,
+                              },
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
@@ -685,8 +726,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
           Text(
             'Câu $currentQuestionNumber/$totalQuestions',
             style: AppTypography.labelSmall.copyWith(
-              color:
-                  isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
           ),
         ],
@@ -700,8 +742,8 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
             color: remainingSeconds < 300
                 ? AppColors.error.withAlpha(26)
                 : (isDark
-                    ? AppColors.surfaceVariantDark
-                    : AppColors.surfaceVariant),
+                      ? AppColors.surfaceVariantDark
+                      : AppColors.surfaceVariant),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
@@ -710,8 +752,8 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
               color: remainingSeconds < 300
                   ? AppColors.error
                   : (isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimary),
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -721,8 +763,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
   }
 
   Widget _buildProgressBar(bool isDark) {
-    final progress =
-        totalQuestions > 0 ? currentQuestionNumber / totalQuestions : 0.0;
+    final progress = totalQuestions > 0
+        ? currentQuestionNumber / totalQuestions
+        : 0.0;
     return Container(
       height: 4,
       color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
@@ -743,7 +786,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
         child: Text(
           'Không có câu hỏi',
           style: AppTypography.bodyMedium.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
       );
@@ -831,8 +876,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
             child: Text(
               question.passage!,
               style: AppTypography.bodyMedium.copyWith(
-                color:
-                    isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 height: 1.7,
               ),
             ),
@@ -862,12 +908,12 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
 
         const SizedBox(height: 20),
 
-        // Options
-        ...question.options.asMap().entries.map((entry) {
-          final index = entry.key;
-          final option = entry.value;
-          final label = String.fromCharCode(65 + index); // A, B, C, D
-          final isSelected = answers[question.id] == label; // Compare with label
+        // Options - use option.id as the label since backend stores correctOption as the option's id
+        ...question.options.map((option) {
+          final label = option
+              .id; // Use the actual option id from API, not index-based label
+          final isSelected =
+              answers[question.id] == label; // Compare with label
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -906,8 +952,10 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                 alignment: PlaceholderAlignment.middle,
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withAlpha(20),
                     borderRadius: BorderRadius.circular(8),
@@ -965,8 +1013,11 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                 ),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.play_arrow_rounded,
-                  color: Colors.white, size: 28),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -1031,8 +1082,8 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                 color: isSelected
                     ? AppColors.primary
                     : (isDark
-                        ? AppColors.surfaceVariantDark
-                        : AppColors.surfaceVariant),
+                          ? AppColors.surfaceVariantDark
+                          : AppColors.surfaceVariant),
               ),
               child: Center(
                 child: Text(
@@ -1041,8 +1092,8 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                     color: isSelected
                         ? Colors.white
                         : (isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimary),
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1060,8 +1111,11 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle_rounded,
-                  color: AppColors.primary, size: 22),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
           ],
         ),
       ),
@@ -1070,14 +1124,20 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
 
   Widget _buildNavigationBar(bool isDark) {
     final isFirst = currentSectionIndex == 0 && currentQuestionIndex == 0;
-    final isLast = currentSectionIndex == (test?.sections.length ?? 1) - 1 &&
+    final isLast =
+        currentSectionIndex == (test?.sections.length ?? 1) - 1 &&
         currentQuestionIndex ==
             ((test?.sections[currentSectionIndex].questions.length ?? 1) - 1);
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 14, 20, bottomPadding > 0 ? bottomPadding : 16),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        14,
+        20,
+        bottomPadding > 0 ? bottomPadding : 16,
+      ),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : Colors.white,
         boxShadow: [
@@ -1125,8 +1185,9 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
             Text(
               'Đang tải đề thi...',
               style: AppTypography.bodyMedium.copyWith(
-                color:
-                    isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
             ),
           ],
@@ -1138,10 +1199,7 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
   Widget _buildErrorScreen(bool isDark) {
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -1158,15 +1216,13 @@ class _HskExamTestScreenState extends State<HskExamTestScreen>
                 errorMessage!,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyLarge.copyWith(
-                  color:
-                      isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 24),
-              HMButton(
-                text: 'Thử lại',
-                onPressed: _loadTest,
-              ),
+              HMButton(text: 'Thử lại', onPressed: _loadTest),
             ],
           ),
         ),

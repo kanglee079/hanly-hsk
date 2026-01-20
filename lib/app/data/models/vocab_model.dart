@@ -45,6 +45,10 @@ class VocabModel {
   final int? intervalDays; // Current interval in days
   final String? lastResult; // again, hard, good, easy
 
+  // Offline-first fields
+  final bool isLocked; // For progressive unlock
+  final String? progressState; // State from local DB
+
   VocabModel({
     required this.id,
     required this.hanzi,
@@ -79,6 +83,8 @@ class VocabModel {
     this.reps,
     this.intervalDays,
     this.lastResult,
+    this.isLocked = true,
+    this.progressState,
   });
 
   /// Get meaning with first letter capitalized
@@ -193,6 +199,8 @@ class VocabModel {
       reps: _parseReps(data),
       intervalDays: _parseIntervalDays(data),
       lastResult: _parseLastResult(data),
+      isLocked: data['is_locked'] as bool? ?? data['isLocked'] as bool? ?? true,
+      progressState: data['progress_state'] as String? ?? data['progressState'] as String?,
     );
   }
 
@@ -288,6 +296,8 @@ class VocabModel {
     bool? isFavorite,
     DateTime? dueDate,
     String? state,
+    bool? isLocked,
+    String? progressState,
   }) {
     return VocabModel(
       id: id ?? this.id,
@@ -320,6 +330,8 @@ class VocabModel {
       isFavorite: isFavorite ?? this.isFavorite,
       dueDate: dueDate ?? this.dueDate,
       state: state ?? this.state,
+      isLocked: isLocked ?? this.isLocked,
+      progressState: progressState ?? this.progressState,
     );
   }
 }

@@ -45,9 +45,12 @@ class TodayStore extends GetxService {
       _dashboardRepo = null;
     }
 
+    // OPTIMIZED: Reduced polling from 15s to 5 minutes
+    // /today data changes rarely - only after learning sessions
+    // Force sync is triggered after session completion anyway
     today = RealtimeResource<TodayModel>(
       key: 'today',
-      interval: const Duration(seconds: 15),
+      interval: const Duration(minutes: 5),
       fetcher: () => _learningRepo.getToday(),
       fingerprinter: (v) => jsonEncode(v.toJson()),
     );
