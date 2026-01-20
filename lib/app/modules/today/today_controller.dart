@@ -36,17 +36,18 @@ class TodayController extends GetxController {
   String get _todayKey => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   // Store-backed (single source of truth)
-  late final Rx<TodayModel?> todayData = _todayStore.today;
+  late final Rxn<TodayModel> todayData = _todayStore.today.data;
+  late final Rxn<ForecastModel> forecastData =
+      _todayStore.forecast?.data ?? Rxn<ForecastModel>();
+  late final Rxn<LearnedTodayModel> learnedTodayData =
+      _todayStore.learnedToday?.data ?? Rxn<LearnedTodayModel>();
 
-  // OFFLINE-FIRST: forecast/learnedToday now come from local data
-  // These are kept for backwards compatibility but not fetched from API
-  final Rxn<ForecastModel> forecastData = Rxn<ForecastModel>();
-  final Rxn<LearnedTodayModel> learnedTodayData = Rxn<LearnedTodayModel>();
-
-  // Loading states (offline-first = instant, so always false)
-  final RxBool isLoading = false.obs;
-  final RxBool isLoadingForecast = false.obs;
-  final RxBool isLoadingLearnedToday = false.obs;
+  // Loading states (store-backed)
+  late final RxBool isLoading = _todayStore.today.isBootstrapping;
+  late final RxBool isLoadingForecast =
+      _todayStore.forecast?.isBootstrapping ?? false.obs;
+  late final RxBool isLoadingLearnedToday =
+      _todayStore.learnedToday?.isBootstrapping ?? false.obs;
 
   final Rx<RecommendedAction?> nextAction = Rx<RecommendedAction?>(null);
   final RxString displayName = ''.obs;

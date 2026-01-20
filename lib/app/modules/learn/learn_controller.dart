@@ -91,7 +91,7 @@ class LearnController extends GetxController {
     });
 
     // If study-modes endpoint is missing/unavailable, synthesize minimal data from /today.
-    ever(_todayStore.today, (_) => _maybeApplyFallback());
+    ever(_todayStore.today.data, (_) => _maybeApplyFallback());
 
     // OPTIMIZED: Only sync if no data yet (RealtimeSyncService already handles initial sync)
     // This prevents duplicate API calls when controller is re-initialized
@@ -109,7 +109,7 @@ class LearnController extends GetxController {
     if (studyModesData.value != null) return;
     if (_studyModesStore.studyModes.lastError.value.isEmpty) return;
 
-    final today = _todayStore.today.value;
+    final today = _todayStore.today.data.value;
     if (today == null) return;
 
     _studyModesStore.studyModes.setData(
@@ -207,7 +207,7 @@ class LearnController extends GetxController {
 
   int _getStreakFromToday() {
     try {
-      return _todayStore.today.value?.streak ?? 0;
+      return _todayStore.today.data.value?.streak ?? 0;
     } catch (_) {
       return 0;
     }
@@ -216,7 +216,7 @@ class LearnController extends GetxController {
   /// Get streak rank from TodayController
   String get streakRank {
     try {
-      return _todayStore.today.value?.streakRank ?? '';
+      return _todayStore.today.data.value?.streakRank ?? '';
     } catch (_) {
       return '';
     }
@@ -225,9 +225,9 @@ class LearnController extends GetxController {
   /// Check if user has studied today
   bool get hasStudiedToday {
     try {
-      final streakStatus = _todayStore.today.value?.streakStatus;
+      final streakStatus = _todayStore.today.data.value?.streakStatus;
       if (streakStatus != null) return streakStatus.hasStudiedToday;
-      return (_todayStore.today.value?.completedMinutes ?? 0) > 0;
+      return (_todayStore.today.data.value?.completedMinutes ?? 0) > 0;
     } catch (_) {
       return true;
     }
@@ -253,7 +253,7 @@ class LearnController extends GetxController {
   /// Get count of words due for review (for Flashcard display)
   int get dueReviewCount {
     try {
-      final reviewQueue = _todayStore.today.value?.reviewQueue;
+      final reviewQueue = _todayStore.today.data.value?.reviewQueue;
       return reviewQueue?.length ?? 0;
     } catch (_) {
       return 0;

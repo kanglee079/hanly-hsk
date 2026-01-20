@@ -81,7 +81,7 @@ class FlashcardController extends GetxController {
     try {
       isLoading.value = true;
       
-      final todayData = _todayStore.today.value;
+      final todayData = _todayStore.today.data.value;
       final totalLearned = todayData?.totalLearned ?? 0;
       totalLearnedCount.value = totalLearned;
       
@@ -238,7 +238,7 @@ class FlashcardController extends GetxController {
     final vocab = currentVocab;
     if (vocab == null) return false;
     
-    final todayData = _todayStore.today.value;
+    final todayData = _todayStore.today.data.value;
     if (todayData == null) return false;
     
     return todayData.newQueue.any((w) => w.id == vocab.id);

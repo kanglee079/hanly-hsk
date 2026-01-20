@@ -59,13 +59,13 @@ class Game30HomeController extends GetxController {
 
   /// Check if user can play (needs minimum words + daily limit)
   void _checkCanPlay() {
-    final today = _todayStore.today.value;
+    final today = _todayStore.today.data.value;
     if (today != null) {
       _updatePlayStatus(today);
     }
 
     // Listen to data updates
-    ever(_todayStore.today, (data) {
+    ever(_todayStore.today.data, (data) {
       if (data != null) {
         _updatePlayStatus(data);
       }
@@ -214,7 +214,7 @@ class Game30HomeController extends GetxController {
     }
 
     // Recheck if can play
-    final today = _todayStore.today.value;
+    final today = _todayStore.today.data.value;
     if (today != null) {
       _updatePlayStatus(today);
     }

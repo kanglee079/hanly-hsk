@@ -1428,7 +1428,7 @@ class PracticeController extends GetxController {
     
     // 2. Fallback to today data (from API)
     if (Get.isRegistered<TodayStore>()) {
-      final todayLimit = Get.find<TodayStore>().today.value?.dailyNewLimit;
+      final todayLimit = Get.find<TodayStore>().today.data.value?.dailyNewLimit;
       if (todayLimit != null && todayLimit > 0) return todayLimit;
     }
     
