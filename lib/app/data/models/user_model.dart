@@ -27,11 +27,18 @@ class UserModel {
     final userData = json['user'] as Map<String, dynamic>? ?? json;
     final profileData = json['profile'] as Map<String, dynamic>?;
 
+    // Avatar URL can be in user data or profile data
+    final avatarUrl =
+        userData['avatarUrl'] as String? ??
+        profileData?['avatarUrl'] as String?;
+
     return UserModel(
       id: userData['id'] as String? ?? userData['_id'] as String? ?? '',
       email: userData['email'] as String? ?? '',
-      displayName: userData['displayName'] as String?,
-      avatarUrl: userData['avatarUrl'] as String?,
+      displayName:
+          userData['displayName'] as String? ??
+          profileData?['displayName'] as String?,
+      avatarUrl: avatarUrl,
       status: userData['status'] as String? ?? 'active',
       isPremium: userData['isPremium'] as bool? ?? false,
       twoFactorEnabled: userData['twoFactorEnabled'] as bool? ?? false,
@@ -158,8 +165,8 @@ class ProfileModel {
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? false,
       reminderTime: json['reminderTime'] as String?,
       isPremium: json['isPremium'] as bool? ?? false,
-      premiumExpiresAt: json['premiumExpiresAt'] != null 
-          ? DateTime.tryParse(json['premiumExpiresAt'] as String) 
+      premiumExpiresAt: json['premiumExpiresAt'] != null
+          ? DateTime.tryParse(json['premiumExpiresAt'] as String)
           : null,
       streakProtectionRemaining: json['streakProtectionRemaining'] as int? ?? 0,
     );
@@ -180,7 +187,8 @@ class ProfileModel {
       'notificationsEnabled': notificationsEnabled,
       if (reminderTime != null) 'reminderTime': reminderTime,
       'isPremium': isPremium,
-      if (premiumExpiresAt != null) 'premiumExpiresAt': premiumExpiresAt!.toIso8601String(),
+      if (premiumExpiresAt != null)
+        'premiumExpiresAt': premiumExpiresAt!.toIso8601String(),
       'streakProtectionRemaining': streakProtectionRemaining,
     };
   }
@@ -240,11 +248,7 @@ class FocusWeights {
   final double hanzi;
   final double meaning;
 
-  FocusWeights({
-    this.listening = 0.33,
-    this.hanzi = 0.34,
-    this.meaning = 0.33,
-  });
+  FocusWeights({this.listening = 0.33, this.hanzi = 0.34, this.meaning = 0.33});
 
   factory FocusWeights.fromJson(Map<String, dynamic> json) {
     return FocusWeights(
@@ -255,18 +259,10 @@ class FocusWeights {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'listening': listening,
-      'hanzi': hanzi,
-      'meaning': meaning,
-    };
+    return {'listening': listening, 'hanzi': hanzi, 'meaning': meaning};
   }
 
-  FocusWeights copyWith({
-    double? listening,
-    double? hanzi,
-    double? meaning,
-  }) {
+  FocusWeights copyWith({double? listening, double? hanzi, double? meaning}) {
     return FocusWeights(
       listening: listening ?? this.listening,
       hanzi: hanzi ?? this.hanzi,
