@@ -30,6 +30,7 @@ import 'app/services/realtime/today_store.dart';
 import 'app/services/realtime/study_modes_store.dart';
 import 'app/services/tutorial_service.dart';
 import 'app/services/progress_sync_service.dart';
+import 'app/services/local_progress_service.dart';
 import 'app/data/local/database_service.dart';
 import 'app/data/local/vocab_local_datasource.dart';
 
@@ -108,6 +109,9 @@ Future<void> _initDependencies() async {
 
   // Progress sync service (syncs local progress to backend)
   Get.put(ProgressSyncService());
+
+  // Local progress service (offline-first SRS engine)
+  Get.put(LocalProgressService());
 
   // Deep Link Service (must be after AuthSessionService)
   await Get.putAsync<DeepLinkService>(() => DeepLinkService().init());

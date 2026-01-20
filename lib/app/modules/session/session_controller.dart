@@ -7,6 +7,7 @@ import '../../data/repositories/learning_repo.dart';
 import '../../data/repositories/pronunciation_repo.dart';
 import '../../services/audio_service.dart';
 import '../../services/realtime/realtime_sync_service.dart';
+import '../../services/local_progress_service.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
 import '../today/today_controller.dart';
@@ -21,10 +22,11 @@ class SessionController extends GetxController {
   final LearningRepo _learningRepo = Get.find<LearningRepo>();
   final AudioService _audioService = Get.find<AudioService>();
   final RealtimeSyncService _rt = Get.find<RealtimeSyncService>();
+  late LocalProgressService _localProgress;
   late PronunciationRepo _pronunciationRepo;
 
   late SessionMode sessionMode;
-  
+
   final RxList<VocabModel> queue = <VocabModel>[].obs;
   final RxInt currentIndex = 0.obs;
   final RxInt currentStep = 0.obs; // 0-5 for 6 steps
@@ -33,18 +35,18 @@ class SessionController extends GetxController {
   final RxBool isLoadingMore = false.obs;
   final RxBool isSessionComplete = false.obs;
   final RxBool hasNoData = false.obs;
-  
+
   // Quiz state
   final RxList<String> quizOptions = <String>[].obs;
   final RxInt selectedAnswer = (-1).obs;
   final RxBool isAnswerCorrect = false.obs;
   final RxBool hasAnswered = false.obs;
-  
+
   // Session timer
   DateTime? _sessionStart;
   final RxInt elapsedSeconds = 0.obs;
   Timer? _timer;
-  
+
   // Stats
   int correctCount = 0;
   int totalQuizzes = 0;
@@ -58,28 +60,29 @@ class SessionController extends GetxController {
   final RxBool isListening = false.obs;
   final RxString recognizedText = ''.obs;
   final RxDouble speechConfidence = 0.0.obs;
-  
+
   // Pronunciation evaluation
   final RxBool isPronunciationPassed = false.obs;
   final RxInt pronunciationScore = 0.obs;
   final RxString pronunciationFeedback = ''.obs;
   final RxBool hasPronunciationResult = false.obs;
   final RxBool isEvaluatingPronunciation = false.obs;
-  
+
   // Track if user has listened to audio (required before manual pass)
   final RxBool hasListenedAudio = false.obs;
 
   VocabModel? get currentVocab =>
       queue.isNotEmpty && currentIndex.value < queue.length
-          ? queue[currentIndex.value]
-          : null;
+      ? queue[currentIndex.value]
+      : null;
 
   SessionStep get currentStepEnum => SessionStep.values[currentStep.value];
 
   double get progress {
     if (queue.isEmpty) return 0;
     final vocabProgress = currentIndex.value / queue.length;
-    final stepProgress = (currentStep.value + 1) / 6 / queue.length; // 6 steps now
+    final stepProgress =
+        (currentStep.value + 1) / 6 / queue.length; // 6 steps now
     return vocabProgress + stepProgress;
   }
 
@@ -91,19 +94,27 @@ class SessionController extends GetxController {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
     sessionMode = args?['mode'] as SessionMode? ?? SessionMode.newWords;
-    
+
     // Check if words were passed directly (from study modes API)
     if (args?['words'] != null) {
       _preloadedWords = args!['words'] as List<VocabModel>;
     }
-    
+
+    // Initialize local progress service
+    try {
+      _localProgress = Get.find<LocalProgressService>();
+      _localProgress.startSession();
+    } catch (_) {
+      Logger.w('SessionController', 'LocalProgressService not available');
+    }
+
     // Initialize pronunciation repo
     try {
       _pronunciationRepo = Get.find<PronunciationRepo>();
     } catch (_) {
       // Pronunciation repo not available
     }
-    
+
     _initSpeech();
     _loadQueue();
     _startTimer();
@@ -111,7 +122,7 @@ class SessionController extends GetxController {
 
   // Available Chinese locale
   String? _chineseLocaleId;
-  
+
   /// Initialize speech recognition
   Future<void> _initSpeech() async {
     _speech = stt.SpeechToText();
@@ -120,12 +131,14 @@ class SessionController extends GetxController {
         onError: (error) {
           Logger.e('SessionController', 'Speech error: ${error.errorMsg}');
           isListening.value = false;
-          
+
           // Show user-friendly error
           if (error.errorMsg.contains('error_listen_failed')) {
-            HMToast.error('Không thể nhận dạng giọng nói. Hãy kiểm tra:\n'
-                '• Quyền microphone đã được cấp\n'
-                '• Thiết bị có kết nối internet');
+            HMToast.error(
+              'Không thể nhận dạng giọng nói. Hãy kiểm tra:\n'
+              '• Quyền microphone đã được cấp\n'
+              '• Thiết bị có kết nối internet',
+            );
           }
         },
         onStatus: (status) {
@@ -135,29 +148,56 @@ class SessionController extends GetxController {
           }
         },
       );
-      Logger.d('SessionController', 'Speech available: ${isSpeechAvailable.value}');
-      
+      Logger.d(
+        'SessionController',
+        'Speech available: ${isSpeechAvailable.value}',
+      );
+
       // Find Chinese locale
       if (isSpeechAvailable.value) {
         final locales = await _speech!.locales();
-        Logger.d('SessionController', 'Available locales: ${locales.map((l) => l.localeId).toList()}');
-        
+        Logger.d(
+          'SessionController',
+          'Available locales: ${locales.map((l) => l.localeId).toList()}',
+        );
+
         // Try to find Chinese locale in order of preference
-        final zhLocales = ['zh_CN', 'zh-CN', 'zh_Hans_CN', 'zh_TW', 'zh-TW', 'zh_Hant_TW', 'cmn_Hans_CN'];
+        final zhLocales = [
+          'zh_CN',
+          'zh-CN',
+          'zh_Hans_CN',
+          'zh_TW',
+          'zh-TW',
+          'zh_Hant_TW',
+          'cmn_Hans_CN',
+        ];
         for (final zhId in zhLocales) {
-          final found = locales.any((l) => l.localeId == zhId || l.localeId.startsWith(zhId.split('_')[0]));
+          final found = locales.any(
+            (l) =>
+                l.localeId == zhId || l.localeId.startsWith(zhId.split('_')[0]),
+          );
           if (found) {
-            _chineseLocaleId = locales.firstWhere(
-              (l) => l.localeId == zhId || l.localeId.startsWith(zhId.split('_')[0]),
-            ).localeId;
+            _chineseLocaleId = locales
+                .firstWhere(
+                  (l) =>
+                      l.localeId == zhId ||
+                      l.localeId.startsWith(zhId.split('_')[0]),
+                )
+                .localeId;
             break;
           }
         }
-        
-        Logger.d('SessionController', 'Chinese locale found: $_chineseLocaleId');
-        
+
+        Logger.d(
+          'SessionController',
+          'Chinese locale found: $_chineseLocaleId',
+        );
+
         if (_chineseLocaleId == null) {
-          Logger.w('SessionController', 'No Chinese locale available, will use default');
+          Logger.w(
+            'SessionController',
+            'No Chinese locale available, will use default',
+          );
         }
       }
     } catch (e) {
@@ -170,14 +210,16 @@ class SessionController extends GetxController {
     _sessionStart = DateTime.now();
     _vocabStartTime = DateTime.now();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      elapsedSeconds.value = DateTime.now().difference(_sessionStart!).inSeconds;
+      elapsedSeconds.value = DateTime.now()
+          .difference(_sessionStart!)
+          .inSeconds;
     });
   }
 
   Future<void> _loadQueue() async {
     isLoading.value = true;
     hasNoData.value = false;
-    
+
     try {
       // Use preloaded words if available (from study modes API)
       if (_preloadedWords != null && _preloadedWords!.isNotEmpty) {
@@ -186,9 +228,9 @@ class SessionController extends GetxController {
         _preCacheAudio();
         return;
       }
-      
+
       final today = await _learningRepo.getToday();
-      
+
       switch (sessionMode) {
         case SessionMode.newWords:
           // Check if user has reached daily limit
@@ -212,7 +254,7 @@ class SessionController extends GetxController {
               .where((v) => v.state == 'learning' || v.reps == 1)
               .take(10)
               .toList();
-          
+
           if (learnedToday.isEmpty) {
             // Fallback: use all review queue if no specific "learned today" filter
             queue.value = today.reviewQueue.take(10).toList();
@@ -226,7 +268,7 @@ class SessionController extends GetxController {
           queue.value = combined.take(5).toList();
           break;
       }
-      
+
       if (queue.isEmpty) {
         hasNoData.value = true;
         if (sessionMode == SessionMode.newWords) {
@@ -260,7 +302,7 @@ class SessionController extends GetxController {
         urls.add(vocab.audioSlowUrl!);
       }
     }
-    
+
     if (urls.isNotEmpty) {
       Logger.d('SessionController', 'Pre-caching ${urls.length} audio files');
       // Run in background, don't await
@@ -275,7 +317,7 @@ class SessionController extends GetxController {
   /// Check if current step needs reveal button (some steps auto-reveal)
   bool get needsRevealButton {
     // HanziDna and Context steps show content immediately, no need to reveal
-    if (currentStepEnum == SessionStep.hanziDna || 
+    if (currentStepEnum == SessionStep.hanziDna ||
         currentStepEnum == SessionStep.context) {
       return false;
     }
@@ -283,23 +325,24 @@ class SessionController extends GetxController {
   }
 
   void nextStep() {
-    if (currentStep.value < 5) { // 6 steps: 0-5
+    if (currentStep.value < 5) {
+      // 6 steps: 0-5
       currentStep.value++;
       isRevealed.value = false;
       hasAnswered.value = false;
       selectedAnswer.value = -1;
-      
+
       // Reset pronunciation state
       if (currentStepEnum == SessionStep.pronunciation) {
         _resetPronunciationState();
       }
-      
+
       if (currentStepEnum == SessionStep.quiz) {
         _generateQuizOptions();
       }
-      
+
       // Auto-reveal for steps that show content immediately
-      if (currentStepEnum == SessionStep.hanziDna || 
+      if (currentStepEnum == SessionStep.hanziDna ||
           currentStepEnum == SessionStep.context) {
         isRevealed.value = true;
       }
@@ -325,8 +368,9 @@ class SessionController extends GetxController {
     isEvaluatingPronunciation.value = false;
     hasListenedAudio.value = false;
   }
-  
+
   /// Submit progress for new word (auto-rating based on quiz result)
+  /// OFFLINE-FIRST: Updates local DB immediately, syncs in background
   Future<void> _submitNewWordProgress() async {
     final vocab = currentVocab;
     if (vocab == null) {
@@ -335,27 +379,37 @@ class SessionController extends GetxController {
     }
 
     // Calculate time spent on this vocab
-    final timeSpent = _vocabStartTime != null 
-        ? DateTime.now().difference(_vocabStartTime!).inMilliseconds 
+    final timeSpent = _vocabStartTime != null
+        ? DateTime.now().difference(_vocabStartTime!).inMilliseconds
         : 5000;
 
     // Auto-rating: if quiz was correct → "good", if wrong → "hard"
-    final rating = isAnswerCorrect.value ? ReviewRating.good : ReviewRating.hard;
+    final srsRating = isAnswerCorrect.value ? SrsRating.good : SrsRating.hard;
 
     try {
-      final response = await _learningRepo.submitReviewAnswer(
+      // LOCAL-FIRST: Update local DB immediately (no network wait)
+      final result = await _localProgress.recordAnswer(
         vocabId: vocab.id,
-        rating: rating,
+        rating: srsRating,
         mode: 'learn',
-        timeSpent: timeSpent,
+        timeSpentMs: timeSpent,
       );
-      
-      Logger.d('SessionController', 
-        'New word progress submitted: ${vocab.hanzi}, rating: ${rating.value}, interval: ${response.intervalDays} days');
-      
+
+      Logger.d(
+        'SessionController',
+        '✅ [LOCAL] New word: ${vocab.hanzi}, interval: ${result.newIntervalDays}d',
+      );
     } catch (e) {
       Logger.e('SessionController', 'submitNewWordProgress error', e);
-      // Don't block user flow on error
+      // Fallback to API if local fails
+      try {
+        await _learningRepo.submitReviewAnswer(
+          vocabId: vocab.id,
+          rating: isAnswerCorrect.value ? ReviewRating.good : ReviewRating.hard,
+          mode: 'learn',
+          timeSpent: timeSpent,
+        );
+      } catch (_) {}
     }
 
     _nextVocab();
@@ -379,11 +433,11 @@ class SessionController extends GetxController {
     if (vocab == null) return;
 
     final options = <String>[vocab.meaningVi];
-    
+
     // Get distractors from other vocabs in queue
     final otherVocabs = queue.where((v) => v.id != vocab.id).toList();
     otherVocabs.shuffle();
-    
+
     for (final v in otherVocabs) {
       if (options.length >= 4) break;
       if (!options.contains(v.meaningVi)) {
@@ -418,14 +472,14 @@ class SessionController extends GetxController {
 
   void selectAnswer(int index) {
     if (hasAnswered.value) return;
-    
+
     selectedAnswer.value = index;
     hasAnswered.value = true;
     totalQuizzes++;
-    
+
     final correct = quizOptions[index] == currentVocab?.meaningVi;
     isAnswerCorrect.value = correct;
-    
+
     if (correct) {
       correctCount++;
     }
@@ -445,7 +499,7 @@ class SessionController extends GetxController {
     Logger.d('SessionController', 'Slow mode: $slow');
 
     final url = slow ? vocab.audioSlowUrl : vocab.audioUrl;
-    
+
     if (url != null && url.isNotEmpty) {
       Logger.d('SessionController', 'Playing URL: $url');
       if (slow) {
@@ -456,7 +510,10 @@ class SessionController extends GetxController {
       // Mark as listened for pronunciation step
       hasListenedAudio.value = true;
     } else {
-      Logger.w('SessionController', 'No ${slow ? "slow" : "normal"} audio URL for vocab: ${vocab.hanzi}');
+      Logger.w(
+        'SessionController',
+        'No ${slow ? "slow" : "normal"} audio URL for vocab: ${vocab.hanzi}',
+      );
       HMToast.info('Audio ${slow ? "chậm" : ""} không khả dụng cho từ này');
     }
   }
@@ -492,26 +549,31 @@ class SessionController extends GetxController {
           }
         },
       );
-      
+
       if (!available) {
         HMToast.error('Vui lòng cấp quyền microphone trong Cài đặt');
         return;
       }
-      
+
       isListening.value = true;
-      
+
       // Use detected Chinese locale or fallback
       final localeToUse = _chineseLocaleId ?? 'zh_CN';
-      Logger.d('SessionController', 'Starting listen with locale: $localeToUse');
-      
+      Logger.d(
+        'SessionController',
+        'Starting listen with locale: $localeToUse',
+      );
+
       await _speech!.listen(
         onResult: (result) {
           recognizedText.value = result.recognizedWords;
           speechConfidence.value = result.confidence;
-          
-          Logger.d('SessionController', 
-            'Speech result: "${result.recognizedWords}" (confidence: ${result.confidence})');
-          
+
+          Logger.d(
+            'SessionController',
+            'Speech result: "${result.recognizedWords}" (confidence: ${result.confidence})',
+          );
+
           // Auto-evaluate when speech is final
           if (result.finalResult && result.recognizedWords.isNotEmpty) {
             isListening.value = false;
@@ -520,9 +582,12 @@ class SessionController extends GetxController {
         },
         localeId: localeToUse,
         listenFor: const Duration(seconds: 10), // Listen for up to 10 seconds
-        pauseFor: const Duration(seconds: 3), // Pause after 3 seconds of silence
+        pauseFor: const Duration(
+          seconds: 3,
+        ), // Pause after 3 seconds of silence
         listenOptions: stt.SpeechListenOptions(
-          listenMode: stt.ListenMode.dictation, // Try dictation mode for longer input
+          listenMode:
+              stt.ListenMode.dictation, // Try dictation mode for longer input
           cancelOnError: false, // Don't cancel, let it continue
           partialResults: true,
         ),
@@ -530,8 +595,10 @@ class SessionController extends GetxController {
     } catch (e) {
       Logger.e('SessionController', 'Listen error', e);
       isListening.value = false;
-      HMToast.error('Không thể bắt đầu nhận dạng giọng nói.\n'
-          'Hãy kiểm tra quyền microphone và kết nối internet.');
+      HMToast.error(
+        'Không thể bắt đầu nhận dạng giọng nói.\n'
+        'Hãy kiểm tra quyền microphone và kết nối internet.',
+      );
     }
   }
 
@@ -555,15 +622,16 @@ class SessionController extends GetxController {
         vocabId: vocab.id,
         spokenText: spokenText,
       );
-      
+
       pronunciationScore.value = evaluation.score;
       isPronunciationPassed.value = evaluation.passed;
       pronunciationFeedback.value = evaluation.feedback;
       hasPronunciationResult.value = true;
-      
-      Logger.d('SessionController', 
-        'Pronunciation result: score=${pronunciationScore.value}, passed=${isPronunciationPassed.value}');
-      
+
+      Logger.d(
+        'SessionController',
+        'Pronunciation result: score=${pronunciationScore.value}, passed=${isPronunciationPassed.value}',
+      );
     } catch (e) {
       Logger.e('SessionController', 'Evaluate pronunciation error', e);
       // Fallback: simple text comparison
@@ -582,12 +650,13 @@ class SessionController extends GetxController {
     final hanzi = vocab.hanzi.toLowerCase();
     final pinyin = vocab.pinyin.toLowerCase().replaceAll(' ', '');
     final spoken = spokenText.toLowerCase().replaceAll(' ', '');
-    
+
     // Check for match
-    bool isMatch = spoken.contains(hanzi) || 
-                   hanzi.contains(spoken) ||
-                   _comparePinyin(pinyin, spoken);
-    
+    bool isMatch =
+        spoken.contains(hanzi) ||
+        hanzi.contains(spoken) ||
+        _comparePinyin(pinyin, spoken);
+
     if (isMatch) {
       pronunciationScore.value = 80;
       isPronunciationPassed.value = true;
@@ -595,7 +664,8 @@ class SessionController extends GetxController {
     } else {
       pronunciationScore.value = 40;
       isPronunciationPassed.value = false;
-      pronunciationFeedback.value = 'Hãy thử lại. Nghe kỹ audio và phát âm theo.';
+      pronunciationFeedback.value =
+          'Hãy thử lại. Nghe kỹ audio và phát âm theo.';
     }
     hasPronunciationResult.value = true;
   }
@@ -606,7 +676,7 @@ class SessionController extends GetxController {
     final pinyinNoTones = pinyin
         .replaceAll(RegExp(r'[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]'), '')
         .replaceAll(RegExp(r'[1-4]'), '');
-    
+
     return pinyinNoTones.contains(spoken) || spoken.contains(pinyinNoTones);
   }
 
@@ -627,50 +697,79 @@ class SessionController extends GetxController {
   void retryPronunciation() {
     _resetPronunciationState();
   }
-  
+
   /// Skip pronunciation step (allowed anytime)
   void skipPronunciation() {
     nextStep();
   }
 
   // Last rating response for showing feedback
-  final Rx<ReviewAnswerResponse?> lastRatingResponse = Rx<ReviewAnswerResponse?>(null);
+  final Rx<ReviewAnswerResponse?> lastRatingResponse =
+      Rx<ReviewAnswerResponse?>(null);
   final RxBool showingRatingFeedback = false.obs;
 
+  /// Submit rating for review
+  /// OFFLINE-FIRST: Updates local DB immediately, syncs in background
   Future<void> submitRating(ReviewRating rating) async {
     final vocab = currentVocab;
     if (vocab == null) return;
 
     // Calculate time spent on this vocab
-    final timeSpent = _vocabStartTime != null 
-        ? DateTime.now().difference(_vocabStartTime!).inMilliseconds 
+    final timeSpent = _vocabStartTime != null
+        ? DateTime.now().difference(_vocabStartTime!).inMilliseconds
         : 5000;
 
+    // Convert ReviewRating to SrsRating
+    final srsRating = _toSrsRating(rating);
+
     try {
-      final response = await _learningRepo.submitReviewAnswer(
+      // LOCAL-FIRST: Update local DB immediately (no network wait)
+      final result = await _localProgress.recordAnswer(
         vocabId: vocab.id,
-        rating: rating,
+        rating: srsRating,
         mode: _getModeString(),
-        timeSpent: timeSpent,
+        timeSpentMs: timeSpent,
       );
-      
-      // Show feedback briefly
-      lastRatingResponse.value = response;
+
+      // Show feedback briefly using local result
       showingRatingFeedback.value = true;
-      
-      Logger.d('SessionController', 
-        'Rating submitted: ${rating.value}, new interval: ${response.intervalDays} days, state: ${response.state}');
-      
-      // Show feedback for 1 second, then move to next vocab
+
+      Logger.d(
+        'SessionController',
+        '✅ [LOCAL] Rating: ${rating.value}, interval: ${result.newIntervalDays}d, state: ${result.newState}',
+      );
+
+      // Show feedback for 0.8 second, then move to next vocab
       await Future.delayed(const Duration(milliseconds: 800));
       showingRatingFeedback.value = false;
-      
     } catch (e) {
       Logger.e('SessionController', 'submitRating error', e);
-      // Don't block user flow on error
+      // Fallback to API if local fails
+      try {
+        await _learningRepo.submitReviewAnswer(
+          vocabId: vocab.id,
+          rating: rating,
+          mode: _getModeString(),
+          timeSpent: timeSpent,
+        );
+      } catch (_) {}
     }
 
     _nextVocab();
+  }
+
+  /// Convert ReviewRating to SrsRating
+  SrsRating _toSrsRating(ReviewRating rating) {
+    switch (rating) {
+      case ReviewRating.again:
+        return SrsRating.again;
+      case ReviewRating.hard:
+        return SrsRating.hard;
+      case ReviewRating.good:
+        return SrsRating.good;
+      case ReviewRating.easy:
+        return SrsRating.easy;
+    }
   }
 
   String _getModeString() {
@@ -696,37 +795,61 @@ class SessionController extends GetxController {
 
     final seconds = elapsedSeconds.value;
     final accuracy = totalQuizzes > 0 ? correctCount / totalQuizzes : 1.0;
-    
+
     // Calculate counts based on mode
-    final sessionNewCount = sessionMode == SessionMode.newWords ? queue.length : 0;
-    final sessionReviewCount = (sessionMode == SessionMode.review || sessionMode == SessionMode.reviewToday) 
-        ? queue.length 
+    final sessionNewCount = sessionMode == SessionMode.newWords
+        ? queue.length
         : 0;
-    
+    final sessionReviewCount =
+        (sessionMode == SessionMode.review ||
+            sessionMode == SessionMode.reviewToday)
+        ? queue.length
+        : 0;
+
     final result = SessionResultModel(
       seconds: seconds,
       newCount: sessionNewCount,
       reviewCount: sessionReviewCount,
       accuracy: accuracy,
     );
-    
-    Logger.d('SessionController', 
+
+    Logger.d(
+      'SessionController',
       '[FINISH] mode=$sessionMode, newCount=$sessionNewCount, '
-      'reviewCount=$sessionReviewCount, seconds=$seconds, minutes=${result.minutes}');
+          'reviewCount=$sessionReviewCount, seconds=$seconds, minutes=${result.minutes}',
+    );
 
     try {
-      await _learningRepo.finishSession(result);
-      
+      // LOCAL-FIRST: End session and get stats from local DB
+      final localStats = await _localProgress.endSession();
+
+      Logger.d(
+        'SessionController',
+        '✅ [LOCAL] Session stats: ${localStats['minutes']}min, ${localStats['accuracy']}% accuracy',
+      );
+
+      // BACKGROUND SYNC: Send to server without blocking
+      _learningRepo
+          .finishSession(result)
+          .then((_) {
+            Logger.d('SessionController', '☁️ Session synced to server');
+          })
+          .catchError((e) {
+            Logger.e('SessionController', 'Server sync failed (will retry)', e);
+          });
+
       // Refresh all relevant controllers
       await _refreshAllData();
-      
     } catch (e) {
       Logger.e('SessionController', 'finishSession error', e);
-      // Still try to refresh data even if finishSession failed
+      // Fallback to API-only if local fails
+      try {
+        await _learningRepo.finishSession(result);
+      } catch (_) {}
       await _refreshAllData();
     }
   }
-  
+
   /// Refresh all data in all controllers after session completes
   Future<void> _refreshAllData() async {
     try {
@@ -740,38 +863,50 @@ class SessionController extends GetxController {
   /// Save partial session in background (fire-and-forget)
   void _savePartialSessionInBackground() {
     final seconds = elapsedSeconds.value;
-    
+
     // Only save if meaningful time spent
     if (seconds < _minSecondsToSave) {
-      Logger.d('SessionController', '[SKIP_SAVE] seconds=$seconds < $_minSecondsToSave');
+      Logger.d(
+        'SessionController',
+        '[SKIP_SAVE] seconds=$seconds < $_minSecondsToSave',
+      );
       return;
     }
-    
+
     final accuracy = totalQuizzes > 0 ? correctCount / totalQuizzes : 0.0;
-    final sessionNewCount = sessionMode == SessionMode.newWords ? currentIndex.value : 0;
+    final sessionNewCount = sessionMode == SessionMode.newWords
+        ? currentIndex.value
+        : 0;
     final sessionReviewCount = currentIndex.value;
-    
+
     final result = SessionResultModel(
       seconds: seconds,
       newCount: sessionNewCount,
       reviewCount: sessionReviewCount,
       accuracy: accuracy,
     );
-    
-    Logger.d('SessionController', 
-      '[PARTIAL_SAVE] mode=$sessionMode, seconds=$seconds, minutes=${result.minutes}');
-    
+
+    Logger.d(
+      'SessionController',
+      '[PARTIAL_SAVE] mode=$sessionMode, seconds=$seconds, minutes=${result.minutes}',
+    );
+
     // Fire and forget - don't block UI
-    _learningRepo.finishSession(result).then((_) {
-      _refreshAllData();
-    }).catchError((e) {
-      Logger.e('SessionController', 'Failed to save partial session', e);
-    });
+    _learningRepo
+        .finishSession(result)
+        .then((_) {
+          _refreshAllData();
+        })
+        .catchError((e) {
+          Logger.e('SessionController', 'Failed to save partial session', e);
+        });
   }
 
   void exitSession() {
     _timer?.cancel();
-    if (!_sessionSaved && !isSessionComplete.value && elapsedSeconds.value >= _minSecondsToSave) {
+    if (!_sessionSaved &&
+        !isSessionComplete.value &&
+        elapsedSeconds.value >= _minSecondsToSave) {
       _sessionSaved = true;
       _savePartialSessionInBackground();
     }
@@ -781,13 +916,13 @@ class SessionController extends GetxController {
   /// Continue learning with fresh words from BE
   Future<void> continueSession() async {
     isLoadingMore.value = true;
-    
+
     try {
       // Fetch fresh data from BE (should exclude already learned words)
       final today = await _learningRepo.getToday();
-      
+
       List<VocabModel> newWords = [];
-      
+
       switch (sessionMode) {
         case SessionMode.newWords:
           // Check remaining limit first
@@ -809,8 +944,8 @@ class SessionController extends GetxController {
               .where((v) => v.state == 'learning' || v.reps == 1)
               .take(10)
               .toList();
-          newWords = learnedToday.isEmpty 
-              ? today.reviewQueue.take(10).toList() 
+          newWords = learnedToday.isEmpty
+              ? today.reviewQueue.take(10).toList()
               : learnedToday;
           break;
         case SessionMode.game30:
@@ -819,7 +954,7 @@ class SessionController extends GetxController {
           newWords = combined.take(5).toList();
           break;
       }
-      
+
       if (newWords.isEmpty) {
         if (sessionMode == SessionMode.newWords) {
           HMToast.info(
@@ -832,7 +967,7 @@ class SessionController extends GetxController {
         Get.back();
         return;
       }
-      
+
       // Reset session state
       queue.value = newWords;
       currentIndex.value = 0;
@@ -841,21 +976,23 @@ class SessionController extends GetxController {
       isSessionComplete.value = false;
       hasAnswered.value = false;
       selectedAnswer.value = -1;
-      
+
       // Reset stats for new session
       correctCount = 0;
       totalQuizzes = 0;
-      
+
       // Restart timer
       _sessionStart = DateTime.now();
       _vocabStartTime = DateTime.now();
       elapsedSeconds.value = 0;
-      
+
       // Pre-cache audio
       _preCacheAudio();
-      
-      Logger.d('SessionController', 'Continued session with ${newWords.length} new words');
-      
+
+      Logger.d(
+        'SessionController',
+        'Continued session with ${newWords.length} new words',
+      );
     } catch (e) {
       Logger.e('SessionController', 'continueSession error', e);
       HMToast.error('Không thể tải thêm từ. Vui lòng thử lại.');
@@ -867,11 +1004,13 @@ class SessionController extends GetxController {
   @override
   void onClose() {
     // Save partial session in background if not already saved
-    if (!_sessionSaved && !isSessionComplete.value && elapsedSeconds.value >= _minSecondsToSave) {
+    if (!_sessionSaved &&
+        !isSessionComplete.value &&
+        elapsedSeconds.value >= _minSecondsToSave) {
       _sessionSaved = true;
       _savePartialSessionInBackground();
     }
-    
+
     _timer?.cancel();
     _audioService.stop();
     _speech?.stop();
