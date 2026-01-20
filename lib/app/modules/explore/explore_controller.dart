@@ -7,6 +7,7 @@ import '../../data/models/collection_model.dart';
 import '../../data/local/vocab_local_datasource.dart';
 import '../../data/repositories/favorites_repo.dart';
 import '../../data/repositories/collections_repo.dart';
+import '../../data/repositories/vocab_repo.dart';
 import '../../services/storage_service.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
@@ -48,49 +49,50 @@ class RecentItem {
 
 /// Browse mode enum
 enum BrowseMode {
-  home,      // Main explore view
-  search,    // Search results
-  level,     // Browse by HSK level
-  topic,     // Browse by topic
+  home, // Main explore view
+  search, // Search results
+  level, // Browse by HSK level
+  topic, // Browse by topic
 }
 
 /// Explore controller - uses LOCAL DATABASE (offline-first)
 class ExploreController extends GetxController {
-  // OFFLINE-FIRST: Use local database instead of API
+  // HYBRID: Local database + API fallback
   final VocabLocalDataSource _vocabLocal = Get.find<VocabLocalDataSource>();
   final FavoritesRepo _favoritesRepo = Get.find<FavoritesRepo>();
   final CollectionsRepo _collectionsRepo = Get.find<CollectionsRepo>();
   final StorageService _storage = Get.find<StorageService>();
+  VocabRepo? _vocabRepo; // Optional - for API fallback
 
   final searchController = TextEditingController();
   final searchFocusNode = FocusNode();
   final RxBool isSearchFocused = false.obs;
   final RxBool isLoadingCollections = false.obs;
-  
+
   final RxList<VocabModel> vocabs = <VocabModel>[].obs;
   final RxList<VocabModel> browseVocabs = <VocabModel>[].obs;
   final RxList<String> topics = <String>[].obs;
   final RxList<String> wordTypes = <String>[].obs;
-  
+
   // Daily pick
   final Rx<VocabModel?> dailyPick = Rx<VocabModel?>(null);
   final RxBool isLoadingDailyPick = false.obs;
-  
+
   // Collections
   final RxList<CollectionModel> collections = <CollectionModel>[].obs;
-  
+
   // Recent
   final RxList<RecentItem> recentItems = <RecentItem>[].obs;
-  
+
   final RxBool isLoading = false.obs;
   final RxBool isSearching = false.obs;
   final RxBool isLoadingMore = false.obs;
   final RxString searchQuery = ''.obs;
-  
+
   // Browse mode state
   final Rx<BrowseMode> browseMode = BrowseMode.home.obs;
   final RxString browseTitle = ''.obs;
-  
+
   // Filters
   final RxString selectedLevel = ''.obs;
   final RxString selectedWordType = ''.obs;
@@ -103,38 +105,46 @@ class ExploreController extends GetxController {
   int _currentPage = 1;
   bool _hasMore = true;
   static const int _pageLimit = 20;
-  
+
   // Debounce timer for real-time search
   Timer? _searchDebounce;
   static const Duration _searchDebounceDelay = Duration(milliseconds: 400);
 
   // Filter chip labels - simplified for clarity
-  final List<String> chipLabels = ['Khám phá', 'HSK 1-2', 'HSK 3-4', 'HSK 5-6', 'Chủ đề'];
+  final List<String> chipLabels = [
+    'Khám phá',
+    'HSK 1-2',
+    'HSK 3-4',
+    'HSK 5-6',
+    'Chủ đề',
+  ];
 
   @override
   void onInit() {
     super.onInit();
+    // Try to get VocabRepo for API fallback (may not be registered)
+    try {
+      _vocabRepo = Get.find<VocabRepo>();
+    } catch (_) {
+      _vocabRepo = null;
+    }
     searchController.addListener(_onSearchQueryChanged);
     _initData();
   }
-  
+
   Future<void> _initData() async {
-    await Future.wait([
-      loadCollections(),
-      loadMeta(),
-      loadDailyPick(),
-    ]);
+    await Future.wait([loadCollections(), loadMeta(), loadDailyPick()]);
     _loadRecentItems();
   }
-  
+
   /// Called when search text changes - debounced real-time search
   void _onSearchQueryChanged() {
     final query = searchController.text.trim();
     searchQuery.value = query;
-    
+
     // Cancel previous debounce timer
     _searchDebounce?.cancel();
-    
+
     if (query.isEmpty) {
       // Reset to home mode if was in search
       if (browseMode.value == BrowseMode.search) {
@@ -143,11 +153,11 @@ class ExploreController extends GetxController {
       }
       return;
     }
-    
+
     // Switch to search mode
     browseMode.value = BrowseMode.search;
     isSearching.value = true;
-    
+
     // Debounce the actual API call
     _searchDebounce = Timer(_searchDebounceDelay, () {
       if (query.isNotEmpty) {
@@ -167,10 +177,7 @@ class ExploreController extends GetxController {
   /// Refresh all data - for pull-to-refresh
   @override
   Future<void> refresh() async {
-    await Future.wait([
-      loadCollections(),
-      loadDailyPick(),
-    ]);
+    await Future.wait([loadCollections(), loadDailyPick()]);
     if (browseMode.value != BrowseMode.home) {
       await loadBrowseVocabs(refresh: true);
     }
@@ -223,36 +230,51 @@ class ExploreController extends GetxController {
   void openCollection(CollectionModel collection) {
     Get.toNamed(
       Routes.collectionDetail,
-      arguments: {
-        'id': collection.id,
-        'collection': collection,
-      },
+      arguments: {'id': collection.id, 'collection': collection},
     );
   }
 
-  /// Load daily pick vocab - truly random per day (OFFLINE-FIRST)
+  /// Load daily pick vocab - HYBRID (local first, API fallback)
   Future<void> loadDailyPick() async {
     isLoadingDailyPick.value = true;
     try {
       final today = DateTime.now().toIso8601String().substring(0, 10);
       final cached = _storage.getDailyPick();
-      
+
       // Check if we have a valid cache for today
-      if (cached != null && cached['date'] == today && cached['vocab'] != null) {
-        dailyPick.value = VocabModel.fromJson(cached['vocab'] as Map<String, dynamic>);
+      if (cached != null &&
+          cached['date'] == today &&
+          cached['vocab'] != null) {
+        dailyPick.value = VocabModel.fromJson(
+          cached['vocab'] as Map<String, dynamic>,
+        );
         isLoadingDailyPick.value = false;
         return;
       }
 
-      // OFFLINE-FIRST: Get daily pick from local database
-      final vocab = await _vocabLocal.getDailyPick(today);
-      
+      // Try 1: Local database (instant)
+      VocabModel? vocab = await _vocabLocal.getDailyPick(today);
+
+      // Try 2: API fallback if local is empty
+      if (vocab == null && _vocabRepo != null) {
+        Logger.d('ExploreController', 'Local daily pick empty, trying API');
+        try {
+          final result = await _vocabRepo!.getVocabs(
+            page: 1,
+            limit: 1,
+            sort: 'random',
+          );
+          if (result.items.isNotEmpty) {
+            vocab = result.items.first;
+          }
+        } catch (apiError) {
+          Logger.w('ExploreController', 'API fallback failed: $apiError');
+        }
+      }
+
       if (vocab != null) {
         dailyPick.value = vocab;
-        _storage.saveDailyPick({
-          'date': today,
-          'vocab': vocab.toJson(),
-        });
+        _storage.saveDailyPick({'date': today, 'vocab': vocab.toJson()});
       }
     } catch (e) {
       Logger.e('ExploreController', 'Error loading daily pick', e);
@@ -286,14 +308,17 @@ class ExploreController extends GetxController {
 
   void addToRecent(VocabModel vocab) {
     recentItems.removeWhere((e) => e.id == vocab.id);
-    recentItems.insert(0, RecentItem(
-      id: vocab.id,
-      hanzi: vocab.hanzi,
-      pinyin: vocab.pinyin,
-      meaning: vocab.meaningVi,
-      viewedAt: DateTime.now(),
-    ));
-    
+    recentItems.insert(
+      0,
+      RecentItem(
+        id: vocab.id,
+        hanzi: vocab.hanzi,
+        pinyin: vocab.pinyin,
+        meaning: vocab.meaningVi,
+        viewedAt: DateTime.now(),
+      ),
+    );
+
     if (recentItems.length > 10) {
       recentItems.removeRange(10, recentItems.length);
     }
@@ -317,18 +342,20 @@ class ExploreController extends GetxController {
         page: _currentPage,
         limit: _pageLimit,
         level: selectedLevel.value.isNotEmpty ? selectedLevel.value : null,
-        wordType: selectedWordType.value.isNotEmpty ? selectedWordType.value : null,
+        wordType: selectedWordType.value.isNotEmpty
+            ? selectedWordType.value
+            : null,
         topic: selectedTopic.value.isNotEmpty ? selectedTopic.value : null,
         sort: sortBy.value,
         order: sortOrder.value,
       );
-      
+
       if (refresh) {
         browseVocabs.value = result.items;
       } else {
         browseVocabs.addAll(result.items);
       }
-      
+
       _hasMore = result.hasNext;
       _currentPage++;
     } catch (e) {
@@ -354,7 +381,7 @@ class ExploreController extends GetxController {
       // OFFLINE-FIRST: Query local database
       final topicsData = await _vocabLocal.getTopics();
       topics.value = topicsData;
-      
+
       final typesData = await _vocabLocal.getWordTypes();
       wordTypes.value = typesData;
     } catch (e) {
@@ -362,7 +389,7 @@ class ExploreController extends GetxController {
     }
   }
 
-  /// Perform search - OFFLINE-FIRST (instant local search)
+  /// Perform search - HYBRID (local first, API fallback)
   Future<void> _performSearch() async {
     if (searchQuery.value.isEmpty) {
       goHome();
@@ -372,10 +399,28 @@ class ExploreController extends GetxController {
     isSearching.value = true;
 
     try {
-      // OFFLINE-FIRST: Search local database (instant, no network)
-      final results = await _vocabLocal.searchVocabs(searchQuery.value, limit: 50);
-      
-      // Local search already returns relevance-sorted results
+      // Try 1: Local database (instant, no network)
+      List<VocabModel> results = await _vocabLocal.searchVocabs(
+        searchQuery.value,
+        limit: 50,
+      );
+
+      // Try 2: API fallback if local is empty
+      if (results.isEmpty && _vocabRepo != null) {
+        Logger.d('ExploreController', 'Local search empty, trying API');
+        try {
+          results = await _vocabRepo!.searchVocabs(
+            searchQuery.value,
+            limit: 50,
+          );
+        } catch (apiError) {
+          Logger.w(
+            'ExploreController',
+            'API search fallback failed: $apiError',
+          );
+        }
+      }
+
       vocabs.value = results;
     } catch (e) {
       Logger.e('ExploreController', 'search error', e);
@@ -388,7 +433,7 @@ class ExploreController extends GetxController {
   /// Handle chip filter selection
   void setChipFilter(int index) {
     selectedChipIndex.value = index;
-    
+
     switch (index) {
       case 0: // Khám phá - go home
         goHome();
@@ -449,14 +494,18 @@ class ExploreController extends GetxController {
 
   void sortVocabs(String sort) {
     sortBy.value = sort;
-    if (browseMode.value != BrowseMode.home && browseMode.value != BrowseMode.search) {
+    if (browseMode.value != BrowseMode.home &&
+        browseMode.value != BrowseMode.search) {
       loadBrowseVocabs();
     }
   }
 
   void openVocabDetail(VocabModel vocab) {
     addToRecent(vocab);
-    Get.toNamed(Routes.wordDetail, arguments: {'vocabId': vocab.id, 'vocab': vocab});
+    Get.toNamed(
+      Routes.wordDetail,
+      arguments: {'vocabId': vocab.id, 'vocab': vocab},
+    );
   }
 
   void openRecentItem(RecentItem item) {
@@ -485,24 +534,26 @@ class ExploreController extends GetxController {
         await _favoritesRepo.addFavorite(vocab.id);
         HMToast.success(ToastMessages.favoritesAddSuccess);
       }
-      
+
       // Update in vocabs list
       final index = vocabs.indexWhere((v) => v.id == vocab.id);
       if (index != -1) {
         vocabs[index] = vocab.copyWith(isFavorite: !vocab.isFavorite);
       }
-      
+
       // Update in browseVocabs list
       final browseIndex = browseVocabs.indexWhere((v) => v.id == vocab.id);
       if (browseIndex != -1) {
-        browseVocabs[browseIndex] = vocab.copyWith(isFavorite: !vocab.isFavorite);
+        browseVocabs[browseIndex] = vocab.copyWith(
+          isFavorite: !vocab.isFavorite,
+        );
       }
     } catch (e) {
       Logger.e('ExploreController', 'toggleFavorite error', e);
       HMToast.error(ToastMessages.favoritesUpdateError);
     }
   }
-  
+
   /// Get current list based on browse mode
   List<VocabModel> get currentVocabs {
     if (browseMode.value == BrowseMode.search) {
@@ -510,14 +561,14 @@ class ExploreController extends GetxController {
     }
     return browseVocabs;
   }
-  
+
   /// Check if showing home view
   bool get isHomeMode => browseMode.value == BrowseMode.home;
-  
+
   /// Check if in any browse/search mode
   bool get isBrowsing => browseMode.value != BrowseMode.home;
-  
+
   /// Check if showing topic selection
-  bool get isTopicSelection => 
+  bool get isTopicSelection =>
       browseMode.value == BrowseMode.topic && selectedTopic.value.isEmpty;
 }

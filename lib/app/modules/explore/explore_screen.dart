@@ -76,7 +76,8 @@ class ExploreScreen extends GetView<ExploreController> {
                   Showcase(
                     key: _searchKey,
                     title: 'Tìm kiếm từ vựng',
-                    description: 'Gõ từ tiếng Trung, pinyin hoặc tiếng Việt để tra cứu.',
+                    description:
+                        'Gõ từ tiếng Trung, pinyin hoặc tiếng Việt để tra cứu.',
                     overlayOpacity: 0.7,
                     targetShapeBorder: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -104,7 +105,8 @@ class ExploreScreen extends GetView<ExploreController> {
             Showcase(
               key: _dailyPickKey,
               title: 'Từ vựng hôm nay',
-              description: 'Mỗi ngày app sẽ gợi ý một từ mới ngẫu nhiên cho bạn!',
+              description:
+                  'Mỗi ngày app sẽ gợi ý một từ mới ngẫu nhiên cho bạn!',
               overlayOpacity: 0.7,
               targetShapeBorder: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -181,7 +183,8 @@ class ExploreScreen extends GetView<ExploreController> {
               return _buildLoadingSkeleton();
             }
 
-            if (controller.vocabs.isEmpty && controller.searchQuery.value.isNotEmpty) {
+            if (controller.vocabs.isEmpty &&
+                controller.searchQuery.value.isNotEmpty) {
               return HMEmptyState(
                 icon: Icons.search_off_rounded,
                 title: 'Không tìm thấy kết quả',
@@ -215,13 +218,17 @@ class ExploreScreen extends GetView<ExploreController> {
                   _buildBackButton(isDark),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Obx(() => Text(
-                      controller.browseTitle.value,
-                      style: AppTypography.titleLarge.copyWith(
-                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
+                    child: Obx(
+                      () => Text(
+                        controller.browseTitle.value,
+                        style: AppTypography.titleLarge.copyWith(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    )),
+                    ),
                   ),
                   _buildFilterButton(isDark, context),
                 ],
@@ -251,7 +258,11 @@ class ExploreScreen extends GetView<ExploreController> {
               );
             }
 
-            return _buildVocabList(controller.browseVocabs, isDark, canLoadMore: true);
+            return _buildVocabList(
+              controller.browseVocabs,
+              isDark,
+              canLoadMore: true,
+            );
           }),
         ),
       ],
@@ -276,7 +287,9 @@ class ExploreScreen extends GetView<ExploreController> {
                   Text(
                     'Chọn chủ đề',
                     style: AppTypography.titleLarge.copyWith(
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -327,7 +340,9 @@ class ExploreScreen extends GetView<ExploreController> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+          color: isDark
+              ? AppColors.surfaceVariantDark
+              : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
@@ -346,7 +361,9 @@ class ExploreScreen extends GetView<ExploreController> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+          color: isDark
+              ? AppColors.surfaceVariantDark
+              : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
@@ -358,18 +375,24 @@ class ExploreScreen extends GetView<ExploreController> {
     );
   }
 
-  Widget _buildResultsHeader(bool isDark, BuildContext context, {bool isBrowse = false}) {
+  Widget _buildResultsHeader(
+    bool isDark,
+    BuildContext context, {
+    bool isBrowse = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Obx(() {
-          final count = isBrowse 
-              ? controller.browseVocabs.length 
+          final count = isBrowse
+              ? controller.browseVocabs.length
               : controller.vocabs.length;
           return Text(
             'KẾT QUẢ ($count)',
             style: AppTypography.labelSmall.copyWith(
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
               letterSpacing: 1.2,
             ),
           );
@@ -378,12 +401,14 @@ class ExploreScreen extends GetView<ExploreController> {
           onTap: () => _showSortSheet(context),
           child: Row(
             children: [
-              Obx(() => Text(
-                _getSortLabel(controller.sortBy.value),
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.primary,
+              Obx(
+                () => Text(
+                  _getSortLabel(controller.sortBy.value),
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
-              )),
+              ),
               const SizedBox(width: 4),
               const Icon(
                 Icons.keyboard_arrow_down,
@@ -408,10 +433,14 @@ class ExploreScreen extends GetView<ExploreController> {
     );
   }
 
-  Widget _buildVocabList(List<VocabModel> vocabs, bool isDark, {bool canLoadMore = false}) {
+  Widget _buildVocabList(
+    List<VocabModel> vocabs,
+    bool isDark, {
+    bool canLoadMore = false,
+  }) {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
-        if (canLoadMore && 
+        if (canLoadMore &&
             notification is ScrollEndNotification &&
             notification.metrics.extentAfter < 200) {
           controller.loadMore();
@@ -453,7 +482,9 @@ class ExploreScreen extends GetView<ExploreController> {
           Text(
             DateFormatUtil.formatDayFull(DateTime.now()).toUpperCase(),
             style: AppTypography.labelSmall.copyWith(
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
               letterSpacing: 0.8,
               fontSize: 10,
             ),
@@ -473,14 +504,20 @@ class ExploreScreen extends GetView<ExploreController> {
   Widget _buildSearchBar(bool isDark, {bool isActive = false}) {
     if (isActive) {
       return Obx(() {
-        final isFocused = controller.isSearchFocused.value || controller.searchFocusNode.hasFocus;
+        final isFocused =
+            controller.isSearchFocused.value ||
+            controller.searchFocusNode.hasFocus;
 
         return Container(
           height: 48,
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+            color: isDark
+                ? AppColors.surfaceVariantDark
+                : AppColors.surfaceVariant,
             borderRadius: AppSpacing.borderRadiusLg,
-            border: isFocused ? Border.all(color: AppColors.primary, width: 2) : null,
+            border: isFocused
+                ? Border.all(color: AppColors.primary, width: 2)
+                : null,
           ),
           child: Row(
             children: [
@@ -490,7 +527,9 @@ class ExploreScreen extends GetView<ExploreController> {
                 size: 20,
                 color: isFocused
                     ? AppColors.primary
-                    : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiary),
+                    : (isDark
+                          ? AppColors.textTertiaryDark
+                          : AppColors.textTertiary),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -499,20 +538,26 @@ class ExploreScreen extends GetView<ExploreController> {
                   focusNode: controller.searchFocusNode,
                   autofocus: true,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Tìm Hán tự, Pinyin hoặc Nghĩa',
                     hintStyle: AppTypography.bodyMedium.copyWith(
-                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                      color: isDark
+                          ? AppColors.textTertiaryDark
+                          : AppColors.textTertiary,
                     ),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    contentPadding: EdgeInsets.zero,
+                    isCollapsed: true,
                   ),
                   textInputAction: TextInputAction.search,
+                  textAlignVertical: TextAlignVertical.center,
                   onTap: () => controller.isSearchFocused.value = true,
                 ),
               ),
@@ -526,7 +571,9 @@ class ExploreScreen extends GetView<ExploreController> {
                     child: Icon(
                       Icons.close_rounded,
                       size: 18,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -542,7 +589,9 @@ class ExploreScreen extends GetView<ExploreController> {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+          color: isDark
+              ? AppColors.surfaceVariantDark
+              : AppColors.surfaceVariant,
           borderRadius: AppSpacing.borderRadiusLg,
         ),
         child: Row(
@@ -550,13 +599,17 @@ class ExploreScreen extends GetView<ExploreController> {
             Icon(
               CupertinoIcons.search,
               size: 20,
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
             const SizedBox(width: 12),
             Text(
               'Tìm Hán tự, Pinyin hoặc Nghĩa',
               style: AppTypography.bodyMedium.copyWith(
-                color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                color: isDark
+                    ? AppColors.textTertiaryDark
+                    : AppColors.textTertiary,
               ),
             ),
           ],
@@ -566,35 +619,44 @@ class ExploreScreen extends GetView<ExploreController> {
   }
 
   Widget _buildFilterChips(bool isDark) {
-    return Obx(() => SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List.generate(
-          controller.chipLabels.length,
-          (index) => Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: GestureDetector(
-              onTap: () => controller.setChipFilter(index),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: controller.selectedChipIndex.value == index
-                      ? AppColors.primary
-                      : (isDark ? AppColors.surfaceDark : AppColors.surface),
-                  borderRadius: BorderRadius.circular(20),
-                  border: controller.selectedChipIndex.value == index
-                      ? null
-                      : Border.all(
-                          color: isDark ? AppColors.borderDark : AppColors.border,
-                        ),
-                ),
-                child: Text(
-                  controller.chipLabels[index],
-                  style: AppTypography.labelMedium.copyWith(
+    return Obx(
+      () => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(
+            controller.chipLabels.length,
+            (index) => Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: GestureDetector(
+                onTap: () => controller.setChipFilter(index),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
                     color: controller.selectedChipIndex.value == index
-                        ? AppColors.white
-                        : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
-                    fontWeight: FontWeight.w500,
+                        ? AppColors.primary
+                        : (isDark ? AppColors.surfaceDark : AppColors.surface),
+                    borderRadius: BorderRadius.circular(20),
+                    border: controller.selectedChipIndex.value == index
+                        ? null
+                        : Border.all(
+                            color: isDark
+                                ? AppColors.borderDark
+                                : AppColors.border,
+                          ),
+                  ),
+                  child: Text(
+                    controller.chipLabels[index],
+                    style: AppTypography.labelMedium.copyWith(
+                      color: controller.selectedChipIndex.value == index
+                          ? AppColors.white
+                          : (isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -602,7 +664,7 @@ class ExploreScreen extends GetView<ExploreController> {
           ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildDailyPickSection(bool isDark) {
@@ -616,7 +678,9 @@ class ExploreScreen extends GetView<ExploreController> {
               Text(
                 'Từ vựng hôm nay',
                 style: AppTypography.titleMedium.copyWith(
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -703,14 +767,18 @@ class ExploreScreen extends GetView<ExploreController> {
                 Text(
                   'Chưa có từ vựng',
                   style: AppTypography.titleSmall.copyWith(
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Kéo xuống để tải lại',
                   style: AppTypography.bodySmall.copyWith(
-                    color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                    color: isDark
+                        ? AppColors.textTertiaryDark
+                        : AppColors.textTertiary,
                   ),
                 ),
               ],
@@ -772,7 +840,9 @@ class ExploreScreen extends GetView<ExploreController> {
                             child: Text(
                               vocab.pinyin,
                               style: AppTypography.titleMedium.copyWith(
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -780,7 +850,10 @@ class ExploreScreen extends GetView<ExploreController> {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withAlpha(20),
                               borderRadius: BorderRadius.circular(6),
@@ -799,7 +872,9 @@ class ExploreScreen extends GetView<ExploreController> {
                       Text(
                         vocab.meaningVi,
                         style: AppTypography.bodySmall.copyWith(
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -813,7 +888,9 @@ class ExploreScreen extends GetView<ExploreController> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceVariantDark : AppColors.white,
+                      color: isDark
+                          ? AppColors.surfaceVariantDark
+                          : AppColors.white,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -830,7 +907,9 @@ class ExploreScreen extends GetView<ExploreController> {
               Text(
                 '"${vocab.mnemonic}"',
                 style: AppTypography.bodySmall.copyWith(
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
                   fontStyle: FontStyle.italic,
                 ),
                 maxLines: 2,
@@ -855,7 +934,9 @@ class ExploreScreen extends GetView<ExploreController> {
               Text(
                 'Bộ sưu tập',
                 style: AppTypography.titleMedium.copyWith(
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -900,7 +981,7 @@ class ExploreScreen extends GetView<ExploreController> {
                 ),
               );
             }
-            
+
             if (controller.collections.isEmpty) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -908,7 +989,9 @@ class ExploreScreen extends GetView<ExploreController> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+                    color: isDark
+                        ? AppColors.surfaceVariantDark
+                        : AppColors.surfaceVariant,
                     borderRadius: AppSpacing.borderRadiusXl,
                     border: Border.all(
                       color: isDark ? AppColors.borderDark : AppColors.border,
@@ -920,13 +1003,17 @@ class ExploreScreen extends GetView<ExploreController> {
                       Icon(
                         Icons.collections_bookmark_outlined,
                         size: 48,
-                        color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                        color: isDark
+                            ? AppColors.textTertiaryDark
+                            : AppColors.textTertiary,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Chưa có bộ sưu tập',
                         style: AppTypography.titleSmall.copyWith(
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -934,9 +1021,9 @@ class ExploreScreen extends GetView<ExploreController> {
                 ),
               );
             }
-            
+
             final displayItems = controller.collections.take(6).toList();
-            
+
             return ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -979,7 +1066,9 @@ class ExploreScreen extends GetView<ExploreController> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
+                color: isDark
+                    ? AppColors.surfaceVariantDark
+                    : AppColors.surfaceVariant,
                 borderRadius: AppSpacing.borderRadiusLg,
                 border: Border.all(
                   color: isDark ? AppColors.borderDark : AppColors.border,
@@ -1008,14 +1097,18 @@ class ExploreScreen extends GetView<ExploreController> {
                         Text(
                           'Chưa có từ nào',
                           style: AppTypography.titleSmall.copyWith(
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Các từ bạn tra cứu sẽ xuất hiện ở đây',
                           style: AppTypography.bodySmall.copyWith(
-                            color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                            color: isDark
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiary,
                           ),
                         ),
                       ],
@@ -1027,14 +1120,16 @@ class ExploreScreen extends GetView<ExploreController> {
           else
             ...controller.recentItems
                 .take(5)
-                .map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _RecentItemCard(
-                    item: item,
-                    isDark: isDark,
-                    onTap: () => controller.openRecentItem(item),
+                .map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _RecentItemCard(
+                      item: item,
+                      isDark: isDark,
+                      onTap: () => controller.openRecentItem(item),
+                    ),
                   ),
-                )),
+                ),
         ],
       ),
     );
@@ -1133,7 +1228,9 @@ class _TopicCard extends StatelessWidget {
               child: Text(
                 topic,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -1142,7 +1239,9 @@ class _TopicCard extends StatelessWidget {
             Icon(
               Icons.chevron_right_rounded,
               size: 20,
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
           ],
         ),
@@ -1198,7 +1297,9 @@ class _CollectionCard extends StatelessWidget {
             Text(
               collection.title,
               style: AppTypography.titleSmall.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
               maxLines: 2,
@@ -1208,7 +1309,9 @@ class _CollectionCard extends StatelessWidget {
             Text(
               collection.subtitle,
               style: AppTypography.bodySmall.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1220,7 +1323,9 @@ class _CollectionCard extends StatelessWidget {
                 Text(
                   '${collection.wordCount} từ',
                   style: AppTypography.labelSmall.copyWith(
-                    color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                    color: isDark
+                        ? AppColors.textTertiaryDark
+                        : AppColors.textTertiary,
                   ),
                 ),
                 Icon(
@@ -1278,13 +1383,17 @@ class _RecentItemCard extends StatelessWidget {
                   Text(
                     item.pinyin,
                     style: AppTypography.labelMedium.copyWith(
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
                     ),
                   ),
                   Text(
                     item.meaning,
                     style: AppTypography.bodySmall.copyWith(
-                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                      color: isDark
+                          ? AppColors.textTertiaryDark
+                          : AppColors.textTertiary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1295,7 +1404,9 @@ class _RecentItemCard extends StatelessWidget {
             Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
           ],
         ),
@@ -1338,7 +1449,9 @@ class _VocabCard extends StatelessWidget {
                       vocab.hanzi,
                       style: AppTypography.hanziMedium.copyWith(
                         fontSize: 28,
-                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1362,7 +1475,9 @@ class _VocabCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: vocab.isFavorite ? AppColors.success : AppColors.primary,
+                    color: vocab.isFavorite
+                        ? AppColors.success
+                        : AppColors.primary,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -1378,7 +1493,9 @@ class _VocabCard extends StatelessWidget {
           Text(
             vocab.meaningVi,
             style: AppTypography.bodyMedium.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -1392,7 +1509,9 @@ class _VocabCard extends StatelessWidget {
               if (vocab.wordType != null && vocab.wordType!.isNotEmpty)
                 _TagChip(
                   label: _translateWordType(vocab.wordType!),
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary,
                   isOutline: true,
                 ),
             ],
@@ -1404,14 +1523,22 @@ class _VocabCard extends StatelessWidget {
 
   String _translateWordType(String type) {
     switch (type.toLowerCase()) {
-      case 'verb': return 'Động từ';
-      case 'noun': return 'Danh từ';
-      case 'adjective': return 'Tính từ';
-      case 'adverb': return 'Trạng từ';
-      case 'phrase': return 'Cụm từ';
-      case 'pronoun': return 'Đại từ';
-      case 'particle': return 'Trợ từ';
-      default: return type.capitalize ?? type;
+      case 'verb':
+        return 'Động từ';
+      case 'noun':
+        return 'Danh từ';
+      case 'adjective':
+        return 'Tính từ';
+      case 'adverb':
+        return 'Trạng từ';
+      case 'phrase':
+        return 'Cụm từ';
+      case 'pronoun':
+        return 'Đại từ';
+      case 'particle':
+        return 'Trợ từ';
+      default:
+        return type.capitalize ?? type;
     }
   }
 }
