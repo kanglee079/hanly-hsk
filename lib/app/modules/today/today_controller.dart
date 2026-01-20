@@ -36,18 +36,17 @@ class TodayController extends GetxController {
   String get _todayKey => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   // Store-backed (single source of truth)
-  late final Rxn<TodayModel> todayData = _todayStore.today.data;
-  late final Rxn<ForecastModel> forecastData =
-      _todayStore.forecast?.data ?? Rxn<ForecastModel>();
-  late final Rxn<LearnedTodayModel> learnedTodayData =
-      _todayStore.learnedToday?.data ?? Rxn<LearnedTodayModel>();
+  late final Rx<TodayModel?> todayData = _todayStore.today;
 
-  // Loading states (store-backed)
-  late final RxBool isLoading = _todayStore.today.isBootstrapping;
-  late final RxBool isLoadingForecast =
-      _todayStore.forecast?.isBootstrapping ?? false.obs;
-  late final RxBool isLoadingLearnedToday =
-      _todayStore.learnedToday?.isBootstrapping ?? false.obs;
+  // OFFLINE-FIRST: forecast/learnedToday now come from local data
+  // These are kept for backwards compatibility but not fetched from API
+  final Rxn<ForecastModel> forecastData = Rxn<ForecastModel>();
+  final Rxn<LearnedTodayModel> learnedTodayData = Rxn<LearnedTodayModel>();
+
+  // Loading states (offline-first = instant, so always false)
+  final RxBool isLoading = false.obs;
+  final RxBool isLoadingForecast = false.obs;
+  final RxBool isLoadingLearnedToday = false.obs;
 
   final Rx<RecommendedAction?> nextAction = Rx<RecommendedAction?>(null);
   final RxString displayName = ''.obs;
@@ -131,12 +130,14 @@ class TodayController extends GetxController {
 
     // Use LOCAL STORAGE dailyNewLimit (user's choice) instead of API value
     // This ensures consistency with the displayed stats
-    final effectiveDailyLimit = dailyNewLimit; // getter uses local storage priority
+    final effectiveDailyLimit =
+        dailyNewLimit; // getter uses local storage priority
 
     // Adjust model với learned count thực tế VÀ dailyNewLimit từ local
     final adjusted = today.copyWith(
       newLearnedToday: actualLearnedCount,
-      dailyNewLimit: effectiveDailyLimit, // Override API value with local preference
+      dailyNewLimit:
+          effectiveDailyLimit, // Override API value with local preference
       remainingNewLimit: (effectiveDailyLimit - actualLearnedCount).clamp(
         0,
         effectiveDailyLimit,
@@ -184,11 +185,11 @@ class TodayController extends GetxController {
     // This ensures user's choice is respected even if backend sync fails
     final storedLimit = _storage.userDailyNewLimit;
     if (storedLimit > 0) return storedLimit;
-    
+
     // 2. Fallback to API data (for users who set on another device)
     final apiLimit = _authService.currentUser.value?.profile?.dailyNewLimit;
     if (apiLimit != null && apiLimit > 0) return apiLimit;
-    
+
     return 10; // Default
   }
 
@@ -452,17 +453,19 @@ class TodayController extends GetxController {
     try {
       final progressRepo = Get.find<ProgressRepo>();
       await progressRepo.unlockNext();
-      
+
       // Refresh user and today data
       await Future.wait([
         _authService.fetchCurrentUser(),
         _todayStore.syncNow(force: true),
       ]);
-      
+
       HMToast.success('Chúc mừng! Bạn đã chuyển sang HSK$nextHskLevel 🎉');
     } catch (e) {
       Logger.e('TodayController', 'Error advancing level', e);
-      HMToast.error('Chưa thể chuyển level. Vui lòng hoàn thành level hiện tại.');
+      HMToast.error(
+        'Chưa thể chuyển level. Vui lòng hoàn thành level hiện tại.',
+      );
     }
   }
 }

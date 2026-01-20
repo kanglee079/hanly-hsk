@@ -28,13 +28,13 @@ class SrsReviewListController extends GetxController {
     isLoading.value = true;
 
     try {
-      final today = _todayStore.today.data.value;
+      final today = _todayStore.today.value;
       if (today != null) {
         reviewQueue.value = today.reviewQueue.toList();
       }
 
       // Listen for updates
-      ever(_todayStore.today.data, (data) {
+      ever(_todayStore.today, (data) {
         if (data != null) {
           reviewQueue.value = data.reviewQueue.toList();
         }
@@ -53,7 +53,7 @@ class SrsReviewListController extends GetxController {
     isLoading.value = true;
     try {
       await _todayStore.syncNow(force: true);
-      final today = _todayStore.today.data.value;
+      final today = _todayStore.today.value;
       if (today != null) {
         reviewQueue.value = today.reviewQueue.toList();
       }

@@ -15,7 +15,7 @@ class Game30HomeController extends GetxController {
   // Minimum words required to play Game 30s
   // Need at least 50 learned words to avoid word repetition
   static const int minRequiredWords = 50;
-  
+
   // Daily game limit for free users
   static const int dailyGameLimitFree = 3;
 
@@ -29,7 +29,7 @@ class Game30HomeController extends GetxController {
   final RxInt gamesPlayed = 0.obs;
   final RxBool canPlay = false.obs;
   final RxInt learnedWordsCount = 0.obs;
-  
+
   // Game limit state
   final Rx<GameLimitInfo> gameLimit = GameLimitInfo().obs;
   final RxString cannotPlayReason = ''.obs;
@@ -59,13 +59,13 @@ class Game30HomeController extends GetxController {
 
   /// Check if user can play (needs minimum words + daily limit)
   void _checkCanPlay() {
-    final today = _todayStore.today.data.value;
+    final today = _todayStore.today.value;
     if (today != null) {
       _updatePlayStatus(today);
     }
-    
+
     // Listen to data updates
-    ever(_todayStore.today.data, (data) {
+    ever(_todayStore.today, (data) {
       if (data != null) {
         _updatePlayStatus(data);
       }
@@ -77,27 +77,29 @@ class Game30HomeController extends GetxController {
     // Fall back to reviewQueue.length if not available
     final totalLearned = today.totalLearned as int? ?? today.reviewQueue.length;
     learnedWordsCount.value = totalLearned;
-    
+
     // Check game limit from API
     if (today.gameLimit != null) {
       gameLimit.value = today.gameLimit;
     }
-    
+
     // Determine if user can play
     String reason = '';
     bool canPlayNow = true;
-    
+
     // Check 1: Minimum words requirement
     if (totalLearned < minRequiredWords) {
       canPlayNow = false;
-      reason = 'Cần học tối thiểu $minRequiredWords từ để chơi.\nĐã học $totalLearned từ.';
+      reason =
+          'Cần học tối thiểu $minRequiredWords từ để chơi.\nĐã học $totalLearned từ.';
     }
     // Check 2: Daily game limit (from API or local check)
     else if (gameLimit.value.canPlayGame == false) {
       canPlayNow = false;
-      reason = 'Đã hết lượt chơi hôm nay (${gameLimit.value.gamePlaysToday}/${gameLimit.value.dailyGameLimit}).\nNâng cấp Premium để chơi không giới hạn!';
+      reason =
+          'Đã hết lượt chơi hôm nay (${gameLimit.value.gamePlaysToday}/${gameLimit.value.dailyGameLimit}).\nNâng cấp Premium để chơi không giới hạn!';
     }
-    
+
     canPlay.value = canPlayNow;
     cannotPlayReason.value = reason;
   }
@@ -105,7 +107,7 @@ class Game30HomeController extends GetxController {
   /// Load leaderboard from API
   Future<void> loadLeaderboard() async {
     isLoading.value = true;
-    
+
     try {
       if (_gameRepo != null) {
         // Load from API
@@ -114,17 +116,19 @@ class Game30HomeController extends GetxController {
           period: 'all',
           limit: 20,
         );
-        
-        Logger.d('Game30HomeController', 
+
+        Logger.d(
+          'Game30HomeController',
           'Leaderboard API response: entries=${response.entries.length}, '
-          'totalPlayers=${response.totalPlayers}, '
-          'myRank=${response.myRank?.rank}, myScore=${response.myRank?.score}');
-        
+              'totalPlayers=${response.totalPlayers}, '
+              'myRank=${response.myRank?.rank}, myScore=${response.myRank?.score}',
+        );
+
         // Use server data directly
         leaderboardEntries.value = response.entries;
         currentUserEntry.value = response.myRank;
         totalPlayers.value = response.totalPlayers;
-        
+
         // Sync local storage with server data
         if (response.myRank != null) {
           if (response.myRank!.gamesPlayed > 0) {
@@ -158,11 +162,11 @@ class Game30HomeController extends GetxController {
     }
 
     isStartingGame.value = true;
-    
+
     try {
       // Navigate to game screen
       final result = await Get.toNamed(Routes.game30Play);
-      
+
       // Update stats after game ends
       if (result is Map) {
         final score = result['score'] as int? ?? 0;
@@ -175,11 +179,11 @@ class Game30HomeController extends GetxController {
         }
         updateAfterGame(score, newGameLimit: newGameLimit);
       }
-      
+
       // Reload leaderboard
       await loadLeaderboard();
       // Refresh today data to get updated game limit
-      _todayStore.today.syncNow(force: true);
+      _todayStore.syncNow(force: true);
     } catch (e) {
       Logger.e('Game30HomeController', 'Failed to start game', e);
       HMToast.error('Không thể bắt đầu game');
@@ -201,25 +205,24 @@ class Game30HomeController extends GetxController {
       gamesPlayed.value++;
       _storage.setGame30sGamesPlayed(gamesPlayed.value);
     }
-    
+
     // Update high score if this is a new record
     if (score > localHighScore.value) {
       localHighScore.value = score;
       _storage.setGame30sHighScore(score);
       HMToast.success('🎉 Kỷ lục mới: $score điểm!');
     }
-    
+
     // Recheck if can play
-    final today = _todayStore.today.data.value;
+    final today = _todayStore.today.value;
     if (today != null) {
       _updatePlayStatus(today);
     }
   }
-  
+
   /// Get remaining game plays display
   String get remainingPlaysDisplay {
     if (gameLimit.value.isPremium) return '∞';
     return '${gameLimit.value.remainingPlays}/${gameLimit.value.dailyGameLimit}';
   }
 }
-

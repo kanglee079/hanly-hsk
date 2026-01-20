@@ -47,7 +47,7 @@ class MeController extends GetxController {
   }
 
   // Stats data
-  late final Rxn<TodayModel> todayData = _todayStore.today.data;
+  late final Rx<TodayModel?> todayData = _todayStore.today;
   final RxBool isUpdatingGoal = false.obs;
 
   // Optimistic local override for daily goal (used immediately after update)
