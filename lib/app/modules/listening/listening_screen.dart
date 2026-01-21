@@ -46,7 +46,10 @@ class ListeningScreen extends GetView<ListeningController> {
             return Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2196F3).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -89,7 +92,9 @@ class ListeningScreen extends GetView<ListeningController> {
                     Text(
                       'Đang tải bài nghe...',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: isDark ? Colors.white70 : AppColors.textSecondary,
+                        color: isDark
+                            ? Colors.white70
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -115,7 +120,7 @@ class ListeningScreen extends GetView<ListeningController> {
   /// Show exit confirmation dialog
   void _showExitConfirmation(BuildContext context, bool isDark) {
     // Skip confirmation if not started or already finished
-    if (controller.isLoading.value || 
+    if (controller.isLoading.value ||
         controller.vocabs.isEmpty ||
         controller.hasFinished.value) {
       controller.goBack();
@@ -135,7 +140,9 @@ class ListeningScreen extends GetView<ListeningController> {
         content: Text(
           'Tiến trình hiện tại sẽ không được lưu.',
           style: AppTypography.bodyMedium.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
         actions: [
@@ -143,7 +150,9 @@ class ListeningScreen extends GetView<ListeningController> {
             onPressed: () => Get.back(),
             child: Text(
               'Tiếp tục',
-              style: AppTypography.labelLarge.copyWith(color: const Color(0xFF2196F3)),
+              style: AppTypography.labelLarge.copyWith(
+                color: const Color(0xFF2196F3),
+              ),
             ),
           ),
           TextButton(
@@ -229,19 +238,18 @@ class ListeningScreen extends GetView<ListeningController> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: (isGood
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFFF59E0B))
-                              .withValues(alpha: 0.4),
+                          color:
+                              (isGood
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFF59E0B))
+                                  .withValues(alpha: 0.4),
                           blurRadius: 24,
                           spreadRadius: 4,
                         ),
                       ],
                     ),
                     child: Icon(
-                      isGood
-                          ? Icons.headphones_rounded
-                          : Icons.refresh_rounded,
+                      isGood ? Icons.headphones_rounded : Icons.refresh_rounded,
                       size: 48,
                       color: Colors.white,
                     ),
@@ -360,7 +368,8 @@ class ListeningScreen extends GetView<ListeningController> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          controller.currentIndex.value < controller.vocabs.length - 1
+                          controller.currentIndex.value <
+                                  controller.vocabs.length - 1
                               ? 'Tiếp theo'
                               : 'Xem kết quả',
                           style: AppTypography.labelMedium.copyWith(
@@ -401,8 +410,8 @@ class ListeningScreen extends GetView<ListeningController> {
                   color: isCurrent
                       ? const Color(0xFF2196F3)
                       : isPast
-                          ? const Color(0xFF2196F3).withValues(alpha: 0.5)
-                          : (isDark ? Colors.white24 : Colors.black12),
+                      ? const Color(0xFF2196F3).withValues(alpha: 0.5)
+                      : (isDark ? Colors.white24 : Colors.black12),
                   borderRadius: BorderRadius.circular(4),
                 ),
               );
@@ -428,7 +437,9 @@ class ListeningScreen extends GetView<ListeningController> {
           border: Border.all(
             color: hasPlayed
                 ? const Color(0xFF2196F3).withValues(alpha: 0.3)
-                : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+                : (isDark
+                      ? Colors.white12
+                      : Colors.black.withValues(alpha: 0.05)),
             width: 2,
           ),
           boxShadow: [
@@ -464,14 +475,18 @@ class ListeningScreen extends GetView<ListeningController> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2196F3).withValues(alpha: isPlaying ? 0.5 : 0.3),
+                          color: const Color(
+                            0xFF2196F3,
+                          ).withValues(alpha: isPlaying ? 0.5 : 0.3),
                           blurRadius: isPlaying ? 30 : 20,
                           spreadRadius: isPlaying ? 4 : 0,
                         ),
                       ],
                     ),
                     child: Icon(
-                      isPlaying ? Icons.volume_up_rounded : Icons.headphones_rounded,
+                      isPlaying
+                          ? Icons.volume_up_rounded
+                          : Icons.headphones_rounded,
                       size: 44,
                       color: Colors.white,
                     ),
@@ -487,8 +502,8 @@ class ListeningScreen extends GetView<ListeningController> {
               isPlaying
                   ? 'Đang phát...'
                   : hasPlayed
-                      ? 'Nhấn để nghe lại'
-                      : 'Nhấn để nghe',
+                  ? 'Nhấn để nghe lại'
+                  : 'Nhấn để nghe',
               style: AppTypography.titleMedium.copyWith(
                 color: isDark ? Colors.white : AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -522,7 +537,9 @@ class ListeningScreen extends GetView<ListeningController> {
         if (!hasAnswered) {
           // Not answered yet
           bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-          borderColor = isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08);
+          borderColor = isDark
+              ? Colors.white12
+              : Colors.black.withValues(alpha: 0.08);
           textColor = isDark ? Colors.white : AppColors.textPrimary;
         } else if (isCorrectAnswer) {
           // Correct answer (always show green)
@@ -539,15 +556,19 @@ class ListeningScreen extends GetView<ListeningController> {
           bgColor = isDark
               ? const Color(0xFF1E293B).withValues(alpha: 0.5)
               : Colors.white.withValues(alpha: 0.5);
-          borderColor = isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05);
+          borderColor = isDark
+              ? Colors.white12
+              : Colors.black.withValues(alpha: 0.05);
           textColor = isDark ? Colors.white38 : AppColors.textTertiary;
         }
 
         return GestureDetector(
-          onTap: hasAnswered ? null : () {
-            HapticFeedback.lightImpact();
-            controller.selectAnswer(index);
-          },
+          onTap: hasAnswered
+              ? null
+              : () {
+                  HapticFeedback.lightImpact();
+                  controller.selectAnswer(index);
+                },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(16),
@@ -566,21 +587,27 @@ class ListeningScreen extends GetView<ListeningController> {
                     color: hasAnswered && isCorrectAnswer
                         ? const Color(0xFF10B981)
                         : hasAnswered && isSelected && !isCorrectAnswer
-                            ? const Color(0xFFEF4444)
-                            : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+                        ? const Color(0xFFEF4444)
+                        : (isDark
+                              ? Colors.white12
+                              : Colors.black.withValues(alpha: 0.05)),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
                     child: hasAnswered && (isCorrectAnswer || isSelected)
                         ? Icon(
-                            isCorrectAnswer ? Icons.check_rounded : Icons.close_rounded,
+                            isCorrectAnswer
+                                ? Icons.check_rounded
+                                : Icons.close_rounded,
                             size: 18,
                             color: Colors.white,
                           )
                         : Text(
                             String.fromCharCode(65 + index), // A, B, C, D
                             style: AppTypography.labelMedium.copyWith(
-                              color: isDark ? Colors.white70 : AppColors.textSecondary,
+                              color: isDark
+                                  ? Colors.white70
+                                  : AppColors.textSecondary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -590,7 +617,7 @@ class ListeningScreen extends GetView<ListeningController> {
                 // Answer text - only bold after answered
                 Expanded(
                   child: Text(
-                    option.meaningVi,
+                    option.meaningViCapitalized,
                     style: AppTypography.bodyLarge.copyWith(
                       color: textColor,
                       fontWeight: hasAnswered && (isSelected || isCorrectAnswer)
@@ -624,7 +651,9 @@ class ListeningScreen extends GetView<ListeningController> {
         decoration: BoxDecoration(
           color: isPrimary
               ? const Color(0xFF2196F3)
-              : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+              : (isDark
+                    ? Colors.white12
+                    : Colors.black.withValues(alpha: 0.05)),
           borderRadius: BorderRadius.circular(16),
           border: isPrimary
               ? null
@@ -670,4 +699,3 @@ class ListeningScreen extends GetView<ListeningController> {
     );
   }
 }
-

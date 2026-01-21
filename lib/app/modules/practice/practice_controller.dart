@@ -354,7 +354,7 @@ class PracticeController extends GetxController {
             // CHECK 2: Check daily limit - dùng cả BE và local cache
             // Use LOCAL STORAGE limit (user's choice), NOT backend value
             final effectiveDailyLimit = _getEffectiveDailyLimit();
-            
+
             final localLearnedCount = _learnNewCompletedVocabIds.length;
             final beLearnedCount = today.newLearnedToday;
             final actualLearned = localLearnedCount > beLearnedCount
@@ -1150,15 +1150,8 @@ class PracticeController extends GetxController {
       }
     } catch (e) {
       Logger.e('PracticeController', 'Finish session error', e);
-      // Even on error, try to sync to get latest state
-      unawaited(
-        _rt.syncNowKeys(const [
-          'today',
-          'todayForecast',
-          'learnedToday',
-          'studyModes',
-        ], force: true),
-      );
+      // Don't retry sync on error - it was already attempted in try block
+      // Avoid duplicate API calls
     }
   }
 
@@ -1176,19 +1169,22 @@ class PracticeController extends GetxController {
   /// Save partial session in background (fire-and-forget, non-blocking)
   void _savePartialSessionInBackground() {
     final seconds = elapsedSeconds.value;
-    
+
     // Only save if meaningful time spent (avoid spam on quick back)
     if (seconds < _minSecondsToSave) {
-      Logger.d('PracticeController', '[SKIP_SAVE] seconds=$seconds < $_minSecondsToSave');
+      Logger.d(
+        'PracticeController',
+        '[SKIP_SAVE] seconds=$seconds < $_minSecondsToSave',
+      );
       return;
     }
-    
+
     // Count progress so far
     final sessionNewCount = mode == PracticeMode.learnNew
         ? _thisSessionLearnedVocabIds.length
         : 0;
     final sessionReviewCount = totalExercises.value;
-    
+
     final result = SessionResultModel(
       seconds: seconds,
       newCount: sessionNewCount,
@@ -1197,19 +1193,22 @@ class PracticeController extends GetxController {
           ? correctCount.value / totalExercises.value
           : 0.0,
     );
-    
+
     Logger.d(
       'PracticeController',
       '[PARTIAL_SAVE] mode=$mode, seconds=$seconds, minutes=${result.minutes}, '
           'new=$sessionNewCount, review=$sessionReviewCount',
     );
-    
+
     // Fire and forget - don't block UI
-    _learningRepo.finishSession(result).then((_) {
-      _rt.syncNowKeys(const ['today', 'todayForecast'], force: true);
-    }).catchError((e) {
-      Logger.e('PracticeController', 'Failed to save partial session', e);
-    });
+    _learningRepo
+        .finishSession(result)
+        .then((_) {
+          _rt.syncNowKeys(const ['today', 'todayForecast'], force: true);
+        })
+        .catchError((e) {
+          Logger.e('PracticeController', 'Failed to save partial session', e);
+        });
   }
 
   /// Continue with more exercises
@@ -1239,7 +1238,7 @@ class PracticeController extends GetxController {
           // CHECK 2: Check daily limit - dùng cả BE và local cache
           // Use LOCAL STORAGE limit (user's choice), NOT backend value
           final effectiveDailyLimit = _getEffectiveDailyLimit();
-          
+
           final localLearnedCount = _learnNewCompletedVocabIds.length;
           final beLearnedCount = today.newLearnedToday;
           final actualLearned = localLearnedCount > beLearnedCount
@@ -1388,24 +1387,27 @@ class PracticeController extends GetxController {
     final timeSpent = _learnNewTimeSpentMsByVocab[vocabId] ?? 3000;
 
     // Run in background without blocking UI
-    _learningRepo.submitReviewAnswer(
-      vocabId: vocabId,
-      rating: rating,
-      mode: 'learn_new',
-      timeSpent: timeSpent,
-    ).then((_) {
-      Logger.d(
-        'PracticeController',
-        '✅ LearnNew progress submitted: vocabId=$vocabId rating=${rating.value} ratio=${ratio.toStringAsFixed(2)}',
-      );
-    }).catchError((e) {
-      Logger.e(
-        'PracticeController',
-        '❌ LearnNew submit progress error (vocabId=$vocabId)',
-        e,
-      );
-      // Do not block user flow; local cache prevents repeats.
-    });
+    _learningRepo
+        .submitReviewAnswer(
+          vocabId: vocabId,
+          rating: rating,
+          mode: 'learn_new',
+          timeSpent: timeSpent,
+        )
+        .then((_) {
+          Logger.d(
+            'PracticeController',
+            '✅ LearnNew progress submitted: vocabId=$vocabId rating=${rating.value} ratio=${ratio.toStringAsFixed(2)}',
+          );
+        })
+        .catchError((e) {
+          Logger.e(
+            'PracticeController',
+            '❌ LearnNew submit progress error (vocabId=$vocabId)',
+            e,
+          );
+          // Do not block user flow; local cache prevents repeats.
+        });
   }
 
   ReviewRating _mapRatioToRating(double ratio) {
@@ -1425,13 +1427,13 @@ class PracticeController extends GetxController {
     // 1. LOCAL STORAGE FIRST - User's explicit choice during setup
     final storedLimit = _storage.userDailyNewLimit;
     if (storedLimit > 0) return storedLimit;
-    
+
     // 2. Fallback to today data (from API)
     if (Get.isRegistered<TodayStore>()) {
       final todayLimit = Get.find<TodayStore>().today.data.value?.dailyNewLimit;
       if (todayLimit != null && todayLimit > 0) return todayLimit;
     }
-    
+
     return 10; // Default
   }
 
@@ -1441,11 +1443,13 @@ class PracticeController extends GetxController {
   @override
   void onClose() {
     // Save partial session in background if not already saved
-    if (!_sessionSaved && state.value != PracticeState.complete && elapsedSeconds.value >= _minSecondsToSave) {
+    if (!_sessionSaved &&
+        state.value != PracticeState.complete &&
+        elapsedSeconds.value >= _minSecondsToSave) {
       _sessionSaved = true;
       _savePartialSessionInBackground();
     }
-    
+
     _timer?.cancel();
     _audioService.stop();
     _speech?.stop();

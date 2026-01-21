@@ -49,10 +49,7 @@ class FavoritesScreen extends GetView<FavoritesController> {
               builder: (context, value, child) {
                 return Transform.translate(
                   offset: Offset(0, 20 * (1 - value)),
-                  child: Opacity(
-                    opacity: value,
-                    child: child,
-                  ),
+                  child: Opacity(opacity: value, child: child),
                 );
               },
               child: Padding(
@@ -110,14 +107,20 @@ class FavoritesScreen extends GetView<FavoritesController> {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  AppColors.getHskColor(vocab.levelInt).withAlpha(40),
-                                  AppColors.getHskColor(vocab.levelInt).withAlpha(20),
+                                  AppColors.getHskColor(
+                                    vocab.levelInt,
+                                  ).withAlpha(40),
+                                  AppColors.getHskColor(
+                                    vocab.levelInt,
+                                  ).withAlpha(20),
                                 ],
                               ),
                               borderRadius: AppSpacing.borderRadiusMd,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.getHskColor(vocab.levelInt).withAlpha(20),
+                                  color: AppColors.getHskColor(
+                                    vocab.levelInt,
+                                  ).withAlpha(20),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -151,7 +154,7 @@ class FavoritesScreen extends GetView<FavoritesController> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                vocab.meaningVi,
+                                vocab.meaningViCapitalized,
                                 style: AppTypography.bodyMedium.copyWith(
                                   color: isDark
                                       ? AppColors.textPrimaryDark
@@ -203,4 +206,3 @@ class FavoritesScreen extends GetView<FavoritesController> {
     );
   }
 }
-

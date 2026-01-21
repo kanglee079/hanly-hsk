@@ -42,7 +42,10 @@ class SrsReviewListScreen extends GetView<SrsReviewListController> {
                   onRefresh: controller.refresh,
                   color: AppColors.primary,
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     itemCount: controller.reviewQueue.length,
                     itemBuilder: (context, index) {
                       final vocab = controller.reviewQueue[index];
@@ -93,7 +96,9 @@ class SrsReviewListScreen extends GetView<SrsReviewListController> {
               child: Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 18,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
               ),
             ),
           ),
@@ -103,15 +108,17 @@ class SrsReviewListScreen extends GetView<SrsReviewListController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Obx(() => Text(
-                      'Cần ôn hôm nay (${controller.reviewQueue.length})',
-                      style: AppTypography.titleLarge.copyWith(
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )),
+                Obx(
+                  () => Text(
+                    'Cần ôn hôm nay (${controller.reviewQueue.length})',
+                    style: AppTypography.titleLarge.copyWith(
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   'Ôn tập để củng cố kiến thức',
@@ -141,7 +148,9 @@ class SrsReviewListScreen extends GetView<SrsReviewListController> {
             Text(
               'Không có từ nào cần ôn!',
               style: AppTypography.titleMedium.copyWith(
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -149,7 +158,9 @@ class SrsReviewListScreen extends GetView<SrsReviewListController> {
             Text(
               'Bạn đã hoàn thành tất cả ôn tập hôm nay.\nHãy học thêm từ mới!',
               style: AppTypography.bodyMedium.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -248,9 +259,7 @@ class _VocabReviewCard extends StatelessWidget {
     // Determine urgency level based on how overdue the word is
     final now = DateTime.now();
     final dueDate = vocab.dueDate;
-    final daysOverdue = dueDate != null 
-        ? now.difference(dueDate).inDays 
-        : 0;
+    final daysOverdue = dueDate != null ? now.difference(dueDate).inDays : 0;
 
     Color urgencyColor;
     String urgencyLabel;
@@ -261,7 +270,7 @@ class _VocabReviewCard extends StatelessWidget {
       urgencyColor = AppColors.warning;
       urgencyLabel = 'Đến hạn';
     }
-    
+
     final String timeLabel = _getDueDateText(dueDate, daysOverdue);
 
     return GestureDetector(
@@ -272,9 +281,7 @@ class _VocabReviewCard extends StatelessWidget {
           color: isDark ? AppColors.surfaceDark : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark 
-                ? AppColors.borderDark 
-                : const Color(0xFFE2E8F0),
+            color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
           ),
         ),
         child: Row(
@@ -318,7 +325,9 @@ class _VocabReviewCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withAlpha(15),
                           borderRadius: BorderRadius.circular(6),
@@ -340,7 +349,7 @@ class _VocabReviewCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   // Meaning
                   Text(
-                    vocab.meaningVi,
+                    vocab.meaningViCapitalized,
                     style: AppTypography.titleSmall.copyWith(
                       color: isDark
                           ? AppColors.textPrimaryDark
@@ -361,7 +370,10 @@ class _VocabReviewCard extends StatelessWidget {
               children: [
                 // Urgency badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: urgencyColor.withAlpha(15),
                     borderRadius: BorderRadius.circular(8),
@@ -415,4 +427,3 @@ class _VocabReviewCard extends StatelessWidget {
     return 'Hôm nay';
   }
 }
-

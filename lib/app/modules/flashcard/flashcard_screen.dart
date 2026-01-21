@@ -48,7 +48,10 @@ class FlashcardScreen extends GetView<FlashcardController> {
             return Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -108,7 +111,7 @@ class FlashcardScreen extends GetView<FlashcardController> {
   /// Show exit confirmation dialog
   void _showExitConfirmation(BuildContext context, bool isDark) {
     // Skip confirmation if not started or already finished
-    if (controller.isLoading.value || 
+    if (controller.isLoading.value ||
         controller.vocabs.isEmpty ||
         controller.hasFinished.value) {
       controller.goBack();
@@ -128,7 +131,9 @@ class FlashcardScreen extends GetView<FlashcardController> {
         content: Text(
           'Tiến trình hiện tại sẽ không được lưu.',
           style: AppTypography.bodyMedium.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
         actions: [
@@ -136,7 +141,9 @@ class FlashcardScreen extends GetView<FlashcardController> {
             onPressed: () => Get.back(),
             child: Text(
               'Tiếp tục',
-              style: AppTypography.labelLarge.copyWith(color: AppColors.primary),
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.primary,
+              ),
             ),
           ),
           TextButton(
@@ -390,8 +397,8 @@ class FlashcardScreen extends GetView<FlashcardController> {
                   color: isActive
                       ? AppColors.primary
                       : isPast
-                          ? AppColors.primary.withValues(alpha: 0.5)
-                          : (isDark ? Colors.white24 : Colors.black12),
+                      ? AppColors.primary.withValues(alpha: 0.5)
+                      : (isDark ? Colors.white24 : Colors.black12),
                   borderRadius: BorderRadius.circular(4),
                 ),
               );
@@ -434,7 +441,7 @@ class FlashcardScreen extends GetView<FlashcardController> {
             // Determine which side to show based on flip progress
             final showBack = value >= 0.5;
             final angle = value * math.pi;
-            
+
             return Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()
@@ -463,8 +470,8 @@ class FlashcardScreen extends GetView<FlashcardController> {
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark 
-              ? Colors.white.withValues(alpha: 0.1) 
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -535,7 +542,9 @@ class FlashcardScreen extends GetView<FlashcardController> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
+              color: (isDark ? Colors.white : Colors.black).withValues(
+                alpha: 0.05,
+              ),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -628,7 +637,7 @@ class FlashcardScreen extends GetView<FlashcardController> {
             child: Column(
               children: [
                 // Meaning - always show
-                _buildCompactSection('Nghĩa', vocab.meaningVi),
+                _buildCompactSection('Nghĩa', vocab.meaningViCapitalized),
 
                 // Word type - inline if exists
                 if (vocab.wordType != null && vocab.wordType!.isNotEmpty)
@@ -638,7 +647,7 @@ class FlashcardScreen extends GetView<FlashcardController> {
                 if (vocab.examples.isNotEmpty)
                   _buildCompactSection(
                     'Ví dụ',
-                    '${vocab.examples.first.hanzi}\n${vocab.examples.first.meaningVi}',
+                    '${vocab.examples.first.hanzi}\n${vocab.examples.first.meaningViCapitalized}',
                   ),
 
                 // Mnemonic - if exists (lowest priority)
@@ -745,14 +754,14 @@ class FlashcardScreen extends GetView<FlashcardController> {
     return Obx(() {
       final vocabs = controller.vocabs;
       final currentIndex = controller.currentIndex.value;
-      
+
       if (vocabs.isEmpty || currentIndex >= vocabs.length) {
         return const SizedBox.shrink();
       }
-      
+
       final vocab = vocabs[currentIndex];
       final isFavorite = vocab.isFavorite;
-      
+
       return GestureDetector(
         onTap: () {
           HapticFeedback.mediumImpact();
@@ -780,7 +789,9 @@ class FlashcardScreen extends GetView<FlashcardController> {
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
                 child: Icon(
-                  isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
                   key: ValueKey(isFavorite),
                   color: isFavorite ? AppColors.favorite : Colors.white54,
                   size: 16,
@@ -809,25 +820,30 @@ class FlashcardScreen extends GetView<FlashcardController> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Previous button
-          Obx(() => _buildControlButton(
-                icon: Icons.arrow_back_rounded,
-                label: 'Trước',
-                onTap: controller.currentIndex.value > 0
-                    ? controller.previousCard
-                    : null,
-                isDark: isDark,
-              )),
+          Obx(
+            () => _buildControlButton(
+              icon: Icons.arrow_back_rounded,
+              label: 'Trước',
+              onTap: controller.currentIndex.value > 0
+                  ? controller.previousCard
+                  : null,
+              isDark: isDark,
+            ),
+          ),
 
           // Next button
-          Obx(() => _buildControlButton(
-                icon: Icons.arrow_forward_rounded,
-                label: controller.currentIndex.value < controller.vocabs.length - 1
-                    ? 'Tiếp'
-                    : 'Xong',
-                onTap: controller.nextCard,
-                isDark: isDark,
-                isPrimary: true,
-              )),
+          Obx(
+            () => _buildControlButton(
+              icon: Icons.arrow_forward_rounded,
+              label:
+                  controller.currentIndex.value < controller.vocabs.length - 1
+                  ? 'Tiếp'
+                  : 'Xong',
+              onTap: controller.nextCard,
+              isDark: isDark,
+              isPrimary: true,
+            ),
+          ),
         ],
       ),
     );
@@ -861,7 +877,9 @@ class FlashcardScreen extends GetView<FlashcardController> {
               decoration: BoxDecoration(
                 color: isPrimary
                     ? AppColors.primary
-                    : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08)),
+                    : (isDark
+                          ? Colors.white12
+                          : Colors.black.withValues(alpha: 0.08)),
                 borderRadius: BorderRadius.circular(isPrimary ? 20 : 16),
                 boxShadow: isPrimary
                     ? [
@@ -911,7 +929,9 @@ class FlashcardScreen extends GetView<FlashcardController> {
         decoration: BoxDecoration(
           color: isPrimary
               ? AppColors.primary
-              : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+              : (isDark
+                    ? Colors.white12
+                    : Colors.black.withValues(alpha: 0.05)),
           borderRadius: BorderRadius.circular(16),
           border: isPrimary
               ? null
@@ -964,10 +984,7 @@ class FlashcardScreen extends GetView<FlashcardController> {
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
         Text(
@@ -981,4 +998,3 @@ class FlashcardScreen extends GetView<FlashcardController> {
     );
   }
 }
-

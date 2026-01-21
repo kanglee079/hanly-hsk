@@ -263,24 +263,24 @@ class TodayScreen extends GetView<TodayController> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isNewUser
-                ? (isDark 
-                    ? [const Color(0xFF1E3A5F), const Color(0xFF2D4A6F)]
-                    : [const Color(0xFFE0F2FE), const Color(0xFFBAE6FD)])
+                ? (isDark
+                      ? [const Color(0xFF1E3A5F), const Color(0xFF2D4A6F)]
+                      : [const Color(0xFFE0F2FE), const Color(0xFFBAE6FD)])
                 : isAtRisk && !hasStudiedToday
-                    ? (isDark
-                        ? [const Color(0xFF422006), const Color(0xFF4D2C0D)]
-                        : [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)])
-                    : (isDark
-                        ? [const Color(0xFF3D2F14), const Color(0xFF4D3D1F)]
-                        : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)]),
+                ? (isDark
+                      ? [const Color(0xFF422006), const Color(0xFF4D2C0D)]
+                      : [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)])
+                : (isDark
+                      ? [const Color(0xFF3D2F14), const Color(0xFF4D3D1F)]
+                      : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)]),
           ),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isNewUser
                 ? AppColors.primary.withValues(alpha: 0.3)
                 : isAtRisk && !hasStudiedToday
-                    ? AppColors.warning.withValues(alpha: 0.4)
-                    : AppColors.streak.withValues(alpha: 0.3),
+                ? AppColors.warning.withValues(alpha: 0.4)
+                : AppColors.streak.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -290,14 +290,14 @@ class TodayScreen extends GetView<TodayController> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isDark 
+                color: isDark
                     ? Colors.white.withValues(alpha: 0.15)
                     : Colors.white.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Center(
                 child: Text(
-                  isNewUser ? '👋' : '🔥', 
+                  isNewUser ? '👋' : '🔥',
                   style: const TextStyle(fontSize: 22),
                 ),
               ),
@@ -311,10 +311,14 @@ class TodayScreen extends GetView<TodayController> {
                   Row(
                     children: [
                       Text(
-                        isNewUser ? 'Bắt đầu hành trình!' : '$streak ngày streak',
+                        isNewUser
+                            ? 'Bắt đầu hành trình!'
+                            : '$streak ngày streak',
                         style: AppTypography.titleSmall.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
                         ),
                       ),
                       if (hasStudiedToday && !isNewUser) ...[
@@ -345,14 +349,18 @@ class TodayScreen extends GetView<TodayController> {
                     isNewUser
                         ? 'Học từ đầu tiên để bắt đầu streak!'
                         : isAtRisk && !hasStudiedToday
-                            ? 'Học ngay để giữ streak!'
+                        ? 'Học ngay để giữ streak!'
                         : 'Tiếp tục phát huy nhé! 💪',
                     style: AppTypography.bodySmall.copyWith(
                       color: isNewUser
-                          ? (isDark ? AppColors.textSecondaryDark : AppColors.primary)
+                          ? (isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.primary)
                           : isAtRisk && !hasStudiedToday
-                              ? AppColors.warning
-                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
+                          ? AppColors.warning
+                          : (isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary),
                     ),
                   ),
                 ],
@@ -362,7 +370,9 @@ class TodayScreen extends GetView<TodayController> {
             if (!isNewUser)
               Icon(
                 Icons.chevron_right,
-                color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                color: isDark
+                    ? AppColors.textTertiaryDark
+                    : AppColors.textTertiary,
                 size: 20,
               ),
           ],
@@ -1368,7 +1378,7 @@ class _DueVocabCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   // Meaning
                   Text(
-                    vocab.meaningVi,
+                    vocab.meaningViCapitalized,
                     style: AppTypography.titleSmall.copyWith(
                       color: isDark
                           ? AppColors.textPrimaryDark

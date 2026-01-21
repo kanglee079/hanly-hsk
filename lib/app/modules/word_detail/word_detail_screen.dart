@@ -104,7 +104,8 @@ class WordDetailScreen extends GetView<WordDetailController> {
                     const SizedBox(height: 16),
 
                     // ===== USAGE NOTES =====
-                    if (vocab.usageNotes != null && vocab.usageNotes!.isNotEmpty)
+                    if (vocab.usageNotes != null &&
+                        vocab.usageNotes!.isNotEmpty)
                       _buildExpandableSection(
                         icon: Icons.tips_and_updates_outlined,
                         iconColor: AppColors.primary,
@@ -118,7 +119,8 @@ class WordDetailScreen extends GetView<WordDetailController> {
                     const SizedBox(height: 12),
 
                     // ===== GRAMMAR =====
-                    if (vocab.grammarNotes != null && vocab.grammarNotes!.isNotEmpty)
+                    if (vocab.grammarNotes != null &&
+                        vocab.grammarNotes!.isNotEmpty)
                       _buildExpandableSection(
                         icon: Icons.menu_book_outlined,
                         iconColor: AppColors.secondary,
@@ -201,8 +203,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
                     text: '(VI) ',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  TextSpan(text: vocab.meaningVi),
-                  if (vocab.meaningEn != null && vocab.meaningEn!.isNotEmpty) ...[
+                  TextSpan(text: vocab.meaningViCapitalized),
+                  if (vocab.meaningEn != null &&
+                      vocab.meaningEn!.isNotEmpty) ...[
                     const TextSpan(text: '  •  '),
                     const TextSpan(
                       text: '(EN) ',
@@ -221,7 +224,8 @@ class WordDetailScreen extends GetView<WordDetailController> {
 
   Widget _buildAudioControls(VocabModel vocab, bool isDark) {
     final hasAudio = vocab.audioUrl != null && vocab.audioUrl!.isNotEmpty;
-    final hasSlowAudio = vocab.audioSlowUrl != null && vocab.audioSlowUrl!.isNotEmpty;
+    final hasSlowAudio =
+        vocab.audioSlowUrl != null && vocab.audioSlowUrl!.isNotEmpty;
 
     if (!hasAudio && !hasSlowAudio) {
       return const SizedBox.shrink();
@@ -236,7 +240,10 @@ class WordDetailScreen extends GetView<WordDetailController> {
             GestureDetector(
               onTap: () => controller.playAudio(slow: false),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(24),
@@ -277,12 +284,19 @@ class WordDetailScreen extends GetView<WordDetailController> {
             GestureDetector(
               onTap: () => controller.playAudio(slow: true),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
                 child: Row(
@@ -297,7 +311,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
                     Text(
                       'Chậm',
                       style: TextStyle(
-                        color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.white70
+                            : const Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
                       ),
@@ -330,15 +346,21 @@ class WordDetailScreen extends GetView<WordDetailController> {
                       imageUrl: vocab.images[index],
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                        child: const Center(
-                          child: HMLoadingIndicator.small(),
-                        ),
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFF1F5F9),
+                        child: const Center(child: HMLoadingIndicator.small()),
                       ),
                       errorWidget: (context, url, error) => Container(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFF1F5F9),
                         child: const Center(
-                          child: Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     ),
@@ -348,7 +370,10 @@ class WordDetailScreen extends GetView<WordDetailController> {
                       top: 12,
                       right: 12,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black54,
                           borderRadius: BorderRadius.circular(12),
@@ -373,23 +398,25 @@ class WordDetailScreen extends GetView<WordDetailController> {
         // Dots indicator
         if (vocab.images.length > 1) ...[
           const SizedBox(height: 12),
-          Obx(() => Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  vocab.images.length,
-                  (index) => Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: index == controller.currentImageIndex.value
-                          ? AppColors.primary
-                          : (isDark ? Colors.white24 : const Color(0xFFCBD5E1)),
-                    ),
+          Obx(
+            () => Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                vocab.images.length,
+                (index) => Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: index == controller.currentImageIndex.value
+                        ? AppColors.primary
+                        : (isDark ? Colors.white24 : const Color(0xFFCBD5E1)),
                   ),
                 ),
-              )),
+              ),
+            ),
+          ),
         ],
       ],
     );
@@ -425,10 +452,10 @@ class WordDetailScreen extends GetView<WordDetailController> {
             label: 'Luyện tập',
             isActive: true,
             activeColor: AppColors.primary,
-            onTap: () => Get.toNamed(Routes.practice, arguments: {
-              'mode': 'learnNew',
-              'vocabId': vocab.id,
-            }),
+            onTap: () => Get.toNamed(
+              Routes.practice,
+              arguments: {'mode': 'learnNew', 'vocabId': vocab.id},
+            ),
             isDark: isDark,
           ),
         ],
@@ -461,11 +488,7 @@ class WordDetailScreen extends GetView<WordDetailController> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 20,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.auto_awesome, size: 20, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(
                     'Hanzi DNA',
@@ -499,20 +522,22 @@ class WordDetailScreen extends GetView<WordDetailController> {
                   children: [
                     // Radical first if exists
                     if (radical.isNotEmpty) ...[
-                      _ComponentBox(
-                        char: radical,
-                        isDark: isDark,
-                      ),
+                      _ComponentBox(char: radical, isDark: isDark),
                       _buildOperator('+', isDark),
                     ],
-                    
+
                     // Components - extract only the first character
                     ...components.take(2).toList().asMap().entries.map((entry) {
                       final componentsList = components.take(2).toList();
                       final isLast = entry.key == (componentsList.length - 1);
                       // Extract only the Chinese character (first char before space or parenthesis)
                       final fullText = entry.value;
-                      final charOnly = fullText.split(' ').first.split('(').first.trim();
+                      final charOnly = fullText
+                          .split(' ')
+                          .first
+                          .split('(')
+                          .first
+                          .trim();
                       return Row(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -529,7 +554,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
                     // Arrow and result
                     _buildOperator('→', isDark),
                     _ComponentBox(
-                      char: vocab.hanzi.length > 1 ? vocab.hanzi[0] : vocab.hanzi,
+                      char: vocab.hanzi.length > 1
+                          ? vocab.hanzi[0]
+                          : vocab.hanzi,
                       isHighlighted: true,
                       isDark: isDark,
                     ),
@@ -551,7 +578,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
                     text: TextSpan(
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.white70
+                            : const Color(0xFF64748B),
                         height: 1.5,
                       ),
                       children: [
@@ -589,7 +618,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
   Widget _buildExamplesSection(VocabModel vocab, bool isDark) {
     return Obx(() {
       final showAll = controller.examplesExpanded.value;
-      final examples = showAll ? vocab.examples : vocab.examples.take(1).toList();
+      final examples = showAll
+          ? vocab.examples
+          : vocab.examples.take(1).toList();
 
       return Container(
         padding: const EdgeInsets.all(20),
@@ -617,7 +648,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
               final index = entry.key;
               final example = entry.value;
               return Padding(
-                padding: EdgeInsets.only(bottom: index < examples.length - 1 ? 16 : 0),
+                padding: EdgeInsets.only(
+                  bottom: index < examples.length - 1 ? 16 : 0,
+                ),
                 child: _ExampleItem(
                   example: example,
                   onSpeak: () => controller.speakText(example.hanzi),
@@ -646,7 +679,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
                     ),
                     const SizedBox(width: 4),
                     Icon(
-                      showAll ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      showAll
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
                       size: 18,
                       color: AppColors.primary,
                     ),
@@ -719,8 +754,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
           ),
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 200),
-            crossFadeState:
-                isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             firstChild: const SizedBox(height: 0),
             secondChild: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -759,7 +795,9 @@ class WordDetailScreen extends GetView<WordDetailController> {
               child: _MetadataItem(
                 icon: Icons.trending_up,
                 label: 'FREQUENCY',
-                value: vocab.frequencyRank > 0 ? 'Top ${vocab.frequencyRank}' : 'N/A',
+                value: vocab.frequencyRank > 0
+                    ? 'Top ${vocab.frequencyRank}'
+                    : 'N/A',
                 iconColor: AppColors.primary,
                 isDark: isDark,
               ),
@@ -844,7 +882,9 @@ class _QuickActionButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: isActive
                   ? (activeColor ?? AppColors.primary)
-                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+                  : (isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFF8FAFC)),
               borderRadius: BorderRadius.circular(16),
               border: isActive
                   ? null
@@ -942,12 +982,7 @@ class _ExampleItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(left: 12),
       decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(
-            color: AppColors.primary,
-            width: 3,
-          ),
-        ),
+        border: Border(left: BorderSide(color: AppColors.primary, width: 3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1002,7 +1037,7 @@ class _ExampleItem extends StatelessWidget {
 
           // Vietnamese translation
           Text(
-            example.meaningVi,
+            example.meaningViCapitalized,
             style: TextStyle(
               fontSize: 14,
               fontStyle: FontStyle.italic,

@@ -106,6 +106,13 @@ class ExploreController extends GetxController {
   bool _hasMore = true;
   static const int _pageLimit = 20;
 
+  // Search pagination
+  static const int _searchInitialLimit = 20;
+  static const int _searchMaxLimit = 100;
+  int _searchDisplayCount = _searchInitialLimit;
+  final RxBool hasMoreSearch = false.obs;
+  List<VocabModel> _allSearchResults = [];
+
   // Debounce timer for real-time search
   Timer? _searchDebounce;
   static const Duration _searchDebounceDelay = Duration(milliseconds: 400);
@@ -397,12 +404,13 @@ class ExploreController extends GetxController {
     }
 
     isSearching.value = true;
+    _searchDisplayCount = _searchInitialLimit; // Reset display count
 
     try {
       // Try 1: Local database (instant, no network)
       List<VocabModel> results = await _vocabLocal.searchVocabs(
         searchQuery.value,
-        limit: 50,
+        limit: _searchMaxLimit,
       );
 
       // Try 2: API fallback if local is empty
@@ -411,7 +419,7 @@ class ExploreController extends GetxController {
         try {
           results = await _vocabRepo!.searchVocabs(
             searchQuery.value,
-            limit: 50,
+            limit: _searchMaxLimit,
           );
         } catch (apiError) {
           Logger.w(
@@ -421,7 +429,10 @@ class ExploreController extends GetxController {
         }
       }
 
-      vocabs.value = results;
+      // Store all results and display initial batch
+      _allSearchResults = results;
+      vocabs.value = results.take(_searchDisplayCount).toList();
+      hasMoreSearch.value = results.length > _searchDisplayCount;
     } catch (e) {
       Logger.e('ExploreController', 'search error', e);
       HMToast.error('Không thể tìm kiếm');
@@ -429,6 +440,18 @@ class ExploreController extends GetxController {
       isSearching.value = false;
     }
   }
+
+  /// Load more search results
+  void loadMoreSearchResults() {
+    if (!hasMoreSearch.value) return;
+
+    _searchDisplayCount += _searchInitialLimit;
+    vocabs.value = _allSearchResults.take(_searchDisplayCount).toList();
+    hasMoreSearch.value = _allSearchResults.length > _searchDisplayCount;
+  }
+
+  /// Get total search results count
+  int get totalSearchResults => _allSearchResults.length;
 
   /// Handle chip filter selection
   void setChipFilter(int index) {

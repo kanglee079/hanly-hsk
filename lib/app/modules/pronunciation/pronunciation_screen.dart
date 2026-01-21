@@ -48,7 +48,10 @@ class PronunciationScreen extends GetView<PronunciationController> {
             return Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -108,7 +111,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
   /// Show exit confirmation dialog
   void _showExitConfirmation(BuildContext context, bool isDark) {
     // Skip confirmation if not started or already finished
-    if (controller.isLoading.value || 
+    if (controller.isLoading.value ||
         controller.words.isEmpty ||
         controller.isSessionComplete.value) {
       controller.goBack();
@@ -128,7 +131,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
         content: Text(
           'Tiến trình hiện tại sẽ không được lưu.',
           style: AppTypography.bodyMedium.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
         actions: [
@@ -214,7 +219,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
       children: [
         // Progress bar
         _buildProgressBar(isDark),
-        
+
         const SizedBox(height: 16),
 
         // Word card
@@ -232,7 +237,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
             ),
           ),
         ),
-        
+
         // Bottom actions
         _buildBottomActions(isDark),
       ],
@@ -246,7 +251,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
         final progress = controller.words.isNotEmpty
             ? controller.currentIndex.value / controller.words.length
             : 0.0;
-        
+
         return Column(
           children: [
             // Stats row
@@ -293,7 +298,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
             Container(
               height: 6,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08),
+                color: isDark
+                    ? Colors.white12
+                    : Colors.black.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(3),
               ),
               child: Align(
@@ -301,7 +308,8 @@ class PronunciationScreen extends GetView<PronunciationController> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOutCubic,
-                  width: MediaQuery.of(Get.context!).size.width * 0.9 * progress,
+                  width:
+                      MediaQuery.of(Get.context!).size.width * 0.9 * progress,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF4CAF50), Color(0xFF81C784)],
@@ -326,12 +334,10 @@ class PronunciationScreen extends GetView<PronunciationController> {
         width: double.infinity,
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: isDark 
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white,
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isDark 
+            color: isDark
                 ? Colors.white.withValues(alpha: 0.1)
                 : Colors.black.withValues(alpha: 0.05),
           ),
@@ -356,7 +362,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
               ),
             ),
             const SizedBox(height: 8),
-            
+
             // Pinyin
             Text(
               word.pinyin,
@@ -366,17 +372,17 @@ class PronunciationScreen extends GetView<PronunciationController> {
               ),
             ),
             const SizedBox(height: 4),
-            
+
             // Meaning
             Text(
-              word.meaningVi,
+              word.meaningViCapitalized,
               style: AppTypography.bodyLarge.copyWith(
                 color: isDark ? Colors.white70 : AppColors.textSecondary,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Audio buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -437,16 +443,18 @@ class PronunciationScreen extends GetView<PronunciationController> {
     return Obx(() {
       final isRecording = controller.isRecording.value;
       final hasResult = controller.hasResult.value;
-      
+
       if (hasResult) {
         return _buildResultSection(isDark);
       }
-      
+
       return Column(
         children: [
           // Microphone button with animation
           GestureDetector(
-            onTap: isRecording ? controller.stopRecording : controller.startRecording,
+            onTap: isRecording
+                ? controller.stopRecording
+                : controller.startRecording,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               width: isRecording ? 120 : 100,
@@ -462,9 +470,11 @@ class PronunciationScreen extends GetView<PronunciationController> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: (isRecording 
-                        ? const Color(0xFFE53935) 
-                        : const Color(0xFF4CAF50)).withValues(alpha: 0.4),
+                    color:
+                        (isRecording
+                                ? const Color(0xFFE53935)
+                                : const Color(0xFF4CAF50))
+                            .withValues(alpha: 0.4),
                     blurRadius: isRecording ? 30 : 20,
                     spreadRadius: isRecording ? 5 : 0,
                   ),
@@ -476,7 +486,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
                   // Sound wave animation
                   if (isRecording)
                     _SoundWaveAnimation(level: controller.soundLevel.value),
-                  
+
                   Icon(
                     isRecording ? Icons.stop_rounded : Icons.mic_rounded,
                     size: 44,
@@ -486,9 +496,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Recording status
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
@@ -506,9 +516,12 @@ class PronunciationScreen extends GetView<PronunciationController> {
                       const SizedBox(height: 8),
                       if (controller.recognizedText.value.isNotEmpty)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: isDark 
+                            color: isDark
                                 ? Colors.white.withValues(alpha: 0.1)
                                 : Colors.black.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
@@ -518,7 +531,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
                             style: TextStyle(
                               fontFamily: 'NotoSansSC',
                               fontSize: 18,
-                              color: isDark ? Colors.white : AppColors.textPrimary,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
                             ),
                           ),
                         ),
@@ -532,13 +547,16 @@ class PronunciationScreen extends GetView<PronunciationController> {
                     ),
                   ),
           ),
-          
+
           // Speech not available warning
           if (!controller.isSpeechAvailable.value)
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.warning.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
@@ -546,8 +564,11 @@ class PronunciationScreen extends GetView<PronunciationController> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.warning_amber_rounded, 
-                      color: AppColors.warning, size: 18),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: AppColors.warning,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Nhận diện giọng nói không khả dụng',
@@ -571,11 +592,11 @@ class PronunciationScreen extends GetView<PronunciationController> {
       final emoji = controller.feedbackEmoji.value;
       final feedbackText = controller.feedback.value;
       final recognizedText = controller.recognizedText.value;
-      
-      final resultColor = passed 
-          ? const Color(0xFF4CAF50) 
+
+      final resultColor = passed
+          ? const Color(0xFF4CAF50)
           : (score >= 50 ? AppColors.warning : AppColors.error);
-      
+
       return Column(
         children: [
           // Result card
@@ -613,7 +634,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
                           Text(
                             feedbackText,
                             style: AppTypography.bodySmall.copyWith(
-                              color: isDark ? Colors.white : AppColors.textPrimary,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -623,7 +646,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
                     ),
                   ],
                 ),
-                
+
                 // What was recognized
                 if (recognizedText.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -631,7 +654,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isDark 
+                      color: isDark
                           ? Colors.black.withValues(alpha: 0.2)
                           : Colors.white.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(12),
@@ -642,7 +665,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
                         Text(
                           'Nhận diện:',
                           style: AppTypography.labelSmall.copyWith(
-                            color: isDark ? Colors.white54 : AppColors.textTertiary,
+                            color: isDark
+                                ? Colors.white54
+                                : AppColors.textTertiary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -651,7 +676,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
                           style: TextStyle(
                             fontFamily: 'NotoSansSC',
                             fontSize: 18,
-                            color: isDark ? Colors.white : AppColors.textPrimary,
+                            color: isDark
+                                ? Colors.white
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -661,9 +688,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Retry button
           if (!passed)
             TextButton.icon(
@@ -682,7 +709,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
   Widget _buildBottomActions(bool isDark) {
     return Obx(() {
       final hasResult = controller.hasResult.value;
-      
+
       return Container(
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
         child: Row(
@@ -695,7 +722,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
                   child: OutlinedButton(
                     onPressed: controller.skipWord,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? Colors.white70 : AppColors.textSecondary,
+                      foregroundColor: isDark
+                          ? Colors.white70
+                          : AppColors.textSecondary,
                       side: BorderSide(
                         color: isDark ? Colors.white24 : Colors.black12,
                       ),
@@ -707,7 +736,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
                   ),
                 ),
               ),
-            
+
             // Next/Continue button
             if (hasResult) ...[
               Expanded(
@@ -778,7 +807,7 @@ class PronunciationScreen extends GetView<PronunciationController> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
-              
+
               // Success icon
               Container(
                 width: 100,
@@ -788,17 +817,21 @@ class PronunciationScreen extends GetView<PronunciationController> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isGood
-                        ? [const Color(0xFF4CAF50).withValues(alpha: 0.2), 
-                           const Color(0xFF4CAF50).withValues(alpha: 0.1)]
-                        : [AppColors.warning.withValues(alpha: 0.2), 
-                           AppColors.warning.withValues(alpha: 0.1)],
+                        ? [
+                            const Color(0xFF4CAF50).withValues(alpha: 0.2),
+                            const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                          ]
+                        : [
+                            AppColors.warning.withValues(alpha: 0.2),
+                            AppColors.warning.withValues(alpha: 0.1),
+                          ],
                   ),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: (isGood 
-                          ? const Color(0xFF4CAF50) 
-                          : AppColors.warning).withValues(alpha: 0.2),
+                      color:
+                          (isGood ? const Color(0xFF4CAF50) : AppColors.warning)
+                              .withValues(alpha: 0.2),
                       blurRadius: 20,
                       spreadRadius: 2,
                     ),
@@ -810,9 +843,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
                   color: isGood ? const Color(0xFF4CAF50) : AppColors.warning,
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               Text(
                 isGood ? 'Tuyệt vời! 🎉' : 'Tiếp tục luyện tập! 💪',
                 style: AppTypography.headlineMedium.copyWith(
@@ -820,28 +853,31 @@ class PronunciationScreen extends GetView<PronunciationController> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               Text(
                 'Bạn đã hoàn thành phiên luyện phát âm!',
                 style: AppTypography.bodyLarge.copyWith(
                   color: isDark ? Colors.white70 : AppColors.textSecondary,
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Stats card
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
-                  color: isDark 
+                  color: isDark
                       ? Colors.white.withValues(alpha: 0.08)
                       : Colors.white.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isDark 
+                    color: isDark
                         ? Colors.white.withValues(alpha: 0.1)
                         : Colors.black.withValues(alpha: 0.05),
                   ),
@@ -858,7 +894,8 @@ class PronunciationScreen extends GetView<PronunciationController> {
                   children: [
                     _buildStatItem(
                       icon: Icons.check_circle_rounded,
-                      value: '${controller.passedCount.value}/${controller.totalAttempts.value}',
+                      value:
+                          '${controller.passedCount.value}/${controller.totalAttempts.value}',
                       label: 'Đạt',
                       color: const Color(0xFF4CAF50),
                       isDark: isDark,
@@ -866,7 +903,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
                     Container(
                       width: 1,
                       height: 48,
-                      color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08),
+                      color: isDark
+                          ? Colors.white12
+                          : Colors.black.withValues(alpha: 0.08),
                     ),
                     _buildStatItem(
                       icon: Icons.speed_rounded,
@@ -878,7 +917,9 @@ class PronunciationScreen extends GetView<PronunciationController> {
                     Container(
                       width: 1,
                       height: 48,
-                      color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08),
+                      color: isDark
+                          ? Colors.white12
+                          : Colors.black.withValues(alpha: 0.08),
                     ),
                     _buildStatItem(
                       icon: Icons.timer_rounded,
@@ -890,24 +931,28 @@ class PronunciationScreen extends GetView<PronunciationController> {
                   ],
                 ),
               ),
-              
+
               const Spacer(flex: 3),
-              
+
               // Action buttons
               HMButton(
                 text: 'Luyện lại',
                 onPressed: controller.restartSession,
-                icon: const Icon(Icons.refresh_rounded, size: 20, color: Colors.white),
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  size: 20,
+                  color: Colors.white,
+                ),
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               HMButton(
                 text: 'Hoàn thành',
                 variant: HMButtonVariant.outline,
                 onPressed: controller.goBack,
               ),
-              
+
               const SizedBox(height: 24),
             ],
           ),
@@ -962,12 +1007,10 @@ class _SoundWaveAnimation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final normalizedLevel = (level + 10) / 40; // Normalize to 0-1 range
-    
+
     return CustomPaint(
       size: const Size(120, 120),
-      painter: _SoundWavePainter(
-        level: normalizedLevel.clamp(0.0, 1.0),
-      ),
+      painter: _SoundWavePainter(level: normalizedLevel.clamp(0.0, 1.0)),
     );
   }
 }
@@ -995,5 +1038,6 @@ class _SoundWavePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SoundWavePainter oldDelegate) => level != oldDelegate.level;
+  bool shouldRepaint(_SoundWavePainter oldDelegate) =>
+      level != oldDelegate.level;
 }

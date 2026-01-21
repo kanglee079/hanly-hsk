@@ -54,11 +54,7 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
     }
     Get.toNamed(
       Routes.practice,
-      arguments: {
-        'mode': 'learnNew',
-        'deckId': deck.id,
-        'vocabs': deck.vocabs,
-      },
+      arguments: {'mode': 'learnNew', 'deckId': deck.id, 'vocabs': deck.vocabs},
     );
   }
 
@@ -74,7 +70,7 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
               children: [
                 // Header with stats
                 _buildHeader(isDark),
-                
+
                 // Vocab list
                 Expanded(
                   child: deck.vocabs.isEmpty
@@ -132,13 +128,17 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Study button
           SizedBox(
             width: double.infinity,
             child: HMButton(
               text: 'Học bộ từ này',
-              icon: const Icon(Icons.school_rounded, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.school_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               onPressed: deck.vocabs.isNotEmpty ? _startStudy : null,
             ),
           ),
@@ -184,10 +184,7 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
 
   Widget _buildVocabCard(VocabModel vocab, bool isDark) {
     return HMCard(
-      onTap: () => Get.toNamed(
-        Routes.wordDetail,
-        arguments: {'vocab': vocab},
-      ),
+      onTap: () => Get.toNamed(Routes.wordDetail, arguments: {'vocab': vocab}),
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -222,7 +219,7 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
                   ),
                 ),
                 Text(
-                  vocab.meaningVi,
+                  vocab.meaningViCapitalized,
                   style: AppTypography.bodyMedium.copyWith(
                     color: isDark
                         ? AppColors.textPrimaryDark
@@ -271,4 +268,3 @@ class _DeckDetailScreenState extends State<DeckDetailScreen> {
     }
   }
 }
-

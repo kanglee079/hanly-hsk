@@ -194,10 +194,84 @@ class ExploreScreen extends GetView<ExploreController> {
               );
             }
 
-            return _buildVocabList(controller.vocabs, isDark);
+            return _buildSearchVocabList(controller.vocabs, isDark);
           }),
         ),
       ],
+    );
+  }
+
+  /// Search vocab list with "View More" button
+  Widget _buildSearchVocabList(List<VocabModel> vocabs, bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 100),
+      itemCount: vocabs.length + (controller.hasMoreSearch.value ? 1 : 0),
+      itemBuilder: (context, index) {
+        // "View More" button at the end
+        if (index >= vocabs.length) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              children: [
+                Text(
+                  'Hiện ${vocabs.length}/${controller.totalSearchResults} kết quả',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: isDark
+                        ? AppColors.textTertiaryDark
+                        : AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: controller.loadMoreSearchResults,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withAlpha(15),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: AppColors.primary.withAlpha(50),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Xem thêm',
+                          style: AppTypography.labelMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final vocab = vocabs[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _VocabCard(
+            vocab: vocab,
+            isDark: isDark,
+            onTap: () => controller.openVocabDetail(vocab),
+            onAdd: () => controller.toggleFavorite(vocab),
+          ),
+        );
+      },
     );
   }
 
@@ -870,7 +944,7 @@ class ExploreScreen extends GetView<ExploreController> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        vocab.meaningVi,
+                        vocab.meaningViCapitalized,
                         style: AppTypography.bodySmall.copyWith(
                           color: isDark
                               ? AppColors.textSecondaryDark
@@ -1491,7 +1565,7 @@ class _VocabCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            vocab.meaningVi,
+            vocab.meaningViCapitalized,
             style: AppTypography.bodyMedium.copyWith(
               color: isDark
                   ? AppColors.textSecondaryDark

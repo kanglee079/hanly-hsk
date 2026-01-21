@@ -853,7 +853,8 @@ class SessionController extends GetxController {
   /// Refresh all data in all controllers after session completes
   Future<void> _refreshAllData() async {
     try {
-      await _rt.syncNowAll(force: true);
+      // Only sync resources that actually change after session completion
+      await _rt.syncNowKeys(const ['today', 'learnedToday'], force: true);
     } catch (_) {}
   }
 

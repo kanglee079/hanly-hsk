@@ -24,7 +24,8 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
           return _buildLoadingState();
         }
 
-        if (controller.errorMessage.value.isNotEmpty && controller.vocabs.isEmpty) {
+        if (controller.errorMessage.value.isNotEmpty &&
+            controller.vocabs.isEmpty) {
           return _buildErrorState(isDark);
         }
 
@@ -54,21 +55,22 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
             Icon(
               Icons.error_outline_rounded,
               size: 64,
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
             const SizedBox(height: 16),
             Text(
               controller.errorMessage.value,
               style: AppTypography.bodyLarge.copyWith(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            HMButton(
-              text: 'Thử lại',
-              onPressed: controller.refreshData,
-            ),
+            HMButton(text: 'Thử lại', onPressed: controller.refreshData),
           ],
         ),
       ),
@@ -96,13 +98,17 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
                     Icon(
                       Icons.inbox_outlined,
                       size: 64,
-                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+                      color: isDark
+                          ? AppColors.textTertiaryDark
+                          : AppColors.textTertiary,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'Không có từ vựng',
                       style: AppTypography.bodyLarge.copyWith(
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -181,36 +187,39 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
           Text(
             collection.subtitle,
             style: AppTypography.bodyMedium.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
             ),
           ),
 
           const SizedBox(height: 16),
 
           // Stats row
-          Obx(() => Row(
-            children: [
-              _StatBadge(
-                icon: Icons.library_books_outlined,
-                value: '${collection.wordCount}',
-                label: 'từ vựng',
-                isDark: isDark,
-              ),
-              const SizedBox(width: 16),
-              _StatBadge(
-                icon: Icons.format_list_numbered,
-                value: '${controller.currentPage.value}/${controller.totalPages}',
-                label: 'trang',
-                isDark: isDark,
-              ),
-            ],
-          )),
+          Obx(
+            () => Row(
+              children: [
+                _StatBadge(
+                  icon: Icons.library_books_outlined,
+                  value: '${collection.wordCount}',
+                  label: 'từ vựng',
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 16),
+                _StatBadge(
+                  icon: Icons.format_list_numbered,
+                  value:
+                      '${controller.currentPage.value}/${controller.totalPages}',
+                  label: 'trang',
+                  isDark: isDark,
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 16),
 
-          Divider(
-            color: isDark ? AppColors.borderDark : AppColors.border,
-          ),
+          Divider(color: isDark ? AppColors.borderDark : AppColors.border),
 
           const SizedBox(height: 8),
         ],
@@ -240,7 +249,9 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
             // Previous button
             _PaginationIconButton(
               icon: Icons.chevron_left_rounded,
-              onPressed: controller.canGoPrevious ? controller.previousPage : null,
+              onPressed: controller.canGoPrevious
+                  ? controller.previousPage
+                  : null,
               isDark: isDark,
             ),
 
@@ -248,7 +259,10 @@ class CollectionDetailScreen extends GetView<CollectionDetailController> {
             Expanded(
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withAlpha(15),
                     borderRadius: BorderRadius.circular(16),
@@ -299,7 +313,9 @@ class _PaginationIconButton extends StatelessWidget {
         height: 44,
         decoration: BoxDecoration(
           color: isDisabled
-              ? (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant)
+              ? (isDark
+                    ? AppColors.surfaceVariantDark
+                    : AppColors.surfaceVariant)
               : AppColors.primary,
           borderRadius: BorderRadius.circular(12),
         ),
@@ -350,7 +366,9 @@ class _StatBadge extends StatelessWidget {
         Text(
           label,
           style: AppTypography.bodySmall.copyWith(
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
           ),
         ),
       ],
@@ -394,8 +412,8 @@ class _VocabCard extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  vocab.hanzi.length > 2 
-                      ? vocab.hanzi.substring(0, 2) 
+                  vocab.hanzi.length > 2
+                      ? vocab.hanzi.substring(0, 2)
                       : vocab.hanzi,
                   style: AppTypography.headlineMedium.copyWith(
                     color: AppColors.getHskColor(vocab.levelInt),
@@ -433,7 +451,9 @@ class _VocabCard extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.getHskColor(vocab.levelInt).withAlpha(20),
+                          color: AppColors.getHskColor(
+                            vocab.levelInt,
+                          ).withAlpha(20),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -460,7 +480,7 @@ class _VocabCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    vocab.meaningVi,
+                    vocab.meaningViCapitalized,
                     style: AppTypography.bodyMedium.copyWith(
                       color: isDark
                           ? AppColors.textPrimaryDark
@@ -478,7 +498,9 @@ class _VocabCard extends StatelessWidget {
             // Arrow
             Icon(
               Icons.chevron_right_rounded,
-              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+              color: isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
             ),
           ],
         ),

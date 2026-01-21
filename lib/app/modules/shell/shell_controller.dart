@@ -10,7 +10,7 @@ import '../today/today_controller.dart';
 class ShellController extends GetxController {
   final RxInt currentIndex = 0.obs;
   final RealtimeSyncService _rt = Get.find<RealtimeSyncService>();
-  
+
   // GlobalKey for bottom nav - managed by controller to prevent duplicate key issue
   // when navigating away and back to shell (e.g., switching accounts)
   final GlobalKey bottomNavKey = GlobalKey(debugLabel: 'bottomNav');
@@ -58,9 +58,26 @@ class ShellController extends GetxController {
     currentIndex.value = index;
   }
 
+  // Debounce: track last full sync time to prevent burst calls
+  static DateTime? _lastFullSync;
+
   /// Force a realtime sync for key resources (useful after completing a session).
+  /// Debounced to prevent excessive API calls.
   Future<void> refreshAllData() async {
-    await _rt.syncNowAll(force: true);
+    final now = DateTime.now();
+    // Skip if synced within last 30 seconds
+    if (_lastFullSync != null &&
+        now.difference(_lastFullSync!).inSeconds < 30) {
+      return;
+    }
+    _lastFullSync = now;
+
+    // Only sync essential resources, not all
+    await _rt.syncNowKeys(const [
+      'today',
+      'learnedToday',
+      'todayForecast',
+    ], force: true);
     // Also refresh local cache counts
     if (Get.isRegistered<TodayController>()) {
       Get.find<TodayController>().onScreenVisible();
