@@ -1022,10 +1022,16 @@ class TodayScreen extends GetView<TodayController> {
   // với HMLearnedTodayWidget - KHÔNG trùng lặp ở đây
 
   Widget _buildDueTodaySection(bool isDark) {
-    final data = controller.todayData.value;
+    // IMPORTANT: Explicitly read reactive values for Obx to work
+    final hasLocal = controller.hasLocalData.value;
+    final localQueue = controller.localReviewQueue;
+    final serverQueue = controller.todayData.value?.reviewQueue ?? [];
     final loading = controller.isLoading.value;
-    final dueItems = data?.reviewQueue.take(5).toList() ?? [];
-    final totalDue = data?.reviewQueue.length ?? 0;
+
+    // OFFLINE-FIRST: Use local data once initialized
+    final reviewQueue = hasLocal ? localQueue : serverQueue;
+    final dueItems = reviewQueue.take(5).toList();
+    final totalDue = reviewQueue.length;
 
     if (loading) {
       return Column(

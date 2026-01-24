@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/today_model.dart';
 import '../../data/models/dashboard_model.dart';
+import '../../data/models/vocab_model.dart';
 import '../../data/repositories/progress_repo.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/next_action_engine.dart';
@@ -60,6 +61,9 @@ class TodayController extends GetxController {
   // OFFLINE-FIRST: Local review queue count (updated immediately after review)
   final RxInt localDueCount = 0.obs;
 
+  // OFFLINE-FIRST: Local review queue items (for displaying in Due Today section)
+  final RxList<VocabModel> localReviewQueue = <VocabModel>[].obs;
+
   // Track if local data has been initialized (to distinguish 0 from "not loaded")
   final RxBool hasLocalData = false.obs;
 
@@ -104,6 +108,7 @@ class TodayController extends GetxController {
     ever(_localTodayService.today, (localToday) {
       if (localToday != null) {
         localDueCount.value = localToday.reviewQueue.length;
+        localReviewQueue.value = localToday.reviewQueue.toList();
         hasLocalData.value = true; // Mark as initialized
         _computeNextAction();
       }
@@ -125,6 +130,7 @@ class TodayController extends GetxController {
     final localToday = _localTodayService.today.value;
     if (localToday != null) {
       localDueCount.value = localToday.reviewQueue.length;
+      localReviewQueue.value = localToday.reviewQueue.toList();
       hasLocalData.value = true; // Mark as initialized
     }
   }
