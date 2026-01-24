@@ -12,6 +12,7 @@ import '../../services/exercise_generator.dart';
 import '../../services/realtime/today_store.dart';
 import '../../services/storage_service.dart';
 import '../../services/realtime/realtime_sync_service.dart';
+import '../../services/local_progress_service.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
 import '../../core/constants/toast_messages.dart';
@@ -49,6 +50,7 @@ class PracticeController extends GetxController {
   final ExerciseGenerator _exerciseGenerator = ExerciseGenerator();
   final StorageService _storage = Get.find<StorageService>();
   final RealtimeSyncService _rt = Get.find<RealtimeSyncService>();
+  late final LocalProgressService _localProgress;
 
   // Local date key for caching learn-new completion (YYYY-MM-DD)
   final String _todayKey = _formatDateKey(DateTime.now());
@@ -186,6 +188,14 @@ class PracticeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // Initialize LocalProgressService for offline-first SRS updates
+    try {
+      _localProgress = Get.find<LocalProgressService>();
+    } catch (_) {
+      _localProgress = Get.put(LocalProgressService());
+    }
+
     _parseArguments();
     _initLearnNewLocalProgress();
     _initSpeech();
@@ -1067,6 +1077,10 @@ class PracticeController extends GetxController {
 
   // ========== SRS RATING ==========
 
+  /// Submit SRS rating - OFFLINE-FIRST architecture
+  /// 1. Update local SQLite immediately (LocalProgressService)
+  /// 2. Sync to server in background (fire-and-forget)
+  /// 3. LocalTodayService listens to progress updates and rebuilds TodayModel
   Future<void> submitRating(ReviewRating rating) async {
     final vocab = currentVocab;
     if (vocab == null) {
@@ -1074,20 +1088,69 @@ class PracticeController extends GetxController {
       return;
     }
 
+    final timeSpent = _exerciseStart != null
+        ? DateTime.now().difference(_exerciseStart!).inMilliseconds
+        : 3000;
+
+    // Convert ReviewRating to SrsRating
+    final srsRating = _reviewRatingToSrsRating(rating);
+
     try {
-      await _learningRepo.submitReviewAnswer(
+      // 1. LOCAL-FIRST: Update SQLite immediately (triggers LocalTodayService rebuild)
+      await _localProgress.recordAnswer(
         vocabId: vocab.id,
-        rating: rating,
-        mode: 'flashcard',
-        timeSpent: _exerciseStart != null
-            ? DateTime.now().difference(_exerciseStart!).inMilliseconds
-            : 3000,
+        rating: srsRating,
+        mode: 'review',
+        timeSpentMs: timeSpent,
       );
+
+      Logger.d(
+        'PracticeController',
+        '✅ [LOCAL] Rating: ${rating.value}, vocab: ${vocab.hanzi}',
+      );
+
+      // 2. BACKGROUND SYNC: Send to server (fire-and-forget)
+      unawaited(() async {
+        try {
+          await _learningRepo.submitReviewAnswer(
+            vocabId: vocab.id,
+            rating: rating,
+            mode: 'flashcard',
+            timeSpent: timeSpent,
+          );
+          Logger.d('PracticeController', '☁️ Rating synced to server');
+        } catch (e) {
+          Logger.e('PracticeController', 'Server sync failed', e);
+        }
+      }());
     } catch (e) {
-      Logger.e('PracticeController', 'Submit rating error', e);
+      Logger.e('PracticeController', 'Local rating error', e);
+      // Fallback: try server directly if local fails
+      try {
+        await _learningRepo.submitReviewAnswer(
+          vocabId: vocab.id,
+          rating: rating,
+          mode: 'flashcard',
+          timeSpent: timeSpent,
+        );
+      } catch (_) {}
     }
 
     await nextExercise();
+  }
+
+  /// Convert ReviewRating to SrsRating
+  SrsRating _reviewRatingToSrsRating(ReviewRating rating) {
+    switch (rating) {
+      case ReviewRating.again:
+        return SrsRating.again;
+      case ReviewRating.hard:
+        return SrsRating.hard;
+      case ReviewRating.good:
+        return SrsRating.good;
+      case ReviewRating.easy:
+        return SrsRating.easy;
+    }
   }
 
   // ========== SESSION MANAGEMENT ==========
