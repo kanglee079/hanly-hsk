@@ -227,12 +227,27 @@ class TodayController extends GetxController {
     return todayData.value?.dueCount ?? 0;
   }
 
-  // ===== FORECAST HELPERS =====
+  // ===== FORECAST HELPERS (OFFLINE-FIRST) =====
 
-  /// Get tomorrow's review count from forecast
-  int get tomorrowReviewCount => forecastData.value?.tomorrowReviewCount ?? 0;
+  /// Get tomorrow's review count - PREFERS LOCAL DATA
+  int get tomorrowReviewCount {
+    // Calculate tomorrow's date string
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final tomorrowKey =
+        '${tomorrow.year}-${tomorrow.month.toString().padLeft(2, '0')}-${tomorrow.day.toString().padLeft(2, '0')}';
 
-  /// Get forecast days
+    // Local forecast is primary
+    final localCount = _localTodayService.localForecast[tomorrowKey];
+    if (localCount != null) return localCount;
+
+    // Fallback to server
+    return forecastData.value?.tomorrowReviewCount ?? 0;
+  }
+
+  /// Get local forecast map (date -> count)
+  Map<String, int> get localForecastMap => _localTodayService.localForecast;
+
+  /// Get forecast days (from server, fallback)
   List<ForecastDay> get forecastDays => forecastData.value?.days ?? [];
 
   // ===== GOAL HELPER =====

@@ -21,6 +21,9 @@ class LocalTodayService extends GetxService {
   // Reactive today model - UI subscribes to this
   final Rx<TodayModel?> today = Rx<TodayModel?>(null);
 
+  // Reactive local forecast - keys are date strings (YYYY-MM-DD), values are counts
+  final RxMap<String, int> localForecast = <String, int>{}.obs;
+
   // Loading state
   final RxBool isLoading = false.obs;
 
@@ -113,10 +116,15 @@ class LocalTodayService extends GetxService {
         weeklyProgress: weeklyProgress,
       );
 
+      // Build local forecast for next 7 days
+      final forecastCounts = await _vocabLocal.getForecastCounts(days: 7);
+      localForecast.value = forecastCounts;
+
       Logger.d(
         'LocalTodayService',
         '✅ Built TodayModel: new=${newQueue.length}, review=${reviewQueue.length}, '
-            'streak=${streakInfo['streak']}, minutes=$completedMinutes',
+            'streak=${streakInfo['streak']}, minutes=$completedMinutes, '
+            'forecast=${forecastCounts.values.fold(0, (a, b) => a + b)} total',
       );
     } catch (e) {
       Logger.e('LocalTodayService', 'Failed to build TodayModel', e);

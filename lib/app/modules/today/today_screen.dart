@@ -712,11 +712,23 @@ class TodayScreen extends GetView<TodayController> {
 
   /// Build forecast section
   Widget _buildForecastSection() {
+    // IMPORTANT: Explicitly observe reactive values for Obx to work
+    final localForecast = controller.localForecastMap;
+    final hasLocal = controller.hasLocalData.value;
+
     final days = controller.forecastDays;
-    final tomorrowCount = controller.tomorrowReviewCount;
     final isLoading = controller.isLoadingForecast.value;
 
-    if (days.isEmpty && !isLoading) {
+    // OFFLINE-FIRST: Get tomorrow count from local data if available
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final tomorrowKey =
+        '${tomorrow.year}-${tomorrow.month.toString().padLeft(2, '0')}-${tomorrow.day.toString().padLeft(2, '0')}';
+    final localTomorrowCount = localForecast[tomorrowKey] ?? 0;
+    final serverTomorrowCount =
+        controller.forecastData.value?.tomorrowReviewCount ?? 0;
+    final tomorrowCount = hasLocal ? localTomorrowCount : serverTomorrowCount;
+
+    if (days.isEmpty && !isLoading && !hasLocal) {
       return const SizedBox.shrink();
     }
 
