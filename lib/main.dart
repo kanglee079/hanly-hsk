@@ -29,6 +29,7 @@ import 'app/services/realtime/realtime_sync_service.dart';
 import 'app/services/realtime/today_store.dart';
 import 'app/services/realtime/study_modes_store.dart';
 import 'app/services/tutorial_service.dart';
+import 'app/services/l10n_service.dart';
 import 'app/services/progress_sync_service.dart';
 import 'app/services/local_progress_service.dart';
 import 'app/services/local_today_service.dart';
@@ -107,6 +108,9 @@ Future<void> _initDependencies() async {
 
   // Tutorial service
   Get.put(TutorialService());
+
+  // Localization service (for language switching)
+  Get.put(L10nService());
 
   // Progress sync service (syncs local progress to backend)
   Get.put(ProgressSyncService());

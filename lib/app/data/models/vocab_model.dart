@@ -1,7 +1,10 @@
+import 'package:get/get.dart';
+import '../../services/l10n_service.dart';
+
 /// Extension to capitalize first letter of a string
-extension StringCapitalizeFirst on String {
-  /// Capitalize first letter only
-  String get capitalizeFirst {
+extension VocabStringCapitalize on String {
+  /// Capitalize first letter only - use this to avoid conflict with Get extension
+  String get capFirst {
     if (isEmpty) return this;
     return '${this[0].toUpperCase()}${substring(1)}';
   }
@@ -37,7 +40,7 @@ class VocabModel {
   final bool hskOfficial; // 'hsk_official' in BE
   final int orderInLevel; // 'order_in_level' in BE
   final bool isFavorite;
-  
+
   // For review queue items - SRS progress data
   final DateTime? dueDate;
   final String? state; // new, learning, review, mastered
@@ -88,7 +91,23 @@ class VocabModel {
   });
 
   /// Get meaning with first letter capitalized
-  String get meaningViCapitalized => meaningVi.capitalizeFirst;
+  String get meaningViCapitalized => meaningVi.capFirst;
+
+  /// Get locale-aware meaning (English if locale=en and meaningEn exists, else Vietnamese)
+  String get meaning {
+    try {
+      final l10n = Get.find<L10nService>();
+      if (l10n.isEnglish && meaningEn != null && meaningEn!.isNotEmpty) {
+        return meaningEn!;
+      }
+    } catch (_) {
+      // L10nService not registered yet, fallback to Vietnamese
+    }
+    return meaningVi;
+  }
+
+  /// Get locale-aware meaning with first letter capitalized
+  String get meaningCapitalized => meaning.capFirst;
 
   /// Get SRS state display text
   String get stateDisplay {
@@ -147,15 +166,17 @@ class VocabModel {
 
     // Build HanziDna from flat fields in response
     HanziDnaModel? buildHanziDna(Map<String, dynamic> json) {
-      final hasData = json['radical'] != null || 
-                      json['stroke_count'] != null || 
-                      json['components'] != null;
+      final hasData =
+          json['radical'] != null ||
+          json['stroke_count'] != null ||
+          json['components'] != null;
       if (!hasData) return null;
-      
+
       return HanziDnaModel(
         radical: json['radical'] as String?,
         radicalMeaning: json['radical_meaning'] as String?,
-        components: (json['components'] as List<dynamic>?)?.cast<String>() ?? [],
+        components:
+            (json['components'] as List<dynamic>?)?.cast<String>() ?? [],
         strokeCount: json['stroke_count'] as int? ?? 0,
         strokeOrder: json['stroke_order'] as String?,
       );
@@ -165,7 +186,8 @@ class VocabModel {
       id: (data['id'] ?? data['_id'] ?? '').toString(),
       hanzi: data['word'] as String? ?? data['hanzi'] as String? ?? '',
       pinyin: data['pinyin'] as String? ?? '',
-      meaningVi: data['meaning_vi'] as String? ?? data['meaningVi'] as String? ?? '',
+      meaningVi:
+          data['meaning_vi'] as String? ?? data['meaningVi'] as String? ?? '',
       meaningEn: data['meaning_en'] as String? ?? data['meaningEn'] as String?,
       level: parseLevel(data['level']),
       subLevel: data['subLevel'] as String? ?? data['sub_level'] as String?,
@@ -173,34 +195,50 @@ class VocabModel {
       topics: (data['topics'] as List<dynamic>?)?.cast<String>() ?? [],
       images: (data['images'] as List<dynamic>?)?.cast<String>() ?? [],
       audioUrl: data['audio_url'] as String? ?? data['audioUrl'] as String?,
-      audioSlowUrl: data['audio_slow_url'] as String? ?? data['audioSlowUrl'] as String?,
+      audioSlowUrl:
+          data['audio_slow_url'] as String? ?? data['audioSlowUrl'] as String?,
       hanziDna: data['hanziDna'] != null
           ? HanziDnaModel.fromJson(data['hanziDna'] as Map<String, dynamic>)
           : buildHanziDna(data),
       collocations: parseCollocations(data['collocations']),
-      examples: (data['examples'] as List<dynamic>?)
+      examples:
+          (data['examples'] as List<dynamic>?)
               ?.map((e) => ExampleModel.fromJson(e as Map<String, dynamic>))
-              .toList() ?? [],
+              .toList() ??
+          [],
       mnemonic: data['mnemonic'] as String?,
       synonyms: (data['synonyms'] as List<dynamic>?)?.cast<String>() ?? [],
       antonyms: (data['antonyms'] as List<dynamic>?)?.cast<String>() ?? [],
-      usageNotes: data['usage_notes'] as String? ?? data['usageNotes'] as String?,
-      grammarNotes: data['grammar_notes'] as String? ?? data['grammarNotes'] as String?,
-      culturalNotes: data['cultural_notes'] as String? ?? data['culturalNotes'] as String?,
+      usageNotes:
+          data['usage_notes'] as String? ?? data['usageNotes'] as String?,
+      grammarNotes:
+          data['grammar_notes'] as String? ?? data['grammarNotes'] as String?,
+      culturalNotes:
+          data['cultural_notes'] as String? ?? data['culturalNotes'] as String?,
       hskTips: data['hsk_tips'] as String? ?? data['hskTips'] as String?,
-      frequencyRank: data['frequency_rank'] as int? ?? data['frequencyRank'] as int? ?? 0,
-      difficultyScore: data['difficulty_score'] as int? ?? data['difficultyScore'] as int? ?? 1,
+      frequencyRank:
+          data['frequency_rank'] as int? ?? data['frequencyRank'] as int? ?? 0,
+      difficultyScore:
+          data['difficulty_score'] as int? ??
+          data['difficultyScore'] as int? ??
+          1,
       isCommon: data['is_common'] as bool? ?? data['isCommon'] as bool? ?? true,
-      hskOfficial: data['hsk_official'] as bool? ?? data['hskOfficial'] as bool? ?? false,
-      orderInLevel: data['order_in_level'] as int? ?? data['orderInLevel'] as int? ?? 0,
-      isFavorite: data['isFavorite'] as bool? ?? data['is_favorite'] as bool? ?? false,
+      hskOfficial:
+          data['hsk_official'] as bool? ??
+          data['hskOfficial'] as bool? ??
+          false,
+      orderInLevel:
+          data['order_in_level'] as int? ?? data['orderInLevel'] as int? ?? 0,
+      isFavorite:
+          data['isFavorite'] as bool? ?? data['is_favorite'] as bool? ?? false,
       dueDate: _parseDueDate(data),
       state: _parseState(data),
       reps: _parseReps(data),
       intervalDays: _parseIntervalDays(data),
       lastResult: _parseLastResult(data),
       isLocked: data['is_locked'] as bool? ?? data['isLocked'] as bool? ?? true,
-      progressState: data['progress_state'] as String? ?? data['progressState'] as String?,
+      progressState:
+          data['progress_state'] as String? ?? data['progressState'] as String?,
     );
   }
 
@@ -355,10 +393,14 @@ class HanziDnaModel {
   factory HanziDnaModel.fromJson(Map<String, dynamic> json) {
     return HanziDnaModel(
       radical: json['radical'] as String?,
-      radicalMeaning: json['radicalMeaning'] as String? ?? json['radical_meaning'] as String?,
+      radicalMeaning:
+          json['radicalMeaning'] as String? ??
+          json['radical_meaning'] as String?,
       components: (json['components'] as List<dynamic>?)?.cast<String>() ?? [],
-      strokeCount: json['strokeCount'] as int? ?? json['stroke_count'] as int? ?? 0,
-      strokeOrder: json['strokeOrder'] as String? ?? json['stroke_order'] as String?,
+      strokeCount:
+          json['strokeCount'] as int? ?? json['stroke_count'] as int? ?? 0,
+      strokeOrder:
+          json['strokeOrder'] as String? ?? json['stroke_order'] as String?,
     );
   }
 
@@ -390,14 +432,18 @@ class ExampleModel {
   });
 
   /// Get meaning with first letter capitalized
-  String get meaningViCapitalized => meaningVi.capitalizeFirst;
+  String get meaningViCapitalized => meaningVi.capFirst;
 
   factory ExampleModel.fromJson(Map<String, dynamic> json) {
     return ExampleModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       hanzi: json['cn'] as String? ?? json['hanzi'] as String? ?? '',
       pinyin: json['pinyin'] as String? ?? '',
-      meaningVi: json['vi'] as String? ?? json['meaningVi'] as String? ?? json['meaning_vi'] as String? ?? '',
+      meaningVi:
+          json['vi'] as String? ??
+          json['meaningVi'] as String? ??
+          json['meaning_vi'] as String? ??
+          '',
       audioUrl: json['audio_url'] as String? ?? json['audioUrl'] as String?,
     );
   }

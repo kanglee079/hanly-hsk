@@ -369,6 +369,31 @@ class SessionController extends GetxController {
     hasListenedAudio.value = false;
   }
 
+  /// Helper to sync review answer to server in background (fire-and-forget)
+  void _syncReviewToServer({
+    required String vocabId,
+    required ReviewRating rating,
+    required String mode,
+    required int timeSpent,
+    String? logMessage,
+  }) {
+    unawaited(() async {
+      try {
+        await _learningRepo.submitReviewAnswer(
+          vocabId: vocabId,
+          rating: rating,
+          mode: mode,
+          timeSpent: timeSpent,
+        );
+        if (logMessage != null) {
+          Logger.d('SessionController', logMessage);
+        }
+      } catch (e) {
+        Logger.e('SessionController', 'Sync failed', e);
+      }
+    }());
+  }
+
   /// Submit progress for new word (auto-rating based on quiz result)
   /// OFFLINE-FIRST: Updates local DB immediately, syncs in background
   Future<void> _submitNewWordProgress() async {
@@ -395,21 +420,28 @@ class SessionController extends GetxController {
         timeSpentMs: timeSpent,
       );
 
+      // BACKGROUND SYNC: Send to server without blocking UI
+      _syncReviewToServer(
+        vocabId: vocab.id,
+        rating: isAnswerCorrect.value ? ReviewRating.good : ReviewRating.hard,
+        mode: 'learn',
+        timeSpent: timeSpent,
+        logMessage: '☁️ New word synced: ${vocab.hanzi}',
+      );
+
       Logger.d(
         'SessionController',
         '✅ [LOCAL] New word: ${vocab.hanzi}, interval: ${result.newIntervalDays}d',
       );
     } catch (e) {
       Logger.e('SessionController', 'submitNewWordProgress error', e);
-      // Fallback to API if local fails
-      try {
-        await _learningRepo.submitReviewAnswer(
-          vocabId: vocab.id,
-          rating: isAnswerCorrect.value ? ReviewRating.good : ReviewRating.hard,
-          mode: 'learn',
-          timeSpent: timeSpent,
-        );
-      } catch (_) {}
+      // If local fails, still try to sync to server
+      _syncReviewToServer(
+        vocabId: vocab.id,
+        rating: isAnswerCorrect.value ? ReviewRating.good : ReviewRating.hard,
+        mode: 'learn',
+        timeSpent: timeSpent,
+      );
     }
 
     _nextVocab();
@@ -731,6 +763,15 @@ class SessionController extends GetxController {
         timeSpentMs: timeSpent,
       );
 
+      // BACKGROUND SYNC: Send to server without blocking UI
+      _syncReviewToServer(
+        vocabId: vocab.id,
+        rating: rating,
+        mode: _getModeString(),
+        timeSpent: timeSpent,
+        logMessage: '☁️ Rating synced',
+      );
+
       // Show feedback briefly using local result
       showingRatingFeedback.value = true;
 
@@ -744,15 +785,13 @@ class SessionController extends GetxController {
       showingRatingFeedback.value = false;
     } catch (e) {
       Logger.e('SessionController', 'submitRating error', e);
-      // Fallback to API if local fails
-      try {
-        await _learningRepo.submitReviewAnswer(
-          vocabId: vocab.id,
-          rating: rating,
-          mode: _getModeString(),
-          timeSpent: timeSpent,
-        );
-      } catch (_) {}
+      // If local fails, still try to sync to server
+      _syncReviewToServer(
+        vocabId: vocab.id,
+        rating: rating,
+        mode: _getModeString(),
+        timeSpent: timeSpent,
+      );
     }
 
     _nextVocab();

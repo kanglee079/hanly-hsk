@@ -9,6 +9,10 @@ import '../../core/constants/strings_vi.dart';
 import '../../core/widgets/widgets.dart';
 import '../../routes/app_routes.dart';
 import '../../services/tutorial_service.dart';
+import '../../services/storage_service.dart';
+import '../../services/audio_service.dart';
+import '../../services/cache_service.dart';
+import '../../services/l10n_service.dart';
 import 'me_controller.dart';
 
 /// Me tab screen - Profile & Settings
@@ -41,8 +45,11 @@ class MeScreen extends GetView<MeController> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
-                // Header
-                _buildHeader(isDark),
+                // Header - padded like TodayScreen
+                Padding(
+                  padding: AppSpacing.screenPadding.copyWith(top: 8),
+                  child: _buildHeader(isDark),
+                ),
 
                 // Offline mode banner (shown when auth failed)
                 Obx(() {
@@ -166,61 +173,35 @@ class MeScreen extends GetView<MeController> {
   }
 
   Widget _buildHeader(bool isDark) {
-    return Padding(
-      padding: AppSpacing.screenPadding.copyWith(top: 8, bottom: 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Title + Subtitle stacked
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TÀI KHOẢN',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: isDark
-                        ? AppColors.textTertiaryDark
-                        : AppColors.textTertiary,
-                    letterSpacing: 0.8,
-                    fontSize: 10,
-                  ),
-                ),
-                Text(
-                  S.me,
-                  style: AppTypography.titleLarge.copyWith(
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Settings icon
-          GestureDetector(
-            onTap: () => Get.toNamed(Routes.settings),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Title column
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'TÀI KHOẢN',
+              style: AppTypography.labelSmall.copyWith(
                 color: isDark
-                    ? AppColors.surfaceVariantDark
-                    : AppColors.surfaceVariant,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.settings_outlined,
-                size: 18,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
+                    ? AppColors.textTertiaryDark
+                    : AppColors.textTertiary,
+                letterSpacing: 0.8,
+                fontSize: 10,
               ),
             ),
-          ),
-        ],
-      ),
+            Text(
+              S.me,
+              style: AppTypography.titleLarge.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -294,7 +275,6 @@ class MeScreen extends GetView<MeController> {
               fontWeight: FontWeight.w600,
             ),
           ),
-
         ],
       ),
     );
@@ -750,6 +730,7 @@ class MeScreen extends GetView<MeController> {
           padding: EdgeInsets.zero,
           child: Column(
             children: [
+              // Account
               _buildPreferenceItem(
                 icon: Icons.person_outline,
                 title: S.account,
@@ -757,6 +738,7 @@ class MeScreen extends GetView<MeController> {
                 isDark: isDark,
               ),
               _buildDivider(isDark),
+              // Notifications
               _buildPreferenceItem(
                 icon: Icons.notifications_outlined,
                 title: S.notifications,
@@ -764,6 +746,7 @@ class MeScreen extends GetView<MeController> {
                 isDark: isDark,
               ),
               _buildDivider(isDark),
+              // Sound & Haptics
               _buildPreferenceItem(
                 icon: Icons.volume_up_outlined,
                 title: S.soundHaptics,
@@ -771,10 +754,75 @@ class MeScreen extends GetView<MeController> {
                 isDark: isDark,
               ),
               _buildDivider(isDark),
+              // Theme/Appearance
               _buildPreferenceItem(
-                icon: Icons.translate,
-                title: S.vietnameseSupport,
-                onTap: controller.goToVietnameseSupport,
+                icon: Icons.brightness_6_outlined,
+                title: 'Giao diện',
+                onTap: () => _showThemePicker(Get.context!, isDark),
+                isDark: isDark,
+              ),
+              _buildDivider(isDark),
+              // Language picker
+              _buildPreferenceItem(
+                icon: Icons.language,
+                title: 'Ngôn ngữ / Language',
+                onTap: () => _showLanguagePicker(Get.context!, isDark),
+                isDark: isDark,
+                showBorder: false,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Storage & Cache section
+        Text(
+          'Lưu trữ',
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _CacheInfoTile(isDark: isDark),
+
+        const SizedBox(height: 20),
+
+        // Help & Legal section
+        Text(
+          'Hỗ trợ',
+          style: AppTypography.titleMedium.copyWith(
+            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        HMCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              // Tutorial reset
+              _buildPreferenceItem(
+                icon: Icons.help_outline_rounded,
+                title: 'Xem lại hướng dẫn',
+                onTap: _resetTutorial,
+                isDark: isDark,
+              ),
+              _buildDivider(isDark),
+              // Privacy Policy
+              _buildPreferenceItem(
+                icon: Icons.privacy_tip_outlined,
+                title: S.privacyPolicy,
+                onTap: () => Get.toNamed(Routes.privacyPolicy),
+                isDark: isDark,
+              ),
+              _buildDivider(isDark),
+              // Terms of Service
+              _buildPreferenceItem(
+                icon: Icons.description_outlined,
+                title: S.termsOfService,
+                onTap: () => Get.toNamed(Routes.termsOfService),
                 isDark: isDark,
                 showBorder: false,
               ),
@@ -782,6 +830,231 @@ class MeScreen extends GetView<MeController> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Show theme picker bottom sheet
+  void _showThemePicker(BuildContext context, bool isDark) {
+    final storage = Get.find<StorageService>();
+    final currentMode = RxString(storage.themeMode);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Chọn giao diện',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Obx(
+              () => _buildThemeOption(
+                context,
+                currentMode,
+                storage,
+                'system',
+                'Hệ thống (Tự động)',
+                Icons.settings_brightness,
+                isDark,
+              ),
+            ),
+            Obx(
+              () => _buildThemeOption(
+                context,
+                currentMode,
+                storage,
+                'light',
+                'Sáng',
+                Icons.wb_sunny_outlined,
+                isDark,
+              ),
+            ),
+            Obx(
+              () => _buildThemeOption(
+                context,
+                currentMode,
+                storage,
+                'dark',
+                'Tối',
+                Icons.nightlight_outlined,
+                isDark,
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(
+    BuildContext context,
+    RxString currentMode,
+    StorageService storage,
+    String mode,
+    String label,
+    IconData icon,
+    bool isDark,
+  ) {
+    final isSelected = currentMode.value == mode;
+    return ListTile(
+      onTap: () {
+        currentMode.value = mode;
+        storage.themeMode = mode;
+        ThemeMode themeMode;
+        switch (mode) {
+          case 'light':
+            themeMode = ThemeMode.light;
+            break;
+          case 'dark':
+            themeMode = ThemeMode.dark;
+            break;
+          default:
+            themeMode = ThemeMode.system;
+            break;
+        }
+        Get.changeThemeMode(themeMode);
+        Get.back();
+      },
+      leading: Icon(
+        icon,
+        color: isSelected
+            ? AppColors.primary
+            : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
+      ),
+      title: Text(
+        label,
+        style: AppTypography.bodyLarge.copyWith(
+          color: isSelected
+              ? AppColors.primary
+              : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+      trailing: isSelected ? Icon(Icons.check, color: AppColors.primary) : null,
+    );
+  }
+
+  /// Reset all tutorials
+  static void _resetTutorial() {
+    if (Get.isRegistered<TutorialService>()) {
+      Get.find<TutorialService>().resetAllTutorials();
+      HMToast.success('Đã đặt lại hướng dẫn');
+    }
+  }
+
+  /// Show language picker bottom sheet
+  void _showLanguagePicker(BuildContext context, bool isDark) {
+    final l10n = Get.find<L10nService>();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Chọn ngôn ngữ / Select Language',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Obx(
+              () => _buildLanguageOption(
+                context,
+                l10n,
+                'vi',
+                'Tiếng Việt',
+                '🇻🇳',
+                isDark,
+              ),
+            ),
+            Obx(
+              () => _buildLanguageOption(
+                context,
+                l10n,
+                'en',
+                'English',
+                '🇺🇸',
+                isDark,
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(
+    BuildContext context,
+    L10nService l10n,
+    String locale,
+    String label,
+    String flag,
+    bool isDark,
+  ) {
+    final isSelected = l10n.currentLocale.value == locale;
+    return ListTile(
+      onTap: () {
+        l10n.changeLocale(locale);
+        Get.back();
+        HMToast.success(
+          locale == 'en'
+              ? 'Language changed to English'
+              : 'Đã chuyển sang Tiếng Việt',
+        );
+      },
+      leading: Text(flag, style: const TextStyle(fontSize: 24)),
+      title: Text(
+        label,
+        style: AppTypography.bodyLarge.copyWith(
+          color: isSelected
+              ? AppColors.primary
+              : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+      trailing: isSelected ? Icon(Icons.check, color: AppColors.primary) : null,
     );
   }
 
@@ -847,7 +1120,7 @@ class MeScreen extends GetView<MeController> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Prominent banner for anonymous users
           if (isAnonymous) ...[
             Container(
@@ -857,7 +1130,10 @@ class MeScreen extends GetView<MeController> {
                 gradient: LinearGradient(
                   colors: isDark
                       ? [const Color(0xFF1E3A5F), const Color(0xFF2D4A6F)]
-                      : [AppColors.primarySurface, AppColors.primaryLight.withValues(alpha: 0.2)],
+                      : [
+                          AppColors.primarySurface,
+                          AppColors.primaryLight.withValues(alpha: 0.2),
+                        ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -881,7 +1157,11 @@ class MeScreen extends GetView<MeController> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
-                          child: Icon(Icons.warning_rounded, color: AppColors.warning, size: 28),
+                          child: Icon(
+                            Icons.warning_rounded,
+                            color: AppColors.warning,
+                            size: 28,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -892,7 +1172,9 @@ class MeScreen extends GetView<MeController> {
                             Text(
                               'Dữ liệu chưa được đồng bộ',
                               style: AppTypography.titleSmall.copyWith(
-                                color: isDark ? Colors.white : AppColors.textPrimary,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -916,14 +1198,18 @@ class MeScreen extends GetView<MeController> {
                     child: HMButton(
                       text: 'Tạo tài khoản để backup',
                       onPressed: () => Get.toNamed(Routes.authRegister),
-                      icon: const Icon(Icons.cloud_upload_rounded, size: 18, color: Colors.white),
+                      icon: const Icon(
+                        Icons.cloud_upload_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ],
-          
+
           HMCard(
             padding: EdgeInsets.zero,
             child: Column(
@@ -934,7 +1220,10 @@ class MeScreen extends GetView<MeController> {
                     onTap: () => Get.toNamed(Routes.login),
                     borderRadius: BorderRadius.circular(16),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -989,7 +1278,10 @@ class MeScreen extends GetView<MeController> {
                 ] else ...[
                   // Logged in user - show email
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     child: Row(
                       children: [
                         Container(
@@ -1029,7 +1321,10 @@ class MeScreen extends GetView<MeController> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withAlpha(15),
                             borderRadius: BorderRadius.circular(8),
@@ -1037,7 +1332,11 @@ class MeScreen extends GetView<MeController> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                              Icon(
+                                Icons.check_circle,
+                                size: 14,
+                                color: AppColors.success,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'Đã xác thực',
@@ -1074,12 +1373,21 @@ class MeScreen extends GetView<MeController> {
             if (!isAnonymous) ...[
               InkWell(
                 onTap: controller.logout,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.logout, size: 22, color: AppColors.warning),
+                      const Icon(
+                        Icons.logout,
+                        size: 22,
+                        color: AppColors.warning,
+                      ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
@@ -1103,7 +1411,10 @@ class MeScreen extends GetView<MeController> {
                 bottom: const Radius.circular(16),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     const Icon(
@@ -1146,10 +1457,7 @@ class MeScreen extends GetView<MeController> {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.warning.withAlpha(100),
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.warning.withAlpha(100), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1231,6 +1539,125 @@ class MeScreen extends GetView<MeController> {
       '${S.appVersion} 2.4.0',
       style: AppTypography.bodySmall.copyWith(
         color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiary,
+      ),
+    );
+  }
+}
+
+/// Cache info tile with clear button
+class _CacheInfoTile extends StatefulWidget {
+  final bool isDark;
+
+  const _CacheInfoTile({required this.isDark});
+
+  @override
+  State<_CacheInfoTile> createState() => _CacheInfoTileState();
+}
+
+class _CacheInfoTileState extends State<_CacheInfoTile> {
+  String _audioCacheSize = 'Đang tính...';
+  bool _isClearing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCacheSize();
+  }
+
+  Future<void> _loadCacheSize() async {
+    try {
+      final audioService = Get.find<AudioService>();
+      final size = await audioService.getCacheSizeFormatted();
+      if (mounted) {
+        setState(() => _audioCacheSize = size);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _audioCacheSize = 'Không thể tính');
+      }
+    }
+  }
+
+  Future<void> _clearCache() async {
+    setState(() => _isClearing = true);
+
+    try {
+      final cacheService = Get.find<CacheService>();
+      await cacheService.clearAllCache();
+      await _loadCacheSize();
+      HMToast.success('Đã xóa bộ nhớ đệm');
+    } catch (e) {
+      HMToast.error('Không thể xóa bộ nhớ đệm');
+    }
+
+    if (mounted) {
+      setState(() => _isClearing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return HMCard(
+      padding: AppSpacing.cardInsets,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.storage_outlined,
+                size: 24,
+                color: widget.isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Audio Cache',
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: widget.isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _audioCacheSize,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: widget.isDark
+                            ? AppColors.textTertiaryDark
+                            : AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Cache giúp giảm dung lượng internet và tải nhanh hơn.',
+            style: AppTypography.bodySmall.copyWith(
+              color: widget.isDark
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: HMButton(
+              text: _isClearing ? 'Đang xóa...' : 'Xóa bộ nhớ đệm',
+              variant: HMButtonVariant.outline,
+              onPressed: _isClearing ? null : _clearCache,
+              isLoading: _isClearing,
+            ),
+          ),
+        ],
       ),
     );
   }

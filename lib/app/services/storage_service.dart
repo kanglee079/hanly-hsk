@@ -13,14 +13,15 @@ class StorageService {
   static const String _keyDailyPick = 'daily_pick';
   static const String _keyMagicLinkAttempts = 'magic_link_attempts';
   static const String _keyMagicLinkLastAttempt = 'magic_link_last_attempt';
-  static const String _keyLearnNewCompletedByDate = 'learn_new_completed_by_date';
+  static const String _keyLearnNewCompletedByDate =
+      'learn_new_completed_by_date';
   static const String _keyLearnNewVocabsByDate = 'learn_new_vocabs_by_date';
   static const String _keyGame30sHighScore = 'game30s_high_score';
   static const String _keyGame30sGamesPlayed = 'game30s_games_played';
   static const String _keyCompletedTutorials = 'completed_tutorials';
   static const String _keySoundEnabled = 'sound_enabled';
   static const String _keyHapticsEnabled = 'haptics_enabled';
-  
+
   // Anonymous-First flow keys
   static const String _keyDeviceId = 'device_id';
   static const String _keyIsAnonymous = 'is_anonymous';
@@ -31,6 +32,7 @@ class StorageService {
   static const String _keyUserGoals = 'user_goals';
   static const String _keyUserDailyMinutes = 'user_daily_minutes';
   static const String _keyUserDailyNewLimit = 'user_daily_new_limit';
+  static const String _keyAppLocale = 'app_locale';
 
   final GetStorage _box;
 
@@ -85,9 +87,9 @@ class StorageService {
       _box.read<bool>(_keyOnboardingComplete) ?? false;
   set isOnboardingComplete(bool value) =>
       _box.write(_keyOnboardingComplete, value);
-  
+
   // === Anonymous-First Flow ===
-  
+
   // Device ID (unique per device, persists across reinstalls)
   String? get deviceId => _box.read<String>(_keyDeviceId);
   set deviceId(String? value) {
@@ -97,19 +99,19 @@ class StorageService {
       _box.write(_keyDeviceId, value);
     }
   }
-  
+
   // Is user anonymous (not linked email)
   bool get isAnonymous => _box.read<bool>(_keyIsAnonymous) ?? true;
   set isAnonymous(bool value) => _box.write(_keyIsAnonymous, value);
-  
+
   // Has user seen intro slides
   bool get isIntroSeen => _box.read<bool>(_keyIsIntroSeen) ?? false;
   set isIntroSeen(bool value) => _box.write(_keyIsIntroSeen, value);
-  
+
   // Has user completed initial setup (name, level, goals)
   bool get isSetupComplete => _box.read<bool>(_keyIsSetupComplete) ?? false;
   set isSetupComplete(bool value) => _box.write(_keyIsSetupComplete, value);
-  
+
   // User display name (local)
   String? get userDisplayName => _box.read<String>(_keyUserDisplayName);
   set userDisplayName(String? value) {
@@ -119,7 +121,7 @@ class StorageService {
       _box.write(_keyUserDisplayName, value);
     }
   }
-  
+
   // User HSK level (local)
   String? get userLevel => _box.read<String>(_keyUserLevel);
   set userLevel(String? value) {
@@ -129,19 +131,21 @@ class StorageService {
       _box.write(_keyUserLevel, value);
     }
   }
-  
+
   // User learning goals (local)
   List<String> get userGoals {
     final data = _box.read<List<dynamic>>(_keyUserGoals);
     if (data == null) return [];
     return data.cast<String>();
   }
+
   set userGoals(List<String> value) => _box.write(_keyUserGoals, value);
-  
+
   // User daily minutes target (local) - DEPRECATED, use userDailyNewLimit
-  int get userDailyMinutes => _box.read<int>(_keyUserDailyMinutes) ?? userDailyNewLimit;
+  int get userDailyMinutes =>
+      _box.read<int>(_keyUserDailyMinutes) ?? userDailyNewLimit;
   set userDailyMinutes(int value) => _box.write(_keyUserDailyMinutes, value);
-  
+
   // User daily new word limit (local) - PRIMARY source
   // 1 word = 1 minute, so dailyMinutes = dailyNewLimit
   int get userDailyNewLimit => _box.read<int>(_keyUserDailyNewLimit) ?? 10;
@@ -154,6 +158,10 @@ class StorageService {
   // Theme mode: 'light', 'dark', 'system'
   String get themeMode => _box.read<String>(_keyThemeMode) ?? 'system';
   set themeMode(String value) => _box.write(_keyThemeMode, value);
+
+  // App locale: 'vi' (Vietnamese), 'en' (English)
+  String get appLocale => _box.read<String>(_keyAppLocale) ?? 'vi';
+  set appLocale(String value) => _box.write(_keyAppLocale, value);
 
   // Last email used (for dev mode magic link)
   String? get lastEmail => _box.read<String>(_keyLastEmail);
@@ -175,10 +183,7 @@ class StorageService {
   bool get hasCompleteProfile => user?.hasProfile ?? false;
 
   // Save auth tokens atomically
-  void saveTokens({
-    required String accessToken,
-    required String refreshToken,
-  }) {
+  void saveTokens({required String accessToken, required String refreshToken}) {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
   }
@@ -190,7 +195,7 @@ class StorageService {
     _box.remove(_keyUser);
     clearUserSpecificData();
   }
-  
+
   /// Clear only user-specific data (NOT tokens)
   /// Called when switching accounts to prevent cross-account data leakage
   void clearUserSpecificData() {
@@ -277,7 +282,7 @@ class StorageService {
   }
 
   // ===== Store full vocab data for củng cố (review today) =====
-  
+
   Map<String, dynamic> _readLearnNewVocabsMap() {
     final raw = _box.read<Map<String, dynamic>>(_keyLearnNewVocabsByDate);
     if (raw == null) return <String, dynamic>{};
@@ -287,11 +292,13 @@ class StorageService {
   /// Store full vocab JSON for củng cố later
   void addLearnNewVocab(String dateKey, Map<String, dynamic> vocabJson) {
     if (dateKey.isEmpty) return;
-    final vocabId = vocabJson['id'] as String? ?? vocabJson['_id'] as String? ?? '';
+    final vocabId =
+        vocabJson['id'] as String? ?? vocabJson['_id'] as String? ?? '';
     if (vocabId.isEmpty) return;
-    
+
     final map = _readLearnNewVocabsMap();
-    final vocabsRaw = map[dateKey] as Map<String, dynamic>? ?? <String, dynamic>{};
+    final vocabsRaw =
+        map[dateKey] as Map<String, dynamic>? ?? <String, dynamic>{};
     vocabsRaw[vocabId] = vocabJson;
     map[dateKey] = vocabsRaw;
     _box.write(_keyLearnNewVocabsByDate, map);
@@ -302,10 +309,8 @@ class StorageService {
     final map = _readLearnNewVocabsMap();
     final vocabsRaw = map[dateKey] as Map<String, dynamic>?;
     if (vocabsRaw == null) return const [];
-    
-    return vocabsRaw.values
-        .whereType<Map<String, dynamic>>()
-        .toList();
+
+    return vocabsRaw.values.whereType<Map<String, dynamic>>().toList();
   }
 
   /// Clear vocabs for a specific date
@@ -319,21 +324,23 @@ class StorageService {
   bool canSendMagicLink() {
     final attempts = _box.read<int>(_keyMagicLinkAttempts) ?? 0;
     final lastAttemptStr = _box.read<String>(_keyMagicLinkLastAttempt);
-    
+
     if (lastAttemptStr == null) return true;
-    
+
     final lastAttempt = DateTime.tryParse(lastAttemptStr);
     if (lastAttempt == null) return true;
-    
-    final windowEnd = lastAttempt.add(const Duration(minutes: _magicLinkWindowMinutes));
-    
+
+    final windowEnd = lastAttempt.add(
+      const Duration(minutes: _magicLinkWindowMinutes),
+    );
+
     // If window has passed, reset counter
     if (DateTime.now().isAfter(windowEnd)) {
       _box.remove(_keyMagicLinkAttempts);
       _box.remove(_keyMagicLinkLastAttempt);
       return true;
     }
-    
+
     // Check if under limit
     return attempts < _maxMagicLinkAttempts;
   }
@@ -342,13 +349,15 @@ class StorageService {
   int getMagicLinkCooldownSeconds() {
     final lastAttemptStr = _box.read<String>(_keyMagicLinkLastAttempt);
     if (lastAttemptStr == null) return 0;
-    
+
     final lastAttempt = DateTime.tryParse(lastAttemptStr);
     if (lastAttempt == null) return 0;
-    
-    final windowEnd = lastAttempt.add(const Duration(minutes: _magicLinkWindowMinutes));
+
+    final windowEnd = lastAttempt.add(
+      const Duration(minutes: _magicLinkWindowMinutes),
+    );
     final remaining = windowEnd.difference(DateTime.now()).inSeconds;
-    
+
     return remaining > 0 ? remaining : 0;
   }
 
@@ -356,21 +365,26 @@ class StorageService {
   void recordMagicLinkAttempt() {
     final attempts = _box.read<int>(_keyMagicLinkAttempts) ?? 0;
     final lastAttemptStr = _box.read<String>(_keyMagicLinkLastAttempt);
-    
+
     // Check if we need to start a new window
     if (lastAttemptStr != null) {
       final lastAttempt = DateTime.tryParse(lastAttemptStr);
       if (lastAttempt != null) {
-        final windowEnd = lastAttempt.add(const Duration(minutes: _magicLinkWindowMinutes));
+        final windowEnd = lastAttempt.add(
+          const Duration(minutes: _magicLinkWindowMinutes),
+        );
         if (DateTime.now().isAfter(windowEnd)) {
           // New window, reset counter
           _box.write(_keyMagicLinkAttempts, 1);
-          _box.write(_keyMagicLinkLastAttempt, DateTime.now().toIso8601String());
+          _box.write(
+            _keyMagicLinkLastAttempt,
+            DateTime.now().toIso8601String(),
+          );
           return;
         }
       }
     }
-    
+
     // Same window, increment counter
     _box.write(_keyMagicLinkAttempts, attempts + 1);
     if (lastAttemptStr == null) {

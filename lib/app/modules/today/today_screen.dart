@@ -964,8 +964,8 @@ class TodayScreen extends GetView<TodayController> {
   }
 
   Widget _buildQuickActionsRow(bool isDark) {
-    final data = controller.todayData.value;
-    final dueCount = data?.dueCount ?? 0;
+    // OFFLINE-FIRST: Use controller.dueCount which prefers local SQLite data
+    final dueCount = controller.dueCount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

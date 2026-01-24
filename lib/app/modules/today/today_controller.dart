@@ -7,6 +7,7 @@ import '../../data/repositories/progress_repo.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/next_action_engine.dart';
 import '../../services/storage_service.dart';
+import '../../services/local_today_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/hm_streak_bottom_sheet.dart';
@@ -31,6 +32,7 @@ class TodayController extends GetxController {
   final AuthSessionService _authService = Get.find<AuthSessionService>();
   final TodayStore _todayStore = Get.find<TodayStore>();
   final StorageService _storage = Get.find<StorageService>();
+  late final LocalTodayService _localTodayService;
 
   // Date key for local cache (yyyy-MM-dd)
   String get _todayKey => DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -55,9 +57,21 @@ class TodayController extends GetxController {
   // Reactive trigger for local cache updates (when returning from Practice)
   final RxInt localLearnedCount = 0.obs;
 
+  // OFFLINE-FIRST: Local review queue count (updated immediately after review)
+  final RxInt localDueCount = 0.obs;
+
   @override
   void onInit() {
     super.onInit();
+
+    // Initialize LocalTodayService for offline-first review queue
+    try {
+      _localTodayService = Get.find<LocalTodayService>();
+    } catch (_) {
+      // Fallback: register if not found
+      _localTodayService = Get.put(LocalTodayService());
+    }
+
     _updateDisplayName();
     _refreshLocalCacheCount();
     // OPTIMIZED: Only sync if no data yet (RealtimeSyncService handles regular sync)
@@ -83,6 +97,16 @@ class TodayController extends GetxController {
       _computeNextAction();
     });
 
+    // OFFLINE-FIRST: Listen to LocalTodayService for immediate review queue updates
+    ever(_localTodayService.today, (localToday) {
+      if (localToday != null) {
+        localDueCount.value = localToday.reviewQueue.length;
+        _computeNextAction();
+      }
+    });
+    // Initialize localDueCount from current local data
+    _refreshLocalDueCount();
+
     _computeNextAction();
   }
 
@@ -92,9 +116,18 @@ class TodayController extends GetxController {
     localLearnedCount.value = localIds.length;
   }
 
+  /// Refresh local due count from LocalTodayService
+  void _refreshLocalDueCount() {
+    final localToday = _localTodayService.today.value;
+    if (localToday != null) {
+      localDueCount.value = localToday.reviewQueue.length;
+    }
+  }
+
   /// Called when screen becomes visible again (from Practice)
   void onScreenVisible() {
     _refreshLocalCacheCount();
+    _refreshLocalDueCount();
     _computeNextAction();
   }
 
@@ -126,8 +159,9 @@ class TodayController extends GetxController {
     // Chọn max từ tất cả nguồn
     int actualLearnedCount = localCount;
     if (todayApiCount > actualLearnedCount) actualLearnedCount = todayApiCount;
-    if (learnedTodayApiCount > actualLearnedCount)
+    if (learnedTodayApiCount > actualLearnedCount) {
       actualLearnedCount = learnedTodayApiCount;
+    }
 
     // Use LOCAL STORAGE dailyNewLimit (user's choice) instead of API value
     // This ensures consistency with the displayed stats
@@ -167,6 +201,19 @@ class TodayController extends GetxController {
     }
 
     Get.toNamed(action.route, arguments: action.payload);
+  }
+
+  // ===== REVIEW QUEUE (OFFLINE-FIRST) =====
+
+  /// Get due count - PREFERS LOCAL DATA for immediate reactivity
+  /// After review, local SQLite is updated first, so this reflects changes immediately
+  int get dueCount {
+    // Local data is primary (updated immediately after review)
+    final localCount = localDueCount.value;
+    if (localCount > 0) return localCount;
+
+    // Fallback to server data
+    return todayData.value?.dueCount ?? 0;
   }
 
   // ===== FORECAST HELPERS =====
