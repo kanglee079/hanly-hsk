@@ -964,8 +964,16 @@ class TodayScreen extends GetView<TodayController> {
   }
 
   Widget _buildQuickActionsRow(bool isDark) {
-    // OFFLINE-FIRST: Use controller.dueCount which prefers local SQLite data
-    final dueCount = controller.dueCount;
+    // IMPORTANT: Must explicitly observe reactive values for Obx to work
+    // Reading these .value properties ensures Obx rebuilds when they change
+    final localCount = controller.localDueCount.value;
+    final hasLocal = controller.hasLocalData.value;
+    final serverCount = controller.todayData.value?.dueCount ?? 0;
+
+    // OFFLINE-FIRST: Once local data is initialized, ALWAYS use it
+    // Local is updated immediately after review, server may be stale
+    // hasLocal flag distinguishes "0 words due" from "not loaded yet"
+    final dueCount = hasLocal ? localCount : serverCount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

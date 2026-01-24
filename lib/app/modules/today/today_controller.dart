@@ -60,6 +60,9 @@ class TodayController extends GetxController {
   // OFFLINE-FIRST: Local review queue count (updated immediately after review)
   final RxInt localDueCount = 0.obs;
 
+  // Track if local data has been initialized (to distinguish 0 from "not loaded")
+  final RxBool hasLocalData = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -101,6 +104,7 @@ class TodayController extends GetxController {
     ever(_localTodayService.today, (localToday) {
       if (localToday != null) {
         localDueCount.value = localToday.reviewQueue.length;
+        hasLocalData.value = true; // Mark as initialized
         _computeNextAction();
       }
     });
@@ -121,6 +125,7 @@ class TodayController extends GetxController {
     final localToday = _localTodayService.today.value;
     if (localToday != null) {
       localDueCount.value = localToday.reviewQueue.length;
+      hasLocalData.value = true; // Mark as initialized
     }
   }
 
