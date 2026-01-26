@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/widgets.dart';
+import '../../services/dataset_sync_service.dart';
 import 'offline_download_controller.dart';
 
 class OfflineDownloadScreen extends GetView<OfflineDownloadController> {
@@ -79,6 +80,53 @@ class OfflineDownloadScreen extends GetView<OfflineDownloadController> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  Obx(() {
+                    final ds = controller.datasetSync;
+                    final version = ds.localVersion.value;
+                    final state = ds.state.value;
+                    final progress = (ds.progress.value * 100).clamp(0.0, 100.0);
+
+                    String statusText;
+                    if (state == DatasetSyncState.downloading) {
+                      statusText = 'Dang tai du lieu... ${progress.toStringAsFixed(0)}%';
+                    } else if (state == DatasetSyncState.applying) {
+                      statusText = 'Dang cap nhat du lieu...';
+                    } else if (state == DatasetSyncState.failed) {
+                      statusText = 'Khong the cap nhat du lieu';
+                    } else if (version == '0' || version.isEmpty) {
+                      statusText = 'Chua co du lieu offline';
+                    } else {
+                      statusText = 'Phien ban: $version';
+                    }
+
+                    return Column(
+                      children: [
+                        Text(
+                          statusText,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: Colors.white.withAlpha(200),
+                          ),
+                        ),
+                        if (state == DatasetSyncState.downloading) ...[
+                          const SizedBox(height: 8),
+                          LinearProgressIndicator(
+                            value: ds.progress.value,
+                            backgroundColor: Colors.white.withAlpha(30),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: controller.checkForUpdates,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Kiem tra cap nhat'),
+                        ),
+                      ],
+                    );
+                  }),
                 ],
               ),
             ),

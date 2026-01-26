@@ -4,11 +4,13 @@ import '../../services/auth_session_service.dart';
 import '../../routes/app_routes.dart';
 import '../../core/utils/logger.dart';
 import '../../data/network/api_client.dart';
+import '../../services/dataset_sync_service.dart';
 
 /// Splash controller - handles initialization and navigation
 class SplashController extends GetxController {
   late final StorageService _storage;
   late final ApiClient _apiClient;
+  late final DatasetSyncService _datasetSync;
 
   /// Loading progress (0.0 to 1.0)
   final RxDouble loadingProgress = 0.0.obs;
@@ -28,6 +30,7 @@ class SplashController extends GetxController {
     super.onInit();
     _storage = Get.find<StorageService>();
     _apiClient = Get.find<ApiClient>();
+    _datasetSync = Get.find<DatasetSyncService>();
     Logger.d('SplashController', 'onInit called');
   }
 
@@ -77,17 +80,20 @@ class SplashController extends GetxController {
       await _animateProgressTo(0.4);
       await _loadCachedData();
 
-      // Phase 3: Verify auth session (60%)
+      // Phase 3: Check dataset version + download if needed (60%)
+      await _syncDataset();
+
+      // Phase 4: Verify auth session (75%)
       loadingMessage.value = 'Đang xác thực...';
-      await _animateProgressTo(0.6);
+      await _animateProgressTo(0.75);
       await _verifyAuthSession();
 
-      // Phase 4: Prepare UI (80%)
+      // Phase 5: Prepare UI (90%)
       loadingMessage.value = 'Đang chuẩn bị giao diện...';
-      await _animateProgressTo(0.8);
+      await _animateProgressTo(0.9);
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // Phase 5: Complete (100%)
+      // Phase 6: Complete (100%)
       loadingMessage.value = 'Hoàn tất!';
       await _animateProgressTo(1.0);
       
@@ -153,6 +159,32 @@ class SplashController extends GetxController {
       }
     }
     await Future.delayed(const Duration(milliseconds: 200));
+  }
+
+  Future<void> _syncDataset() async {
+    loadingMessage.value = 'Đang kiểm tra bộ từ vựng...';
+    await _animateProgressTo(0.45);
+
+    final base = 0.45;
+    final range = 0.2;
+    final sub = ever<double>(_datasetSync.progress, (value) {
+      if (_datasetSync.state.value == DatasetSyncState.downloading) {
+        loadingProgress.value = base + (range * value.clamp(0.0, 1.0));
+      }
+    });
+
+    await _datasetSync.checkAndSync();
+    sub.dispose();
+
+    if (_datasetSync.state.value == DatasetSyncState.offline) {
+      loadingMessage.value = 'Đang dùng dữ liệu offline...';
+    } else if (_datasetSync.state.value == DatasetSyncState.failed) {
+      loadingMessage.value = 'Không thể cập nhật dữ liệu, tiếp tục offline...';
+    } else {
+      loadingMessage.value = 'Bộ từ vựng đã sẵn sàng';
+    }
+
+    await _animateProgressTo(base + range);
   }
 
   Future<void> _animateProgressTo(double target) async {

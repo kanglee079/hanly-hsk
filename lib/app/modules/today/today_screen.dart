@@ -55,6 +55,12 @@ class TodayScreen extends GetView<TodayController> {
                   // ===== HEADER COMPACT =====
                   _buildCompactHeader(isDark),
 
+                  const SizedBox(height: 8),
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: HMSyncStatusChip(),
+                  ),
+
                   const SizedBox(height: 12),
 
                   // ===== NÚT HỌC CHÍNH (CTA) =====

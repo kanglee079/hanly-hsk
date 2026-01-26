@@ -6,6 +6,8 @@ import 'package:sqflite/sqflite.dart';
 import '../core/utils/logger.dart';
 import '../data/local/database_service.dart';
 import '../data/local/vocab_local_datasource.dart';
+import '../data/local/progress_event_local_datasource.dart';
+import 'progress_sync_service.dart';
 
 /// SRS Rating from user
 enum SrsRating { again, hard, good, easy }
@@ -40,6 +42,8 @@ class SrsUpdateResult {
 class LocalProgressService extends GetxService {
   late DatabaseService _db;
   late VocabLocalDataSource _vocabLocal;
+  ProgressEventLocalDataSource? _eventStore;
+  ProgressSyncService? _syncService;
 
   // Event streams for reactive UI
   final _progressController = StreamController<SrsUpdateResult>.broadcast();
@@ -55,12 +59,24 @@ class LocalProgressService extends GetxService {
   DateTime? _sessionStart;
   int _sessionCorrect = 0;
   int _sessionTotal = 0;
+  int _sessionNewCount = 0;
+  int _sessionReviewCount = 0;
 
   @override
   void onInit() {
     super.onInit();
     _db = Get.find<DatabaseService>();
     _vocabLocal = Get.find<VocabLocalDataSource>();
+    try {
+      _eventStore = Get.find<ProgressEventLocalDataSource>();
+    } catch (_) {
+      _eventStore = null;
+    }
+    try {
+      _syncService = Get.find<ProgressSyncService>();
+    } catch (_) {
+      _syncService = null;
+    }
     _loadTodayStats();
   }
 
@@ -101,6 +117,8 @@ class LocalProgressService extends GetxService {
     _sessionStart = DateTime.now();
     _sessionCorrect = 0;
     _sessionTotal = 0;
+    _sessionNewCount = 0;
+    _sessionReviewCount = 0;
     Logger.d('LocalProgressService', '📚 Session started');
   }
 
@@ -147,14 +165,29 @@ class LocalProgressService extends GetxService {
     if (mode == 'learn' &&
         (currentProgress == null || currentProgress['state'] == 'new')) {
       newLearnedToday.value++;
+      _sessionNewCount++;
       await _saveDailyStat('new', newLearnedToday.value);
     } else {
       reviewedToday.value++;
+      _sessionReviewCount++;
       await _saveDailyStat('review', reviewedToday.value);
     }
 
     // Emit event for reactive UI
     _progressController.add(result);
+
+    // Queue sync event (batch sync, not immediate network call)
+    await _eventStore?.enqueueEvent(
+      eventType: 'review_answer',
+      payload: {
+        'vocabId': vocabId,
+        'rating': _ratingToString(rating),
+        'mode': mode,
+        'timeSpent': timeSpentMs,
+      },
+    );
+    _syncService?.scheduleSync();
+    await _syncService?.refreshPendingCount();
 
     Logger.d(
       'LocalProgressService',
@@ -190,12 +223,40 @@ class LocalProgressService extends GetxService {
 
     _sessionStart = null;
 
+    await queueSessionFinish(
+      minutes: minutes,
+      newCount: _sessionNewCount,
+      reviewCount: _sessionReviewCount,
+      accuracy: accuracy,
+    );
+
     return {
       'minutes': minutes,
-      'newCount': newLearnedToday.value,
-      'reviewCount': reviewedToday.value,
+      'newCount': _sessionNewCount,
+      'reviewCount': _sessionReviewCount,
       'accuracy': accuracy,
     };
+  }
+
+  Future<void> queueSessionFinish({
+    required int minutes,
+    required int newCount,
+    required int reviewCount,
+    required int accuracy,
+    String? dateKey,
+  }) async {
+    await _eventStore?.enqueueEvent(
+      eventType: 'session_finish',
+      payload: {
+        'minutes': minutes,
+        'newCount': newCount,
+        'reviewCount': reviewCount,
+        'accuracy': accuracy,
+        if (dateKey != null) 'dateKey': dateKey,
+      },
+    );
+    _syncService?.scheduleSync();
+    await _syncService?.refreshPendingCount();
   }
 
   /// Get current progress for a vocab
@@ -219,63 +280,74 @@ class LocalProgressService extends GetxService {
     required DateTime now,
   }) {
     double newEase = currentEase;
-    int newInterval;
+    int newInterval = currentInterval;
     int newReps = currentReps;
-    String newState;
+    String newState = currentState;
     bool isNewlyMastered = false;
 
     switch (rating) {
       case SrsRating.again:
-        // Reset progress
-        newReps = 0;
-        newInterval = 1; // Review tomorrow
         newEase = max(1.3, currentEase - 0.2);
+        newReps = 0;
+        newInterval = 1;
         newState = 'learning';
         break;
-
       case SrsRating.hard:
-        newReps++;
-        newInterval = max(1, (currentInterval * 1.2).round());
         newEase = max(1.3, currentEase - 0.15);
-        newState = currentInterval >= 21 ? 'review' : 'learning';
+        newReps = currentReps + 1;
         break;
-
       case SrsRating.good:
-        newReps++;
-        if (currentState == 'new') {
-          newInterval = 1; // First time: review tomorrow
-        } else if (currentInterval == 0) {
-          newInterval = 1;
-        } else if (currentInterval == 1) {
-          newInterval = 6;
-        } else {
-          newInterval = (currentInterval * currentEase).round();
-        }
-        newState = newInterval >= 21 ? 'review' : 'learning';
+        newEase = currentEase;
+        newReps = currentReps + 1;
         break;
-
       case SrsRating.easy:
-        newReps++;
-        newInterval = max(4, (currentInterval * currentEase * 1.3).round());
         newEase = currentEase + 0.15;
-        newState = 'review';
+        newReps = currentReps + 1;
         break;
     }
 
-    // Check for mastery (interval >= 30 days)
-    if (newInterval >= 30 && currentState != 'mastered') {
-      newState = 'mastered';
+    newEase = min(3.0, max(1.3, newEase));
+
+    if (rating != SrsRating.again) {
+      if (newReps == 1) {
+        newInterval = 1;
+        newState = 'learning';
+      } else if (newReps == 2) {
+        newInterval = 6;
+        newState = 'review';
+      } else {
+        double multiplier;
+        switch (rating) {
+          case SrsRating.hard:
+            multiplier = 1.2;
+            break;
+          case SrsRating.good:
+            multiplier = newEase;
+            break;
+          case SrsRating.easy:
+            multiplier = newEase * 1.3;
+            break;
+          case SrsRating.again:
+            multiplier = newEase;
+            break;
+        }
+        newInterval = (newInterval * multiplier).round();
+        newState = 'review';
+      }
+
+      newInterval = min(365, max(1, newInterval));
+
+      if (newInterval > 30 && newReps >= 5) {
+        newState = 'mastered';
+      }
+    }
+
+    if (newState == 'mastered' && currentState != 'mastered') {
       isNewlyMastered = true;
     }
 
-    // Cap interval at 365 days
-    newInterval = min(365, newInterval);
-
-    final dueDate = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).add(Duration(days: newInterval));
+    final dueDate = DateTime(now.year, now.month, now.day)
+        .add(Duration(days: newInterval));
 
     return SrsUpdateResult(
       vocabId: vocabId,
@@ -286,6 +358,19 @@ class LocalProgressService extends GetxService {
       dueDate: dueDate,
       isNewlyMastered: isNewlyMastered,
     );
+  }
+
+  String _ratingToString(SrsRating rating) {
+    switch (rating) {
+      case SrsRating.again:
+        return 'again';
+      case SrsRating.hard:
+        return 'hard';
+      case SrsRating.good:
+        return 'good';
+      case SrsRating.easy:
+        return 'easy';
+    }
   }
 
   /// Save daily stat to settings table

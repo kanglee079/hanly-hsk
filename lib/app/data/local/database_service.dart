@@ -11,10 +11,10 @@ import '../../core/utils/logger.dart';
 /// Implements offline-first strategy for vocabulary data
 class DatabaseService extends GetxService {
   static const String _dbName = 'hanly_vocab.db';
-  static const int _dbVersion = 1;
-  
-  // Dataset version for delta updates
-  static const String datasetVersion = '2026.01.18';
+  static const int _dbVersion = 2;
+
+  // Fallback version for bundled DB (if present)
+  static const String bundledDatasetVersion = '2026.01.18';
   
   Database? _database;
   
@@ -38,24 +38,28 @@ class DatabaseService extends GetxService {
     if (!dbExists) {
       Logger.i('DatabaseService', '📦 First launch - copying vocab database from assets...');
       await _copyDatabaseFromAssets(dbPath);
-    } else {
-      // Check if we need to update (version mismatch)
-      final needsUpdate = await _checkNeedsUpdate(dbPath);
-      if (needsUpdate) {
-        Logger.i('DatabaseService', '🔄 Dataset update available - updating...');
-        await File(dbPath).delete();
-        await _copyDatabaseFromAssets(dbPath);
-      }
     }
     
     // Open database
     _database = await openDatabase(
       dbPath,
       version: _dbVersion,
+      onCreate: (db, version) async {
+        await _createTables(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        await _createTables(db);
+        await _ensureProgressEventTables(db);
+      },
       onOpen: (db) {
         Logger.i('DatabaseService', '✅ Database opened: $dbPath');
       },
     );
+
+    // Ensure new tables exist (safe for older bundled DBs)
+    await _createTables(_database!);
+    await _ensureProgressEventTables(_database!);
+    await _ensureDatasetMetadata();
     
     // Log stats
     final count = Sqflite.firstIntValue(
@@ -165,34 +169,28 @@ class DatabaseService extends GetxService {
       )
     ''');
     
-    // Insert dataset version
-    await db.insert('settings', {
-      'key': 'dataset_version',
-      'value': datasetVersion,
-    });
-    
     Logger.i('DatabaseService', '✅ Database schema created');
   }
-  
-  /// Check if dataset needs update
-  Future<bool> _checkNeedsUpdate(String dbPath) async {
-    try {
-      final db = await openDatabase(dbPath, readOnly: true);
-      final result = await db.query(
-        'settings',
-        where: 'key = ?',
-        whereArgs: ['dataset_version'],
-      );
-      await db.close();
-      
-      if (result.isEmpty) return true;
-      
-      final currentVersion = result.first['value'] as String?;
-      return currentVersion != datasetVersion;
-    } catch (e) {
-      Logger.w('DatabaseService', 'Could not check version: $e');
-      return true;
-    }
+
+  Future<void> _ensureProgressEventTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS progress_events (
+        event_id TEXT PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        synced INTEGER DEFAULT 0,
+        attempts INTEGER DEFAULT 0,
+        next_retry_at TEXT,
+        last_error TEXT
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_progress_events_synced ON progress_events(synced)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_progress_events_retry ON progress_events(next_retry_at)',
+    );
   }
   
   /// Get current dataset version
@@ -204,11 +202,54 @@ class DatabaseService extends GetxService {
     );
     return result.isEmpty ? null : result.first['value'] as String?;
   }
+
+  Future<String?> getSetting(String key) async {
+    final result = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: [key],
+    );
+    return result.isEmpty ? null : result.first['value'] as String?;
+  }
+
+  Future<void> setSetting(String key, String value) async {
+    await db.insert(
+      'settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> _ensureDatasetMetadata() async {
+    final existing = await getSetting('dataset_version');
+    if (existing != null && existing.isNotEmpty) return;
+
+    final countResult = await _database!.rawQuery('SELECT COUNT(*) as count FROM vocabs');
+    final count = Sqflite.firstIntValue(countResult) ?? 0;
+    final fallback = count > 0 ? bundledDatasetVersion : '0';
+
+    await setSetting('dataset_version', fallback);
+    if (count > 0) {
+      await setSetting('dataset_downloaded_at', DateTime.now().toIso8601String());
+    }
+  }
   
   /// Close database
   Future<void> close() async {
     await _database?.close();
     _database = null;
+  }
+
+  /// Clear user-specific progress and sync queue
+  Future<void> clearUserProgress() async {
+    if (_database == null) return;
+    await _database!.delete('vocab_progress');
+    await _database!.delete('progress_events');
+    await _database!.delete(
+      'settings',
+      where: 'key LIKE ?',
+      whereArgs: ['daily_stats_%'],
+    );
   }
   
   @override

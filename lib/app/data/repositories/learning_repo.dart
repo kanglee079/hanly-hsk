@@ -183,6 +183,71 @@ class LearningRepo {
 
     return LearnedVocabsResponse.fromJson(data);
   }
+
+  /// Batch sync progress events (offline-first)
+  /// BE endpoint: POST /sync/progress
+  Future<ProgressSyncResponse> syncProgressBatch({
+    required List<Map<String, dynamic>> events,
+  }) async {
+    final response = await _api.post(
+      ApiEndpoints.syncProgress,
+      data: {'events': events},
+    );
+
+    final data = response.data;
+    if (data is Map<String, dynamic> && data['success'] == false) {
+      final error = data['error'] as Map<String, dynamic>?;
+      final message = error?['message'] as String? ?? 'Lỗi không xác định';
+      final code = error?['code'] as String?;
+      Logger.e('LearningRepo', 'syncProgressBatch failed: $message ($code)');
+      throw ApiException(message, code: code);
+    }
+
+    return ProgressSyncResponse.fromJson(data);
+  }
+}
+
+class ProgressSyncResponse {
+  final List<String> acked;
+  final List<ProgressSyncFailure> failed;
+  final String serverTime;
+
+  ProgressSyncResponse({
+    required this.acked,
+    required this.failed,
+    required this.serverTime,
+  });
+
+  factory ProgressSyncResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? json;
+    final acked = (data['acked'] as List<dynamic>? ?? []).cast<String>();
+    final failedRaw = data['failed'] as List<dynamic>? ?? [];
+    final failed = failedRaw
+        .map((e) => ProgressSyncFailure.fromJson(e as Map<String, dynamic>))
+        .toList();
+    return ProgressSyncResponse(
+      acked: acked,
+      failed: failed,
+      serverTime: data['serverTime'] as String? ?? '',
+    );
+  }
+}
+
+class ProgressSyncFailure {
+  final String eventId;
+  final String error;
+
+  ProgressSyncFailure({
+    required this.eventId,
+    required this.error,
+  });
+
+  factory ProgressSyncFailure.fromJson(Map<String, dynamic> json) {
+    return ProgressSyncFailure(
+      eventId: json['eventId'] as String? ?? '',
+      error: json['error'] as String? ?? '',
+    );
+  }
 }
 
 /// Response model for learned vocabs API

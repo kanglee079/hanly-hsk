@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../core/widgets/hm_toast.dart';
 import '../../core/utils/logger.dart';
+import '../../services/dataset_sync_service.dart';
 
 class OfflineBundleModel {
   final String level;
@@ -23,6 +24,7 @@ class OfflineDownloadController extends GetxController {
   final RxList<OfflineBundleModel> bundles = <OfflineBundleModel>[].obs;
   final RxBool isLoading = true.obs;
   final RxMap<String, double> downloadProgress = <String, double>{}.obs;
+  final DatasetSyncService _datasetSync = Get.find<DatasetSyncService>();
 
   @override
   void onInit() {
@@ -77,6 +79,12 @@ class OfflineDownloadController extends GetxController {
       ),
     ];
     isLoading.value = false;
+  }
+
+  DatasetSyncService get datasetSync => _datasetSync;
+
+  Future<void> checkForUpdates() async {
+    await _datasetSync.checkAndSync(force: true);
   }
 
   Future<void> downloadBundle(OfflineBundleModel bundle) async {

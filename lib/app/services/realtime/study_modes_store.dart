@@ -18,12 +18,12 @@ class StudyModesStore extends GetxService {
   void onInit() {
     super.onInit();
 
-    // OPTIMIZED: Reduced polling from 30s to 5 minutes
+    // OPTIMIZED: Reduced polling to 15 minutes (local is primary)
     // Study modes data rarely changes - only after completing sessions
     // Force sync is triggered after session completion anyway
     studyModes = RealtimeResource<StudyModesResponse>(
       key: 'studyModes',
-      interval: const Duration(minutes: 5),
+      interval: const Duration(minutes: 15),
       fetcher: () => _learningRepo.getStudyModes(),
       fingerprinter: (v) => jsonEncode(v.toJson()),
     );
@@ -34,5 +34,4 @@ class StudyModesStore extends GetxService {
     await _rt.syncNowKeys(const ['studyModes'], force: force);
   }
 }
-
 

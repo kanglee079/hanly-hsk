@@ -20,6 +20,7 @@ import 'app/data/repositories/favorites_repo.dart';
 import 'app/data/repositories/decks_repo.dart';
 import 'app/data/repositories/collections_repo.dart';
 import 'app/data/repositories/game_repo.dart';
+import 'app/data/repositories/dataset_repo.dart';
 import 'app/data/repositories/pronunciation_repo.dart';
 import 'app/data/repositories/dashboard_repo.dart';
 import 'app/data/repositories/progress_repo.dart';
@@ -33,8 +34,11 @@ import 'app/services/l10n_service.dart';
 import 'app/services/progress_sync_service.dart';
 import 'app/services/local_progress_service.dart';
 import 'app/services/local_today_service.dart';
+import 'app/services/dataset_sync_service.dart';
+import 'app/services/request_metrics_service.dart';
 import 'app/data/local/database_service.dart';
 import 'app/data/local/vocab_local_datasource.dart';
+import 'app/data/local/progress_event_local_datasource.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,7 +80,8 @@ Future<void> _initDependencies() async {
   Get.put(VocabLocalDataSource());
 
   // API Client
-  final apiClient = ApiClient();
+  final metrics = Get.put(RequestMetricsService());
+  final apiClient = ApiClient(metrics: metrics);
   Get.put(apiClient);
 
   // Repositories
@@ -88,6 +93,7 @@ Future<void> _initDependencies() async {
   Get.put(DecksRepo(apiClient));
   Get.put(CollectionsRepo(apiClient));
   Get.put(GameRepo(apiClient));
+  Get.put(DatasetRepo(apiClient));
   Get.put(PronunciationRepo(apiClient));
   Get.put(DashboardRepo(apiClient));
   Get.put(ProgressRepo(apiClient));
@@ -112,6 +118,9 @@ Future<void> _initDependencies() async {
   // Localization service (for language switching)
   Get.put(L10nService());
 
+  // Progress event queue (offline sync buffer)
+  Get.put(ProgressEventLocalDataSource());
+
   // Progress sync service (syncs local progress to backend)
   Get.put(ProgressSyncService());
 
@@ -120,6 +129,9 @@ Future<void> _initDependencies() async {
 
   // Local today service (builds TodayModel from SQLite - eliminates /today API calls)
   Get.put(LocalTodayService());
+
+  // Dataset sync service (version check + download)
+  Get.put(DatasetSyncService());
 
   // Deep Link Service (must be after AuthSessionService)
   await Get.putAsync<DeepLinkService>(() => DeepLinkService().init());

@@ -11,8 +11,8 @@ import '../../services/audio_service.dart';
 import '../../services/exercise_generator.dart';
 import '../../services/realtime/today_store.dart';
 import '../../services/storage_service.dart';
-import '../../services/realtime/realtime_sync_service.dart';
 import '../../services/local_progress_service.dart';
+import '../../services/local_today_service.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
 import '../../core/constants/toast_messages.dart';
@@ -45,12 +45,12 @@ enum PracticeState {
 
 /// Controller for practice/learning sessions
 class PracticeController extends GetxController {
-  final LearningRepo _learningRepo = Get.find<LearningRepo>();
+  LearningRepo? _learningRepo;
   final AudioService _audioService = Get.find<AudioService>();
   final ExerciseGenerator _exerciseGenerator = ExerciseGenerator();
   final StorageService _storage = Get.find<StorageService>();
-  final RealtimeSyncService _rt = Get.find<RealtimeSyncService>();
   late final LocalProgressService _localProgress;
+  late final LocalTodayService _localToday;
 
   // Local date key for caching learn-new completion (YYYY-MM-DD)
   final String _todayKey = _formatDateKey(DateTime.now());
@@ -74,6 +74,9 @@ class PracticeController extends GetxController {
   // Vocabulary
   final RxList<VocabModel> vocabs = <VocabModel>[].obs;
   final RxInt currentVocabIndex = 0.obs;
+
+  // Local rule: block new learning if review backlog is too large
+  static const int _maxReviewBeforeBlock = 50;
 
   // Exercises
   final RxList<Exercise> exercises = <Exercise>[].obs;
@@ -189,12 +192,21 @@ class PracticeController extends GetxController {
   void onInit() {
     super.onInit();
 
+    try {
+      _learningRepo = Get.find<LearningRepo>();
+    } catch (_) {
+      _learningRepo = null;
+    }
+
+    _localToday = Get.find<LocalTodayService>();
+
     // Initialize LocalProgressService for offline-first SRS updates
     try {
       _localProgress = Get.find<LocalProgressService>();
     } catch (_) {
       _localProgress = Get.put(LocalProgressService());
     }
+    _localProgress.startSession();
 
     _parseArguments();
     _initLearnNewLocalProgress();
@@ -336,14 +348,32 @@ class PracticeController extends GetxController {
     try {
       // Load vocabs if not provided
       if (vocabs.isEmpty) {
-        final today = await _learningRepo.getToday();
+        // LOCAL-FIRST: load from SQLite
+        await _localToday.refresh();
+        TodayModel? today = _localToday.today.value;
+
+        // Fallback to API if local not ready
+        if (today == null && _learningRepo != null) {
+          today = await _learningRepo!.getToday();
+        }
+
+        if (today == null) {
+          throw Exception('No local today data available');
+        }
 
         switch (mode) {
           case PracticeMode.learnNew:
             // 🚨 CHECK 1: API says new queue is LOCKED
-            if (today.isNewQueueLocked) {
+            final isReviewOverload =
+                today.reviewQueue.length > _maxReviewBeforeBlock;
+
+            if (today.isNewQueueLocked || isReviewOverload) {
               hasNoData.value = true;
-              if (today.isBlockedByReviewOverload) {
+              if (isReviewOverload) {
+                noDataMessage.value =
+                    '⚠️ Có ${today.reviewQueue.length} từ cần ôn tập!\n\n'
+                    'Hãy ôn tập để tiếp tục học từ mới.';
+              } else if (today.isBlockedByReviewOverload) {
                 final info = today.reviewOverloadInfo;
                 noDataMessage.value =
                     '⚠️ ${info?.message ?? "Có ${today.reviewQueue.length} từ cần ôn tập!"}\n\n'
@@ -1109,31 +1139,8 @@ class PracticeController extends GetxController {
         '✅ [LOCAL] Rating: ${rating.value}, vocab: ${vocab.hanzi}',
       );
 
-      // 2. BACKGROUND SYNC: Send to server (fire-and-forget)
-      unawaited(() async {
-        try {
-          await _learningRepo.submitReviewAnswer(
-            vocabId: vocab.id,
-            rating: rating,
-            mode: 'flashcard',
-            timeSpent: timeSpent,
-          );
-          Logger.d('PracticeController', '☁️ Rating synced to server');
-        } catch (e) {
-          Logger.e('PracticeController', 'Server sync failed', e);
-        }
-      }());
     } catch (e) {
       Logger.e('PracticeController', 'Local rating error', e);
-      // Fallback: try server directly if local fails
-      try {
-        await _learningRepo.submitReviewAnswer(
-          vocabId: vocab.id,
-          rating: rating,
-          mode: 'flashcard',
-          timeSpent: timeSpent,
-        );
-      } catch (_) {}
     }
 
     await nextExercise();
@@ -1193,28 +1200,15 @@ class PracticeController extends GetxController {
     );
 
     try {
-      // 1. Send data to BE
-      await _learningRepo.finishSession(result);
+      // LOCAL-FIRST: finalize session stats and queue sync event
+      await _localProgress.endSession();
+      await _localToday.refresh();
 
-      // 2. ⏳ WAIT for BE to commit transaction (Critical for sync)
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      // 3. Force sync fresh data from BE
-      await _rt.syncNowKeys(const [
-        'today',
-        'todayForecast',
-        'learnedToday',
-        'studyModes',
-      ], force: true);
-
-      // 4. Broadcast event to update UI immediately
       if (Get.isRegistered<TodayStore>()) {
         Get.find<TodayStore>().onLearnedUpdate.value++;
       }
     } catch (e) {
       Logger.e('PracticeController', 'Finish session error', e);
-      // Don't retry sync on error - it was already attempted in try block
-      // Avoid duplicate API calls
     }
   }
 
@@ -1263,12 +1257,10 @@ class PracticeController extends GetxController {
           'new=$sessionNewCount, review=$sessionReviewCount',
     );
 
-    // Fire and forget - don't block UI
-    _learningRepo
-        .finishSession(result)
-        .then((_) {
-          _rt.syncNowKeys(const ['today', 'todayForecast'], force: true);
-        })
+    // Fire and forget - local-first session save
+    _localProgress
+        .endSession()
+        .then((_) => _localToday.refresh())
         .catchError((e) {
           Logger.e('PracticeController', 'Failed to save partial session', e);
         });
@@ -1279,7 +1271,16 @@ class PracticeController extends GetxController {
     isLoading.value = true;
 
     try {
-      final today = await _learningRepo.getToday();
+      await _localToday.refresh();
+      TodayModel? today = _localToday.today.value;
+
+      if (today == null && _learningRepo != null) {
+        today = await _learningRepo!.getToday();
+      }
+
+      if (today == null) {
+        throw Exception('No local today data available');
+      }
 
       List<VocabModel> newVocabs = [];
       switch (mode) {
@@ -1475,29 +1476,7 @@ class PracticeController extends GetxController {
         });
 
     // 2. Sync to backend (fire-and-forget)
-    unawaited(
-      _learningRepo
-          .submitReviewAnswer(
-            vocabId: vocabId,
-            rating: rating,
-            mode: 'learn_new',
-            timeSpent: timeSpent,
-          )
-          .then((_) {
-            Logger.d(
-              'PracticeController',
-              '✅ LearnNew BACKEND synced: vocabId=$vocabId rating=${rating.value}',
-            );
-          })
-          .catchError((e) {
-            Logger.e(
-              'PracticeController',
-              '❌ LearnNew BACKEND sync error (vocabId=$vocabId)',
-              e,
-            );
-            // Local is already saved; backend sync can retry later
-          }),
-    );
+    // Backend sync is handled by ProgressSyncService batch queue
   }
 
   ReviewRating _mapRatioToRating(double ratio) {

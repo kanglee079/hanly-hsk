@@ -8,6 +8,7 @@ import '../../data/repositories/pronunciation_repo.dart';
 import '../../services/audio_service.dart';
 import '../../services/realtime/realtime_sync_service.dart';
 import '../../services/local_progress_service.dart';
+import '../../services/local_today_service.dart';
 import '../../core/utils/logger.dart';
 import '../../core/widgets/hm_toast.dart';
 import '../today/today_controller.dart';
@@ -19,10 +20,11 @@ enum SessionStep { guess, audio, hanziDna, context, pronunciation, quiz }
 
 /// Session controller - uses real BE API
 class SessionController extends GetxController {
-  final LearningRepo _learningRepo = Get.find<LearningRepo>();
+  LearningRepo? _learningRepo;
   final AudioService _audioService = Get.find<AudioService>();
   final RealtimeSyncService _rt = Get.find<RealtimeSyncService>();
   late LocalProgressService _localProgress;
+  late LocalTodayService _localToday;
   late PronunciationRepo _pronunciationRepo;
 
   late SessionMode sessionMode;
@@ -99,6 +101,14 @@ class SessionController extends GetxController {
     if (args?['words'] != null) {
       _preloadedWords = args!['words'] as List<VocabModel>;
     }
+
+    try {
+      _learningRepo = Get.find<LearningRepo>();
+    } catch (_) {
+      _learningRepo = null;
+    }
+
+    _localToday = Get.find<LocalTodayService>();
 
     // Initialize local progress service
     try {
@@ -229,7 +239,20 @@ class SessionController extends GetxController {
         return;
       }
 
-      final today = await _learningRepo.getToday();
+      // LOCAL-FIRST: build from SQLite
+      if (_localToday.today.value == null) {
+        await _localToday.refresh();
+      }
+      TodayModel? today = _localToday.today.value;
+
+      // Fallback to API if local not ready
+      if (today == null && _learningRepo != null) {
+        today = await _learningRepo!.getToday();
+      }
+
+      if (today == null) {
+        throw Exception('No local today data available');
+      }
 
       switch (sessionMode) {
         case SessionMode.newWords:
@@ -369,31 +392,6 @@ class SessionController extends GetxController {
     hasListenedAudio.value = false;
   }
 
-  /// Helper to sync review answer to server in background (fire-and-forget)
-  void _syncReviewToServer({
-    required String vocabId,
-    required ReviewRating rating,
-    required String mode,
-    required int timeSpent,
-    String? logMessage,
-  }) {
-    unawaited(() async {
-      try {
-        await _learningRepo.submitReviewAnswer(
-          vocabId: vocabId,
-          rating: rating,
-          mode: mode,
-          timeSpent: timeSpent,
-        );
-        if (logMessage != null) {
-          Logger.d('SessionController', logMessage);
-        }
-      } catch (e) {
-        Logger.e('SessionController', 'Sync failed', e);
-      }
-    }());
-  }
-
   /// Submit progress for new word (auto-rating based on quiz result)
   /// OFFLINE-FIRST: Updates local DB immediately, syncs in background
   Future<void> _submitNewWordProgress() async {
@@ -420,28 +418,12 @@ class SessionController extends GetxController {
         timeSpentMs: timeSpent,
       );
 
-      // BACKGROUND SYNC: Send to server without blocking UI
-      _syncReviewToServer(
-        vocabId: vocab.id,
-        rating: isAnswerCorrect.value ? ReviewRating.good : ReviewRating.hard,
-        mode: 'learn',
-        timeSpent: timeSpent,
-        logMessage: '☁️ New word synced: ${vocab.hanzi}',
-      );
-
       Logger.d(
         'SessionController',
         '✅ [LOCAL] New word: ${vocab.hanzi}, interval: ${result.newIntervalDays}d',
       );
     } catch (e) {
       Logger.e('SessionController', 'submitNewWordProgress error', e);
-      // If local fails, still try to sync to server
-      _syncReviewToServer(
-        vocabId: vocab.id,
-        rating: isAnswerCorrect.value ? ReviewRating.good : ReviewRating.hard,
-        mode: 'learn',
-        timeSpent: timeSpent,
-      );
     }
 
     _nextVocab();
@@ -763,15 +745,6 @@ class SessionController extends GetxController {
         timeSpentMs: timeSpent,
       );
 
-      // BACKGROUND SYNC: Send to server without blocking UI
-      _syncReviewToServer(
-        vocabId: vocab.id,
-        rating: rating,
-        mode: _getModeString(),
-        timeSpent: timeSpent,
-        logMessage: '☁️ Rating synced',
-      );
-
       // Show feedback briefly using local result
       showingRatingFeedback.value = true;
 
@@ -785,13 +758,6 @@ class SessionController extends GetxController {
       showingRatingFeedback.value = false;
     } catch (e) {
       Logger.e('SessionController', 'submitRating error', e);
-      // If local fails, still try to sync to server
-      _syncReviewToServer(
-        vocabId: vocab.id,
-        rating: rating,
-        mode: _getModeString(),
-        timeSpent: timeSpent,
-      );
     }
 
     _nextVocab();
@@ -867,24 +833,10 @@ class SessionController extends GetxController {
         '✅ [LOCAL] Session stats: ${localStats['minutes']}min, ${localStats['accuracy']}% accuracy',
       );
 
-      // BACKGROUND SYNC: Send to server without blocking
-      _learningRepo
-          .finishSession(result)
-          .then((_) {
-            Logger.d('SessionController', '☁️ Session synced to server');
-          })
-          .catchError((e) {
-            Logger.e('SessionController', 'Server sync failed (will retry)', e);
-          });
-
       // Refresh all relevant controllers
       await _refreshAllData();
     } catch (e) {
       Logger.e('SessionController', 'finishSession error', e);
-      // Fallback to API-only if local fails
-      try {
-        await _learningRepo.finishSession(result);
-      } catch (_) {}
       await _refreshAllData();
     }
   }
@@ -931,12 +883,10 @@ class SessionController extends GetxController {
       '[PARTIAL_SAVE] mode=$sessionMode, seconds=$seconds, minutes=${result.minutes}',
     );
 
-    // Fire and forget - don't block UI
-    _learningRepo
-        .finishSession(result)
-        .then((_) {
-          _refreshAllData();
-        })
+    // Fire and forget - local-first session save
+    _localProgress
+        .endSession()
+        .then((_) => _refreshAllData())
         .catchError((e) {
           Logger.e('SessionController', 'Failed to save partial session', e);
         });
@@ -958,8 +908,18 @@ class SessionController extends GetxController {
     isLoadingMore.value = true;
 
     try {
-      // Fetch fresh data from BE (should exclude already learned words)
-      final today = await _learningRepo.getToday();
+      // LOCAL-FIRST: refresh local queue
+      await _localToday.refresh();
+      TodayModel? today = _localToday.today.value;
+
+      // Fallback to API if local not ready
+      if (today == null && _learningRepo != null) {
+        today = await _learningRepo!.getToday();
+      }
+
+      if (today == null) {
+        throw Exception('No local today data available');
+      }
 
       List<VocabModel> newWords = [];
 

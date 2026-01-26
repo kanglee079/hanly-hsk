@@ -26,3 +26,4 @@ export 'hm_weekly_stats_sheet.dart';
 export 'hm_section_header.dart';
 export 'hm_tutorial_overlay.dart';
 export 'app_showcase_wrapper.dart';
+export 'hm_sync_status_chip.dart';

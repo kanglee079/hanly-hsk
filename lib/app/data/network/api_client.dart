@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../core/config/app_config.dart';
 import '../../core/utils/logger.dart';
+import '../../services/request_metrics_service.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/refresh_interceptor.dart';
 
@@ -10,7 +11,8 @@ class ApiClient {
 
   Dio get dio => _dio;
 
-  ApiClient() {
+  ApiClient({RequestMetricsService? metrics}) {
+
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.apiBaseUrl,
@@ -34,6 +36,18 @@ class ApiClient {
     // 3. Logging - logs requests/responses (last so it sees final state)
     _dio.interceptors.add(AuthInterceptor());
     _dio.interceptors.add(RefreshInterceptor(_dio));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          metrics?.recordRequest();
+          handler.next(options);
+        },
+        onError: (error, handler) {
+          metrics?.recordFailure();
+          handler.next(error);
+        },
+      ),
+    );
 
     // Add logging in debug mode
     if (AppConfig.enableLogging) {

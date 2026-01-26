@@ -45,12 +45,12 @@ class TodayStore extends GetxService {
       _dashboardRepo = null;
     }
 
-    // OPTIMIZED: Reduced polling from 15s to 5 minutes
+    // OPTIMIZED: Reduced polling to 15 minutes (local data is primary)
     // /today data changes rarely - only after learning sessions
     // Force sync is triggered after session completion anyway
     today = RealtimeResource<TodayModel>(
       key: 'today',
-      interval: const Duration(minutes: 5),
+      interval: const Duration(minutes: 15),
       fetcher: () => _learningRepo.getToday(),
       fingerprinter: (v) => jsonEncode(v.toJson()),
     );
@@ -60,7 +60,7 @@ class TodayStore extends GetxService {
       forecast = RealtimeResource<ForecastModel>(
         key: 'todayForecast',
         // Forecast changes slowly; keep interval conservative.
-        interval: const Duration(minutes: 5),
+        interval: const Duration(minutes: 15),
         fetcher: () => _dashboardRepo!.getForecast(days: 7),
         fingerprinter: (v) => jsonEncode(v.toJson()),
       );
@@ -68,8 +68,8 @@ class TodayStore extends GetxService {
 
       learnedToday = RealtimeResource<LearnedTodayModel>(
         key: 'learnedToday',
-        // Learned-today list may change after each session; poll moderately.
-        interval: const Duration(minutes: 2),
+        // Learned-today list may change after each session; poll conservatively.
+        interval: const Duration(minutes: 10),
         fetcher: () => _dashboardRepo!.getLearnedToday(),
         fingerprinter: (v) => jsonEncode(v.toJson()),
       );

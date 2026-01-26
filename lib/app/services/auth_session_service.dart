@@ -7,6 +7,7 @@ import '../data/repositories/auth_repo.dart';
 import '../data/repositories/me_repo.dart';
 import '../core/utils/logger.dart';
 import '../routes/app_routes.dart';
+import '../data/local/database_service.dart';
 import 'storage_service.dart';
 import 'realtime/realtime_sync_service.dart';
 import 'realtime/today_store.dart';
@@ -327,6 +328,10 @@ class AuthSessionService extends GetxService {
     currentUser.value = null;
     pending2FAUserId.value = '';
     pending2FAEmail.value = '';
+
+    try {
+      Get.find<DatabaseService>().clearUserProgress();
+    } catch (_) {}
     
     // Clear realtime sync cached data
     if (Get.isRegistered<RealtimeSyncService>()) {
@@ -536,6 +541,11 @@ class AuthSessionService extends GetxService {
     
     // 1. Clear user-specific data from local storage (NOT tokens - we'll save new ones)
     _storage.clearUserSpecificData();
+
+    // 1.5 Clear local progress + sync queue
+    try {
+      await Get.find<DatabaseService>().clearUserProgress();
+    } catch (_) {}
     
     // 2. Clear realtime sync cached data
     try {

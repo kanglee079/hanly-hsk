@@ -407,6 +407,52 @@ class VocabLocalDataSource {
     return result;
   }
 
+  /// Replace local vocab dataset from a remote payload
+  Future<void> replaceDataset({
+    required List<Map<String, dynamic>> vocabs,
+    required String version,
+    required String checksum,
+    required String updatedAt,
+  }) async {
+    if (vocabs.isEmpty) return;
+
+    await _db.db.transaction((txn) async {
+      await txn.delete('vocabs');
+
+      const batchSize = 400;
+      var batch = txn.batch();
+      var count = 0;
+
+      for (final vocab in vocabs) {
+        batch.insert(
+          'vocabs',
+          _mapRemoteVocabToRow(vocab),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        count++;
+        if (count % batchSize == 0) {
+          await batch.commit(noResult: true);
+          batch = txn.batch();
+        }
+      }
+
+      await batch.commit(noResult: true);
+    });
+
+    await _db.setSetting('dataset_version', version);
+    await _db.setSetting('dataset_checksum', checksum);
+    await _db.setSetting('dataset_updated_at', updatedAt);
+    await _db.setSetting(
+      'dataset_downloaded_at',
+      DateTime.now().toIso8601String(),
+    );
+
+    Logger.i(
+      'VocabLocalDataSource',
+      '📦 Dataset replaced: ${vocabs.length} items (v$version)',
+    );
+  }
+
   /// Convert database row to VocabModel
   VocabModel _rowToVocabModel(Map<String, dynamic> row) {
     // Parse JSON fields
@@ -465,5 +511,57 @@ class VocabLocalDataSource {
       isLocked: (row['is_locked'] as int?) == 1,
       progressState: row['progress_state'] as String?,
     );
+  }
+
+  Map<String, dynamic> _mapRemoteVocabToRow(Map<String, dynamic> vocab) {
+    final topics =
+        (vocab['topics'] as List<dynamic>?)?.cast<String>() ?? [];
+    final images =
+        (vocab['images'] as List<dynamic>?)?.cast<String>() ?? [];
+    final examplesRaw = vocab['examples'] as List<dynamic>? ?? [];
+    final collocations =
+        (vocab['collocations'] as List<dynamic>?)?.cast<String>() ?? [];
+    final components =
+        (vocab['components'] as List<dynamic>?)?.cast<String>() ?? [];
+
+    final examples = examplesRaw.map((e) {
+      final map = e as Map;
+      return {
+        'hanzi': map['cn']?.toString() ?? '',
+        'pinyin': map['pinyin']?.toString(),
+        'meaningVi': map['vi']?.toString() ?? '',
+        'audioUrl': map['audio_url']?.toString() ?? map['audioUrl']?.toString(),
+      };
+    }).toList();
+
+    return {
+      'id': (vocab['id'] ?? vocab['_id'] ?? '').toString(),
+      'word': vocab['word'] as String? ?? '',
+      'pinyin': vocab['pinyin'] as String? ?? '',
+      'meaning_vi': vocab['meaning_vi'] as String? ?? '',
+      'meaning_en': vocab['meaning_en'] as String? ?? '',
+      'level': _normalizeLevel(vocab['level']),
+      'order_in_level': vocab['order_in_level'] as int? ?? 0,
+      'topic': topics.isNotEmpty ? topics.first : null,
+      'word_type': vocab['word_type'] as String?,
+      'frequency_rank': vocab['frequency_rank'] as int? ?? 0,
+      'difficulty': vocab['difficulty_score'] as int? ?? 3,
+      'audio_url': vocab['audio_url'] as String?,
+      'image_url': images.isNotEmpty ? images.first : null,
+      'examples': jsonEncode(examples),
+      'collocations': jsonEncode(collocations),
+      'radicals': vocab['radical'] as String?,
+      'components': jsonEncode(components),
+      'stroke_count': vocab['stroke_count'] as int?,
+      'mnemonic': vocab['mnemonic'] as String?,
+      'created_at': vocab['createdAt']?.toString(),
+      'updated_at': vocab['updatedAt']?.toString(),
+    };
+  }
+
+  String _normalizeLevel(dynamic level) {
+    if (level is String) return level;
+    if (level is int) return 'HSK$level';
+    return 'HSK1';
   }
 }

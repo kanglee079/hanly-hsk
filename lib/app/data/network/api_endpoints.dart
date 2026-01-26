@@ -59,6 +59,7 @@ class ApiEndpoints {
   static const String today = '/today';
   static const String reviewAnswer = '/review/answer';
   static const String sessionFinish = '/session/finish';
+  static const String syncProgress = '/sync/progress';
 
   // Dashboard (aggregated endpoint)
   static const String dashboard = '/dashboard';
@@ -107,6 +108,8 @@ class ApiEndpoints {
   static String offlineBundle(String level) => '/offline/bundle/$level';
   static const String offlineTopics = '/offline/topics';
   static const String offlineDownloads = '/offline/downloads';
+  static const String offlineDatasetMeta = '/offline/dataset/meta';
+  static const String offlineDataset = '/offline/dataset';
 
   // Donations (replaced Premium)
   static const String donationOptions = '/donations/options';
