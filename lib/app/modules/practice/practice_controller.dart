@@ -1442,6 +1442,7 @@ class PracticeController extends GetxController {
   }
 
   /// Submit learn new progress in background (fire-and-forget)
+  /// OFFLINE-FIRST: Update local SQLite first, then sync to backend
   void _submitLearnNewProgressInBackground(String vocabId) {
     final total = _learnNewTotalByVocab[vocabId] ?? 0;
     final correct = _learnNewCorrectByVocab[vocabId] ?? 0;
@@ -1449,28 +1450,54 @@ class PracticeController extends GetxController {
     final rating = _mapRatioToRating(ratio);
     final timeSpent = _learnNewTimeSpentMsByVocab[vocabId] ?? 3000;
 
-    // Run in background without blocking UI
-    _learningRepo
-        .submitReviewAnswer(
+    // 1. LOCAL-FIRST: Update SQLite with dueDate
+    // This ensures the word appears in review queue tomorrow
+    _localProgress
+        .recordAnswer(
           vocabId: vocabId,
-          rating: rating,
-          mode: 'learn_new',
-          timeSpent: timeSpent,
+          rating: _reviewRatingToSrsRating(rating),
+          mode: 'learn',
+          timeSpentMs: timeSpent,
         )
-        .then((_) {
+        .then((result) {
           Logger.d(
             'PracticeController',
-            '✅ LearnNew progress submitted: vocabId=$vocabId rating=${rating.value} ratio=${ratio.toStringAsFixed(2)}',
+            '✅ LearnNew LOCAL saved: vocabId=$vocabId, '
+                'state=${result.newState}, dueDate=${result.dueDate.toIso8601String().substring(0, 10)}',
           );
         })
         .catchError((e) {
           Logger.e(
             'PracticeController',
-            '❌ LearnNew submit progress error (vocabId=$vocabId)',
+            '❌ LearnNew LOCAL save error (vocabId=$vocabId)',
             e,
           );
-          // Do not block user flow; local cache prevents repeats.
         });
+
+    // 2. Sync to backend (fire-and-forget)
+    unawaited(
+      _learningRepo
+          .submitReviewAnswer(
+            vocabId: vocabId,
+            rating: rating,
+            mode: 'learn_new',
+            timeSpent: timeSpent,
+          )
+          .then((_) {
+            Logger.d(
+              'PracticeController',
+              '✅ LearnNew BACKEND synced: vocabId=$vocabId rating=${rating.value}',
+            );
+          })
+          .catchError((e) {
+            Logger.e(
+              'PracticeController',
+              '❌ LearnNew BACKEND sync error (vocabId=$vocabId)',
+              e,
+            );
+            // Local is already saved; backend sync can retry later
+          }),
+    );
   }
 
   ReviewRating _mapRatioToRating(double ratio) {
